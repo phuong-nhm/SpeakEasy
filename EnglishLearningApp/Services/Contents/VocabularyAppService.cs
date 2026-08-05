@@ -4,6 +4,8 @@ using System.Linq;
 using System.Threading.Tasks;
 using EnglishLearningApp.Dtos.Contents;
 using EnglishLearningApp.Entities;
+using EnglishLearningApp.Entities.Content;
+using EnglishLearningApp.Services;
 using Volo.Abp.Domain.Repositories;
 
 namespace EnglishLearningApp.AppServices.Contents

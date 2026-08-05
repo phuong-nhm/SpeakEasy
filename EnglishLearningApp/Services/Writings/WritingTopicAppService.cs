@@ -3,6 +3,8 @@ using System.Linq;
 using System.Threading.Tasks;
 using EnglishLearningApp.Dtos.Writings;
 using EnglishLearningApp.Entities;
+using EnglishLearningApp.Entities.Writing;
+using EnglishLearningApp.Services;
 using Volo.Abp;
 using Volo.Abp.Domain.Repositories;
 

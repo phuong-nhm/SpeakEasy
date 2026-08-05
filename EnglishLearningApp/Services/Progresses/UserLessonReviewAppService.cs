@@ -4,6 +4,9 @@ using System.Linq;
 using System.Threading.Tasks;
 using EnglishLearningApp.Dtos.Progresses;
 using EnglishLearningApp.Entities;
+using EnglishLearningApp.Entities.Content;
+using EnglishLearningApp.Entities.Progress;
+using EnglishLearningApp.Services;
 using Microsoft.AspNetCore.Authorization;
 using Volo.Abp.Domain.Repositories;
 using Volo.Abp.Users;
@@ -43,13 +46,11 @@ namespace EnglishLearningApp.AppServices.Progresses
             var userId = _currentUser.GetId();
 
             await _reviewRepo.InsertAsync(new UserLessonReview
-            {
-                UserId = userId,
-                LessonId = lessonId,
-                CurrentIntervalStage = 0,
-                NextReviewTime = DateTime.Now.Add(IntervalStages[0]),
-                IsCompletedAllStages = false
-            });
+            (
+                GuidGenerator.Create(),
+                userId,
+                lessonId
+            ));
         }
 
         public async Task<DueReviewSummaryDto> GetDueReviewsAsync()

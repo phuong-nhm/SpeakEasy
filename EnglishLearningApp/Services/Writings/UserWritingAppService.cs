@@ -5,6 +5,8 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using EnglishLearningApp.Dtos.Writings;
 using EnglishLearningApp.Entities;
+using EnglishLearningApp.Entities.Writing;
+using EnglishLearningApp.Services;
 using Microsoft.AspNetCore.Authorization;
 using Volo.Abp.Domain.Repositories;
 using Volo.Abp.Users;
@@ -35,13 +37,13 @@ namespace EnglishLearningApp.AppServices.Writings
             var feedbackJson = await _geminiGradingService.GradeWritingAsync(input.UserContent);
 
             var writing = new UserWriting
-            {
-                UserId = userId,
-                TopicId = input.TopicId,
-                UserContent = input.UserContent,
-                AiFeedbackJson = feedbackJson
-            };
-
+            (
+                GuidGenerator.Create(),
+                userId,
+                input.TopicId,
+                input.UserContent,
+                feedbackJson
+            );
             await _writingRepo.InsertAsync(writing);
 
             return MapWithFeedback(writing);

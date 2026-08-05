@@ -14,11 +14,12 @@ namespace EnglishLearningApp.Entities.Writing
 
         protected UserWriting() { }
 
-        public UserWriting(Guid id, Guid userId, Guid topicId, string userContent) : base(id)
+        public UserWriting(Guid id, Guid userId, Guid topicId, string userContent, string aiFeedbackJson) : base(id)
         {
             UserId = userId;
             TopicId = topicId;
             UserContent = userContent;
+            AiFeedbackJson = aiFeedbackJson;
         }
     }
 }

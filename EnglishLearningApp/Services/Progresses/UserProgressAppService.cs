@@ -2,6 +2,9 @@ using System;
 using System.Linq;
 using System.Threading.Tasks;
 using EnglishLearningApp.Entities;
+using EnglishLearningApp.Entities.Content;
+using EnglishLearningApp.Entities.Progress;
+using EnglishLearningApp.Services;
 using Microsoft.AspNetCore.Authorization;
 using Volo.Abp.Domain.Repositories;
 using Volo.Abp.Users;
@@ -42,12 +45,11 @@ namespace EnglishLearningApp.AppServices.Progresses
             else
             {
                 await _progressRepo.InsertAsync(new UserProgress
-                {
-                    UserId = userId,
-                    LessonId = lessonId,
-                    IsCompleted = true,
-                    CompletedAt = DateTime.Now
-                });
+                (
+                    GuidGenerator.Create(),
+                    userId,
+                    lessonId
+                ));
             }
         }
 
