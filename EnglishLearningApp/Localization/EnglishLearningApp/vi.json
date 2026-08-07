@@ -1,9 +1,18 @@
 {
   "culture": "vi",
-  "texts": {
-    "AppName": "EnglishLearningApp",
-    "Welcome_Title": "Chào mừng bạn",
-    "Welcome_Text": "Đây là một mẫu khởi động ứng dụng lớp đơn, tối giản cho ABP Framework.",
-    "Menu:Home": "Trang chủ"
-  }
+    "texts": {
+        "AppName": "EnglishLearningApp",
+        "Welcome_Title": "Chào mừng bạn",
+        "Welcome_Text": "Đây là một mẫu khởi động ứng dụng lớp đơn, tối giản cho ABP Framework.",
+        "Menu:Home": "Trang chủ",
+        "TopicNotAvailable": "Đề bài này hiện không khả dụng.",
+        "YouCannotAccessThisWriting": "Bạn không có quyền xem bài viết này.",
+        "NotEnoughVocabularyForMatchingGame": "Không đủ từ vựng để tạo trò chơi nối từ.",
+        "Permission:EnglishLearningApp": "Web học tiếng Anh",
+        "Permission:ContentManagement": "Quản lý nội dung",
+        "Permission:Create": "Tạo mới",
+        "Permission:Update": "Cập nhật",
+        "Permission:Delete": "Xoá",
+        "InvalidQuestionType": "Loại câu hỏi không hợp lệ."
+    }
 }

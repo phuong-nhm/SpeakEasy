@@ -1,11 +1,13 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 using EnglishLearningApp.Dtos.Contents;
 using EnglishLearningApp.Entities;
 using EnglishLearningApp.Entities.Content;
 using EnglishLearningApp.Services;
+using Microsoft.AspNetCore.Authorization;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using Volo.Abp;
 using Volo.Abp.Domain.Repositories;
 
 namespace EnglishLearningApp.AppServices.Contents
@@ -25,7 +27,7 @@ namespace EnglishLearningApp.AppServices.Contents
             _vocabRepo = vocabRepo;
             _sentenceRepo = sentenceRepo;
         }
-
+        [Authorize]
         public async Task<List<CheckpointQuestionDto>> GetCheckpointQuestionsAsync(Guid chapterId, int count)
         {
             var lessonQueryable = await _lessonRepo.GetQueryableAsync();
@@ -80,5 +82,6 @@ namespace EnglishLearningApp.AppServices.Contents
 
             return allQuestions.OrderBy(_ => random.Next()).Take(count).ToList();
         }
+
     }
 }

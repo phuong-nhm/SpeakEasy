@@ -1,11 +1,13 @@
+using EnglishLearningApp.Dtos.Contents;
+using EnglishLearningApp.Entities;
+using EnglishLearningApp.Entities.Content;
+using EnglishLearningApp.Permissions;
+using EnglishLearningApp.Services;
+using Microsoft.AspNetCore.Authorization;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using EnglishLearningApp.Dtos.Contents;
-using EnglishLearningApp.Entities;
-using EnglishLearningApp.Entities.Content;
-using EnglishLearningApp.Services;
 using Volo.Abp.Domain.Repositories;
 
 namespace EnglishLearningApp.AppServices.Contents
@@ -18,7 +20,7 @@ namespace EnglishLearningApp.AppServices.Contents
         {
             _vocabRepo = vocabRepo;
         }
-
+        [AllowAnonymous]
         public async Task<List<VocabularyDto>> GetListByLessonAsync(Guid lessonId)
         {
             var queryable = await _vocabRepo.GetQueryableAsync();
@@ -28,6 +30,7 @@ namespace EnglishLearningApp.AppServices.Contents
         }
 
         // Trả về từng câu quiz trắc nghiệm 2 lựa chọn, đã trộn ngẫu nhiên vị trí đúng/sai
+        [Authorize]
         public async Task<List<VocabularyQuizDto>> GetQuizBatchAsync(Guid lessonId)
         {
             var queryable = await _vocabRepo.GetQueryableAsync();
@@ -53,14 +56,14 @@ namespace EnglishLearningApp.AppServices.Contents
 
             return result;
         }
-
+        [Authorize(EnglishLearningAppPermissions.ContentManagement.Create)]
         public async Task<VocabularyDto> CreateAsync(CreateUpdateVocabularyDto input)
         {
             var vocab = ObjectMapper.Map<CreateUpdateVocabularyDto, Vocabulary>(input);
             await _vocabRepo.InsertAsync(vocab);
             return ObjectMapper.Map<Vocabulary, VocabularyDto>(vocab);
         }
-
+        [Authorize(EnglishLearningAppPermissions.ContentManagement.Update)]
         public async Task<VocabularyDto> UpdateAsync(Guid id, CreateUpdateVocabularyDto input)
         {
             var vocab = await _vocabRepo.GetAsync(id);
@@ -68,7 +71,7 @@ namespace EnglishLearningApp.AppServices.Contents
             await _vocabRepo.UpdateAsync(vocab);
             return ObjectMapper.Map<Vocabulary, VocabularyDto>(vocab);
         }
-
+        [Authorize(EnglishLearningAppPermissions.ContentManagement.Delete)]
         public async Task DeleteAsync(Guid id)
         {
             await _vocabRepo.DeleteAsync(id);

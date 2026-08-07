@@ -147,12 +147,11 @@ public class EnglishLearningAppModule : AbpModule
     {
         var hostingEnvironment = context.Services.GetHostingEnvironment();
         var configuration = context.Services.GetConfiguration();
-
+        context.Services.AddHttpClient();
         if (hostingEnvironment.IsDevelopment())
         {
             context.Services.Replace(ServiceDescriptor.Singleton<IEmailSender, NullEmailSender>());
         }
-
         ConfigureAuthentication(context);
         ConfigureBundles();
         ConfigureMultiTenancy();

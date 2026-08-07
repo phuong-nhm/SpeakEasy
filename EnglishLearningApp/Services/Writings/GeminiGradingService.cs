@@ -12,7 +12,7 @@ using Volo.Abp.DependencyInjection;
 namespace EnglishLearningApp.AppServices.Writings
 {
 
-    public class GeminiGradingService : EnglishLearningAppAppService, IGeminiGradingService, ITransientDependency
+    public class GeminiGradingService :  IGeminiGradingService, ITransientDependency
     {
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly IConfiguration _configuration;

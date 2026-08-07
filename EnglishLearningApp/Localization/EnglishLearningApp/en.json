@@ -1,9 +1,18 @@
 {
   "culture": "en",
-  "texts": {
-    "AppName": "EnglishLearningApp",
-    "Welcome_Title": "Welcome",
-    "Welcome_Text": "This is a minimalist, single layer application startup template for the ABP Framework.",
-    "Menu:Home": "Home"
-  }
+    "texts": {
+        "AppName": "EnglishLearningApp",
+        "Welcome_Title": "Welcome",
+        "Welcome_Text": "This is a minimalist, single layer application startup template for the ABP Framework.",
+        "Menu:Home": "Home",
+        "TopicNotAvailable": "This topic is not available.",
+        "YouCannotAccessThisWriting": "You don't have permission to view this writing.",
+        "NotEnoughVocabularyForMatchingGame": "Not enough vocabulary to create a matching game.",
+        "Permission:EnglishLearningApp": "English Learning App",
+        "Permission:ContentManagement": "Content Management",
+        "Permission:Create": "Create",
+        "Permission:Update": "Update",
+        "Permission:Delete": "Delete",
+        "InvalidQuestionType": "Invalid question type."
+    }
 }

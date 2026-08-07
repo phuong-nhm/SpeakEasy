@@ -50,7 +50,7 @@ namespace EnglishLearningApp.AppServices.Contents
         public async Task<MatchingGameDto> GetGameForSummaryAsync(Guid currentLessonId)
         {
             var userId = _currentUser.GetId();
-            var now = DateTime.Now;
+            var now = DateTime.UtcNow;
 
             // Quét ngầm: có bài cũ nào đến hạn ôn tập không (không đụng/update gì vào UserLessonReview)
             var reviewQueryable = await _reviewRepo.GetQueryableAsync();
@@ -99,6 +99,10 @@ namespace EnglishLearningApp.AppServices.Contents
         // (vì Word và Meaning của cùng 1 Vocabulary luôn dùng chung 1 Id)
         public Task<bool> CheckAnswerAsync(CheckMatchingAnswerDto input)
         {
+            if (input.UserPairs == null || !input.UserPairs.Any())
+            {
+                return Task.FromResult(false);
+            }
             var allCorrect = input.UserPairs.All(p => p.WordVocabularyId == p.MeaningVocabularyId);
             return Task.FromResult(allCorrect);
         }

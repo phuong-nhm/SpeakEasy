@@ -137,7 +137,7 @@ public class OpenIddictDataSeedContributor : IDataSeedContributor, ITransientDep
 
         if (string.IsNullOrEmpty(secret) && string.Equals(type, OpenIddictConstants.ClientTypes.Confidential, StringComparison.OrdinalIgnoreCase))
         {
-            throw new BusinessException(L["TheClientSecretIsRequiredForConfidentialApplications"]);
+            throw new BusinessException(L["TheClientSecretIsRequiredForpasswordApplications"]);
         }
 
         if (!string.IsNullOrEmpty(name) && await _applicationManager.FindByClientIdAsync(name) != null)

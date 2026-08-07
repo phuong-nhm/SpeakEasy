@@ -1,10 +1,12 @@
-using System;
-using System.Linq;
-using System.Threading.Tasks;
 using EnglishLearningApp.Dtos.Writings;
 using EnglishLearningApp.Entities;
 using EnglishLearningApp.Entities.Writing;
+using EnglishLearningApp.Permissions;
 using EnglishLearningApp.Services;
+using Microsoft.AspNetCore.Authorization;
+using System;
+using System.Linq;
+using System.Threading.Tasks;
 using Volo.Abp;
 using Volo.Abp.Domain.Repositories;
 
@@ -18,6 +20,7 @@ namespace EnglishLearningApp.AppServices.Writings
         {
             _topicRepo = topicRepo;
         }
+        [AllowAnonymous]
 
         public async Task<WritingTopicDto> GetAvailableTopicAsync(Guid chapterId, WritingTopicType topicType)
         {
@@ -33,6 +36,7 @@ namespace EnglishLearningApp.AppServices.Writings
 
             return ObjectMapper.Map<WritingTopic, WritingTopicDto>(topic);
         }
+        [Authorize(EnglishLearningAppPermissions.ContentManagement.Create)]
 
         public async Task<WritingTopicDto> CreateAsync(CreateUpdateWritingTopicDto input)
         {
@@ -40,7 +44,7 @@ namespace EnglishLearningApp.AppServices.Writings
             await _topicRepo.InsertAsync(topic);
             return ObjectMapper.Map<WritingTopic, WritingTopicDto>(topic);
         }
-
+        [Authorize(EnglishLearningAppPermissions.ContentManagement.Update)]
         public async Task<WritingTopicDto> UpdateAsync(Guid id, CreateUpdateWritingTopicDto input)
         {
             var topic = await _topicRepo.GetAsync(id);
@@ -48,7 +52,7 @@ namespace EnglishLearningApp.AppServices.Writings
             await _topicRepo.UpdateAsync(topic);
             return ObjectMapper.Map<WritingTopic, WritingTopicDto>(topic);
         }
-
+        [Authorize(EnglishLearningAppPermissions.ContentManagement.Delete)]
         public async Task DeleteAsync(Guid id)
         {
             await _topicRepo.DeleteAsync(id);

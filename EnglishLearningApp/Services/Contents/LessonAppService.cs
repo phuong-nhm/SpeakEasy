@@ -1,11 +1,13 @@
+using EnglishLearningApp.Dtos.Contents;
+using EnglishLearningApp.Entities;
+using EnglishLearningApp.Entities.Content;
+using EnglishLearningApp.Permissions;
+using EnglishLearningApp.Services;
+using Microsoft.AspNetCore.Authorization;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using EnglishLearningApp.Dtos.Contents;
-using EnglishLearningApp.Entities;
-using EnglishLearningApp.Entities.Content;
-using EnglishLearningApp.Services;
 using Volo.Abp.Domain.Repositories;
 
 namespace EnglishLearningApp.AppServices.Contents
@@ -25,7 +27,7 @@ namespace EnglishLearningApp.AppServices.Contents
             _vocabRepo = vocabRepo;
             _sentenceRepo = sentenceRepo;
         }
-
+        [AllowAnonymous]
         public async Task<List<LessonDto>> GetListByChapterAsync(Guid chapterId)
         {
             var queryable = await _lessonRepo.GetQueryableAsync();
@@ -36,13 +38,13 @@ namespace EnglishLearningApp.AppServices.Contents
             var lessons = await AsyncExecuter.ToListAsync(query);
             return ObjectMapper.Map<List<Lesson>, List<LessonDto>>(lessons);
         }
-
+        [AllowAnonymous]
         public async Task<LessonDto> GetAsync(Guid id)
         {
             var lesson = await _lessonRepo.GetAsync(id);
             return ObjectMapper.Map<Lesson, LessonDto>(lesson);
         }
-
+        [AllowAnonymous]
         public async Task<LessonContentDto> GetLessonContentAsync(Guid lessonId)
         {
             var lesson = await _lessonRepo.GetAsync(lessonId);
@@ -62,14 +64,14 @@ namespace EnglishLearningApp.AppServices.Contents
                 Sentences = ObjectMapper.Map<List<SentenceExercise>, List<SentenceExerciseDto>>(sentences)
             };
         }
-
+        [Authorize(EnglishLearningAppPermissions.ContentManagement.Create)]
         public async Task<LessonDto> CreateAsync(CreateUpdateLessonDto input)
         {
             var lesson = ObjectMapper.Map<CreateUpdateLessonDto, Lesson>(input);
             await _lessonRepo.InsertAsync(lesson);
             return ObjectMapper.Map<Lesson, LessonDto>(lesson);
         }
-
+        [Authorize(EnglishLearningAppPermissions.ContentManagement.Update)]
         public async Task<LessonDto> UpdateAsync(Guid id, CreateUpdateLessonDto input)
         {
             var lesson = await _lessonRepo.GetAsync(id);
@@ -77,7 +79,7 @@ namespace EnglishLearningApp.AppServices.Contents
             await _lessonRepo.UpdateAsync(lesson);
             return ObjectMapper.Map<Lesson, LessonDto>(lesson);
         }
-
+        [Authorize(EnglishLearningAppPermissions.ContentManagement.Delete)]
         public async Task DeleteAsync(Guid id)
         {
             await _lessonRepo.DeleteAsync(id);

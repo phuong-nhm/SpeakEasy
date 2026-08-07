@@ -1,11 +1,13 @@
+using EnglishLearningApp.Dtos.Contents;
+using EnglishLearningApp.Entities;
+using EnglishLearningApp.Entities.Content;
+using EnglishLearningApp.Permissions;
+using EnglishLearningApp.Services;
+using Microsoft.AspNetCore.Authorization;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using EnglishLearningApp.Dtos.Contents;
-using EnglishLearningApp.Entities;
-using EnglishLearningApp.Entities.Content;
-using EnglishLearningApp.Services;
 using Volo.Abp.Domain.Repositories;
 
 namespace EnglishLearningApp.AppServices.Contents
@@ -18,7 +20,7 @@ namespace EnglishLearningApp.AppServices.Contents
         {
             _sentenceRepo = sentenceRepo;
         }
-
+        [AllowAnonymous]
         public async Task<List<SentenceExerciseDto>> GetListByLessonAsync(Guid lessonId, SectionType? sectionType = null)
         {
             var queryable = await _sentenceRepo.GetQueryableAsync();
@@ -31,13 +33,13 @@ namespace EnglishLearningApp.AppServices.Contents
             var list = await AsyncExecuter.ToListAsync(query);
             return list.Select(MapWithShuffledWords).ToList();
         }
-
+        [AllowAnonymous]
         public async Task<SentenceExerciseDto> GetShuffledSentenceAsync(Guid exerciseId)
         {
             var exercise = await _sentenceRepo.GetAsync(exerciseId);
             return MapWithShuffledWords(exercise);
         }
-
+        [Authorize]
         public async Task<bool> CheckAnswerAsync(CheckSentenceAnswerDto input)
         {
             var exercise = await _sentenceRepo.GetAsync(input.ExerciseId);
@@ -47,6 +49,7 @@ namespace EnglishLearningApp.AppServices.Contents
                 exercise.CorrectSentence.Trim(),
                 StringComparison.OrdinalIgnoreCase);
         }
+        [Authorize(EnglishLearningAppPermissions.ContentManagement.Create)]
 
         public async Task<SentenceExerciseDto> CreateAsync(CreateUpdateSentenceExerciseDto input)
         {
@@ -54,7 +57,7 @@ namespace EnglishLearningApp.AppServices.Contents
             await _sentenceRepo.InsertAsync(exercise);
             return MapWithShuffledWords(exercise);
         }
-
+        [Authorize(EnglishLearningAppPermissions.ContentManagement.Update)]
         public async Task<SentenceExerciseDto> UpdateAsync(Guid id, CreateUpdateSentenceExerciseDto input)
         {
             var exercise = await _sentenceRepo.GetAsync(id);
@@ -62,7 +65,7 @@ namespace EnglishLearningApp.AppServices.Contents
             await _sentenceRepo.UpdateAsync(exercise);
             return MapWithShuffledWords(exercise);
         }
-
+        [Authorize(EnglishLearningAppPermissions.ContentManagement.Delete)]
         public async Task DeleteAsync(Guid id)
         {
             await _sentenceRepo.DeleteAsync(id);
