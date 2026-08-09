@@ -13,6 +13,7 @@
         "Permission:Create": "Create",
         "Permission:Update": "Update",
         "Permission:Delete": "Delete",
-        "InvalidQuestionType": "Invalid question type."
+        "InvalidQuestionType": "Invalid question type.",
+        "InvalidBlankIndex": "Invalid missing word position."
     }
 }

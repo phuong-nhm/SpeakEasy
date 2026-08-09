@@ -1,11 +1,12 @@
-using System;
-using System.IO;
-using System.Linq;
-using System.Threading.Tasks;
+using EnglishLearningApp.Permissions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using System;
+using System.IO;
+using System.Linq;
+using System.Threading.Tasks;
 using Volo.Abp;
 using Volo.Abp.AspNetCore.Mvc;
 
@@ -31,6 +32,7 @@ namespace EnglishLearningApp.Controllers
         /// Trả về URL để Admin gán vào ImageUrl/AudioUrl của Vocabulary, SentenceExercise...
         /// </summary>
         [HttpPost]
+        [Authorize(EnglishLearningAppPermissions.ContentManagement.Create)]
         public async Task<IActionResult> UploadAsync(IFormFile file, [FromQuery] string type = "image")
         {
             if (file == null || file.Length == 0)

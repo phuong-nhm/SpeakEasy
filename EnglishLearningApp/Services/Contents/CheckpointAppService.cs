@@ -1,4 +1,4 @@
-using EnglishLearningApp.Dtos.Contents;
+﻿using EnglishLearningApp.Dtos.Contents;
 using EnglishLearningApp.Entities;
 using EnglishLearningApp.Entities.Content;
 using EnglishLearningApp.Services;
@@ -27,6 +27,7 @@ namespace EnglishLearningApp.AppServices.Contents
             _vocabRepo = vocabRepo;
             _sentenceRepo = sentenceRepo;
         }
+
         [Authorize]
         public async Task<List<CheckpointQuestionDto>> GetCheckpointQuestionsAsync(Guid chapterId, int count)
         {
@@ -64,24 +65,65 @@ namespace EnglishLearningApp.AppServices.Contents
                 };
             });
 
+            // Build SentenceQuiz theo đúng ExerciseType - logic giống hệt
+            // SentenceExerciseAppService.BuildDto, chỉ viết lại vì nằm trong vòng Select riêng
             var sentenceQuestions = sentences.Select(s => new CheckpointQuestionDto
             {
                 SourceId = s.Id,
                 QuestionType = "Sentence",
-                SentenceQuiz = new SentenceExerciseDto
-                {
-                    Id = s.Id,
-                    LessonId = s.LessonId,
-                    SectionType = s.SectionType,
-                    AudioUrl = s.AudioUrl,
-                    ShuffledWords = s.CorrectSentence.Split(' ').OrderBy(_ => random.Next()).ToList()
-                }
+                SentenceQuiz = BuildSentenceQuizDto(s, random)
             });
 
             var allQuestions = vocabQuestions.Concat(sentenceQuestions).ToList();
-
             return allQuestions.OrderBy(_ => random.Next()).Take(count).ToList();
         }
 
+        private static SentenceExerciseDto BuildSentenceQuizDto(SentenceExercise s, Random random)
+        {
+            var dto = new SentenceExerciseDto
+            {
+                Id = s.Id,
+                LessonId = s.LessonId,
+                SectionType = s.SectionType,
+                AudioUrl = s.AudioUrl,
+                ExerciseType = s.ExerciseType
+            };
+
+            switch (s.ExerciseType)
+            {
+                case ExerciseType.FillInBlank:
+                    {
+                        var words = s.CorrectSentence.Split(' ');
+                        var blankIndex = random.Next(words.Length);
+                        var displayWords = (string[])words.Clone();
+                        displayWords[blankIndex] = "_____";
+
+                        dto.DisplaySentence = string.Join(" ", displayWords);
+                        dto.BlankIndex = blankIndex;
+                        break;
+                    }
+
+                case ExerciseType.AnswerQuestion:
+                    {
+                        dto.PromptText = s.PromptText;
+                        break;
+                    }
+
+                case ExerciseType.TranslateFromVietnamese:
+                    {
+                        dto.VietnameseTranslation = s.VietnameseTranslation;
+                        dto.ShuffledWords = s.CorrectSentence.Split(' ').OrderBy(_ => random.Next()).ToList();
+                        break;
+                    }
+
+                default: // WordOrder
+                    {
+                        dto.ShuffledWords = s.CorrectSentence.Split(' ').OrderBy(_ => random.Next()).ToList();
+                        break;
+                    }
+            }
+
+            return dto;
+        }
     }
 }
