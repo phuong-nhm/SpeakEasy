@@ -16,6 +16,7 @@ namespace EnglishLearningApp.AppServices.Contents
     public class SentenceExerciseAppService : EnglishLearningAppAppService, ISentenceExerciseAppService
     {
         private readonly IRepository<SentenceExercise, Guid> _sentenceRepo;
+        private const int MaxBatchSize = 200;
 
         public SentenceExerciseAppService(IRepository<SentenceExercise, Guid> sentenceRepo)
         {
@@ -90,6 +91,37 @@ namespace EnglishLearningApp.AppServices.Contents
             var exercise = ObjectMapper.Map<CreateUpdateSentenceExerciseDto, SentenceExercise>(input);
             await _sentenceRepo.InsertAsync(exercise);
             return BuildDto(exercise);
+        }
+        [Authorize(EnglishLearningAppPermissions.ContentManagement.Create)]
+        public async Task<List<SentenceExerciseDto>> CreateManyAsync(List<CreateUpdateSentenceExerciseDto> inputs)
+        {
+            if (inputs == null || !inputs.Any())
+            {
+                throw new UserFriendlyException(L["ImportListCannotBeEmpty"]);
+            }
+            foreach (var input in inputs)
+            {
+                if (input.ExerciseType == ExerciseType.AnswerQuestion && string.IsNullOrWhiteSpace(input.PromptText))
+                {
+                    throw new UserFriendlyException(L["PromptTextRequiredForAnswerQuestion"]);
+                }
+
+                if (input.ExerciseType == ExerciseType.TranslateFromVietnamese && string.IsNullOrWhiteSpace(input.VietnameseTranslation))
+                {
+                    throw new UserFriendlyException(L["VietnameseTranslationRequired"]);
+                }
+            }
+            if (inputs.Count > MaxBatchSize)
+            {
+                throw new UserFriendlyException(L["ImportBatchTooLarge"]);
+            }
+            var exercises = inputs
+                .Select(x => ObjectMapper.Map<CreateUpdateSentenceExerciseDto, SentenceExercise>(x))
+                .ToList();
+
+            await _sentenceRepo.InsertManyAsync(exercises);
+
+            return exercises.Select(BuildDto).ToList();
         }
 
         [Authorize(EnglishLearningAppPermissions.ContentManagement.Update)]

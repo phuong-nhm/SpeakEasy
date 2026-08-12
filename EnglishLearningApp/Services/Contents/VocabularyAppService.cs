@@ -8,6 +8,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Volo.Abp;
 using Volo.Abp.Domain.Repositories;
 
 namespace EnglishLearningApp.AppServices.Contents
@@ -62,6 +63,21 @@ namespace EnglishLearningApp.AppServices.Contents
             var vocab = ObjectMapper.Map<CreateUpdateVocabularyDto, Vocabulary>(input);
             await _vocabRepo.InsertAsync(vocab);
             return ObjectMapper.Map<Vocabulary, VocabularyDto>(vocab);
+        }
+        [Authorize(EnglishLearningAppPermissions.ContentManagement.Create)]
+        public async Task<List<VocabularyDto>> CreateManyAsync(List<CreateUpdateVocabularyDto> inputs)
+        {
+            if (inputs == null || !inputs.Any())
+            {
+                throw new UserFriendlyException(L["ImportListCannotBeEmpty"]);
+            }
+            var vocabs = inputs
+                .Select(x => ObjectMapper.Map<CreateUpdateVocabularyDto, Vocabulary>(x))
+                .ToList();
+
+            await _vocabRepo.InsertManyAsync(vocabs);
+
+            return ObjectMapper.Map<List<Vocabulary>, List<VocabularyDto>>(vocabs);
         }
         [Authorize(EnglishLearningAppPermissions.ContentManagement.Update)]
         public async Task<VocabularyDto> UpdateAsync(Guid id, CreateUpdateVocabularyDto input)

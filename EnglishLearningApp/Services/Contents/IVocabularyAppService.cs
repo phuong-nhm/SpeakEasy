@@ -13,5 +13,6 @@ namespace EnglishLearningApp.AppServices.Contents
         Task<VocabularyDto> CreateAsync(CreateUpdateVocabularyDto input);
         Task<VocabularyDto> UpdateAsync(Guid id, CreateUpdateVocabularyDto input);
         Task DeleteAsync(Guid id);
+        Task<List<VocabularyDto>> CreateManyAsync(List<CreateUpdateVocabularyDto> inputs);
     }
 }

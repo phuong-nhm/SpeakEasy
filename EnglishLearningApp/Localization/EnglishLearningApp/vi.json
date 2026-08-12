@@ -14,6 +14,9 @@
         "Permission:Update": "Cập nhật",
         "Permission:Delete": "Xoá",
         "InvalidQuestionType": "Loại câu hỏi không hợp lệ.",
-        "InvalidBlankIndex": "Vị trí từ khuyết không hợp lệ."
+        "InvalidBlankIndex": "Vị trí từ khuyết không hợp lệ.",
+        "PromptTextRequiredForAnswerQuestion": "Vui lòng nhập nội dung câu hỏi (PromptText) cho dạng bài Trả lời câu hỏi.",
+        "VietnameseTranslationRequired": "Vui lòng nhập bản dịch tiếng Việt (VietnameseTranslation) cho dạng bài Dịch câu.",
+        "ImportBatchTooLarge": "Số lượng mục import vượt quá giới hạn cho phép trong 1 lần (tối đa 200)."
     }
 }

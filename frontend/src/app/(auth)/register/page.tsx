@@ -8,6 +8,21 @@ export default function RegisterPage() {
   // Cần lấy: surname, setSurname, name, setName, email, setEmail,
   // password, setPassword, confirmPassword, setConfirmPassword,
   // isLoading, errors, handleRegister
+  const {
+    surname,
+    setSurname,
+    name,
+    setName,
+    email,
+    setEmail,
+    password,
+    setPassword,
+    confirmPassword,
+    setConfirmPassword,
+    isLoading,
+    errors,
+    handleRegister,
+  } = useAuth();
   const {} = useAuth();
 
   return (
@@ -19,11 +34,14 @@ export default function RegisterPage() {
         </p>
       </div>
 
-      {/* TODO 2: Hiển thị thông báo lỗi chung (errors.general) nếu có */}
+      {errors.general && (
+        <div className="mb-5 p-3 bg-red-50 text-red-600 rounded-lg text-sm border border-red-200">
+          {errors.general}
+        </div>
+      )}
       {/* Gợi ý: Kiểm tra errors.general && render div thông báo lỗi */}
 
-      {/* TODO 3: Gắn event onSubmit cho Form */}
-      <form className="space-y-4">
+      <form onSubmit={handleRegister} className="space-y-4">
         {/* Hàng chứa Họ và Tên */}
         <div className="grid grid-cols-2 gap-3">
           {/* Ô nhập Họ */}
@@ -34,14 +52,15 @@ export default function RegisterPage() {
             <input
               type="text"
               placeholder="Nguyễn Văn"
-              // TODO 4.1: Gắn value, onChange (setSurname) và xử lý border đỏ khi có errors.surname
               className={`w-full px-3.5 py-2.5 rounded-lg border outline-none transition text-sm ${
-                false /* Đổi thành điều kiện kiểm tra errors.surname */
+                errors.surname /* Đổi thành điều kiện kiểm tra errors.surname */
                   ? "border-red-500 focus:ring-2 focus:ring-red-200"
                   : "border-slate-300 focus:ring-2 focus:ring-blue-200 focus:border-blue-500"
               }`}
             />
-            {/* TODO 4.2: Hiển thị tin nhắn lỗi errors.surname bên dưới input nếu có */}
+            {errors.surname && (
+              <p className="text-xs text-red-500 mt-1">{errors.surname}</p>
+            )}
           </div>
 
           {/* Ô nhập Tên */}
@@ -52,14 +71,15 @@ export default function RegisterPage() {
             <input
               type="text"
               placeholder="A"
-              // TODO 5.1: Gắn value, onChange (setName) và xử lý border đỏ khi có errors.name
               className={`w-full px-3.5 py-2.5 rounded-lg border outline-none transition text-sm ${
-                false /* Đổi thành điều kiện kiểm tra errors.name */
+                errors.name /* Đổi thành điều kiện kiểm tra errors.name */
                   ? "border-red-500 focus:ring-2 focus:ring-red-200"
                   : "border-slate-300 focus:ring-2 focus:ring-blue-200 focus:border-blue-500"
               }`}
             />
-            {/* TODO 5.2: Hiển thị tin nhắn lỗi errors.name nếu có */}
+            {errors.name && (
+              <p className="text-xs text-red-500 mt-1">{errors.name}</p>
+            )}
           </div>
         </div>
 
@@ -70,10 +90,20 @@ export default function RegisterPage() {
           </label>
           <input
             type="email"
+            value={email}
+            onChange={(e) => {
+              setEmail(e.target.value);
+            }}
             placeholder="student@example.com"
-            // TODO 6: Gắn value, onChange (setEmail), kiểm tra border đỏ & hiển thị errors.email
-            className="w-full px-4 py-2.5 rounded-lg border outline-none transition text-sm border-slate-300 focus:ring-2 focus:ring-blue-200 focus:border-blue-500"
+            className={`w-full px-4 py-2.5 rounded-lg border outline-none transition text-sm ${
+              errors.email
+                ? "border-red-500 focus:ring-2 focus:ring-red-200"
+                : "border-slate-300 focus:ring-2 focus:ring-blue-200 focus:border-blue-500"
+            }`}
           />
+          {errors.email && (
+            <p className="text-xs text-red-500 mt-1">{errors.email}</p>
+          )}
         </div>
 
         {/* Ô nhập Mật khẩu */}
@@ -83,10 +113,20 @@ export default function RegisterPage() {
           </label>
           <input
             type="password"
+            value={password}
+            onChange={(e) => {
+              setPassword(e.target.value);
+            }}
             placeholder="Tối thiểu 6 ký tự"
-            // TODO 7: Gắn value, onChange (setPassword), kiểm tra border đỏ & hiển thị errors.password
-            className="w-full px-4 py-2.5 rounded-lg border outline-none transition text-sm border-slate-300 focus:ring-2 focus:ring-blue-200 focus:border-blue-500"
+            className={`w-full px-4 py-2.5 rounded-lg border outline-none transition text-sm ${
+              errors.password
+                ? "border-red-500 focus:ring-2 focus:ring-red-200"
+                : "border-slate-300 focus:ring-2 focus:ring-blue-200 focus:border-blue-500"
+            }`}
           />
+          {errors.password && (
+            <p className="text-xs text-red-500 mt-1">{errors.password}</p>
+          )}
         </div>
 
         {/* Ô nhập Xác nhận mật khẩu */}
@@ -96,20 +136,33 @@ export default function RegisterPage() {
           </label>
           <input
             type="password"
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
             placeholder="Nhập lại mật khẩu"
-            // TODO 8: Gắn value, onChange (setConfirmPassword), kiểm tra border đỏ & hiển thị errors.confirmPassword
-            className="w-full px-4 py-2.5 rounded-lg border outline-none transition text-sm border-slate-300 focus:ring-2 focus:ring-blue-200 focus:border-blue-500"
+            className={`w-full px-4 py-2.5 rounded-lg border outline-none transition text-sm ${
+              errors.confirmPassword
+                ? "border-red-500 focus:ring-2 focus:ring-red-200"
+                : "border-slate-300 focus:ring-2 focus:ring-blue-200 focus:border-blue-500"
+            }`}
           />
+          {errors.confirmPassword && (
+            <p className="text-xs text-red-500 mt-1">
+              {errors.confirmPassword}
+            </p>
+          )}
         </div>
 
         {/* Nút Submit */}
         <button
           type="submit"
-          // TODO 9: Disable button khi isLoading = true
+          disabled={isLoading}
           className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 rounded-lg transition duration-200 flex items-center justify-center text-sm disabled:opacity-50 mt-2"
         >
-          {/* TODO 10: Nếu isLoading = true thì hiện icon loading, ngược lại hiện text 'Tạo tài khoản' */}
-          Tạo tài khoản
+          {isLoading ? (
+            <span className="inline-block animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent" />
+          ) : (
+            "Tạo tài khoản"
+          )}
         </button>
       </form>
 
