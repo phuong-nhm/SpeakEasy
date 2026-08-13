@@ -44,3 +44,31 @@ export interface CreateUpdateLessonDto {
   orderIndex: number;
   chapterId: string;
 }
+
+export interface VocabularyDto {
+  id: string; // Guid
+  lessonId: string; // Guid
+  word: string;
+  meaning: string;
+  imageUrl?: string;
+  audioUrl?: string;
+}
+
+export interface CreateUpdateVocabularyDto {
+  lessonId: string;
+  word: string;
+  meaning: string;
+  distractor: string; // Từ gây nhiễu cho Quiz
+  imageUrl?: string;
+  audioUrl?: string;
+}
+
+// Kiểu dữ liệu để Admin paste JSON Import hàng loạt
+export interface BatchImportVocabularyItem {
+  lessonId?: string; // Optional nếu đã chọn Lesson ở Dropdown
+  word: string;
+  meaning: string;
+  distractor: string;
+  imageUrl?: string;
+  audioUrl?: string;
+}

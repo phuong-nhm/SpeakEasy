@@ -74,7 +74,10 @@ export const lessonService = {
     await new Promise((res) => setTimeout(res, 300));
     return mockLessons.filter((les) => les.chapterId === chapterId);
   },
-
+getList: async (): Promise<LessonDto[]> => {
+    await new Promise((res) => setTimeout(res, 300));
+    return mockLessons;
+  },
   create: async (input: CreateUpdateLessonDto): Promise<LessonDto> => {
     await new Promise((res) => setTimeout(res, 300));
     const newLes: LessonDto = { id: crypto.randomUUID(), ...input };

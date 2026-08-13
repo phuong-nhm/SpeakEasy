@@ -5,8 +5,7 @@ import { LevelDto, CreateUpdateLevelDto } from '@/types/admin';
 import { levelService } from '@/mock/mockLevel';
 
 export function useAdminLevels() {
-  // TODO 1: Khai báo các State:
-  // - levels: danh sách LevelDto (mặc định [])
+
 const [levels, setLevels] = useState<LevelDto[]>([]);
 const [isLoading, setIsLoading] = useState<boolean>(true);
 const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
