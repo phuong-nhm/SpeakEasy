@@ -21,4 +21,14 @@
         Weekly = 0,
         Monthly = 1
     }
+    public enum WordType
+    {
+        Noun,
+        Verb,
+        Adjective,
+        Adverb,
+        Preposition,
+        Phrase,
+        Other
+    }
 }

@@ -17,6 +17,11 @@
         "InvalidBlankIndex": "Vị trí từ khuyết không hợp lệ.",
         "PromptTextRequiredForAnswerQuestion": "Vui lòng nhập nội dung câu hỏi (PromptText) cho dạng bài Trả lời câu hỏi.",
         "VietnameseTranslationRequired": "Vui lòng nhập bản dịch tiếng Việt (VietnameseTranslation) cho dạng bài Dịch câu.",
-        "ImportBatchTooLarge": "Số lượng mục import vượt quá giới hạn cho phép trong 1 lần (tối đa 200)."
+        "ImportBatchTooLarge": "Số lượng mục import vượt quá giới hạn cho phép trong 1 lần (tối đa 200).",
+        "NoFilesUploaded": "Chưa có file nào được gửi lên.",
+        "TooManyFilesInBatch": "Số lượng file vượt quá giới hạn cho phép trong 1 lần (tối đa 50).",
+        "FileTooLarge": "File vượt quá dung lượng cho phép (5MB).",
+        "UnsupportedFileExtension": "Định dạng file '{0}' không được hỗ trợ.",
+        "ImportListCannotBeEmpty": "Danh sách import không được để trống."
     }
 }

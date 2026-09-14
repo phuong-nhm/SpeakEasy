@@ -3,6 +3,7 @@ using EnglishLearningApp.Entities;
 using EnglishLearningApp.Entities.Content;
 using EnglishLearningApp.Permissions;
 using EnglishLearningApp.Services;
+using EnglishLearningApp.Services.Contents;
 using Microsoft.AspNetCore.Authorization;
 using System;
 using System.Collections.Generic;
@@ -15,12 +16,17 @@ namespace EnglishLearningApp.AppServices.Contents
 {
     public class SentenceExerciseAppService : EnglishLearningAppAppService, ISentenceExerciseAppService
     {
-        private readonly IRepository<SentenceExercise, Guid> _sentenceRepo;
         private const int MaxBatchSize = 200;
 
-        public SentenceExerciseAppService(IRepository<SentenceExercise, Guid> sentenceRepo)
+        private readonly IRepository<SentenceExercise, Guid> _sentenceRepo;
+        private readonly IAudioGenerationService _audioService;
+
+        public SentenceExerciseAppService(
+            IRepository<SentenceExercise, Guid> sentenceRepo,
+            IAudioGenerationService audioService)
         {
             _sentenceRepo = sentenceRepo;
+            _audioService = audioService;
         }
 
         [AllowAnonymous]
@@ -74,7 +80,7 @@ namespace EnglishLearningApp.AppServices.Contents
                             StringComparison.OrdinalIgnoreCase);
                     }
 
-                default: // WordOrder, TranslateFromVietnamese - đều chấm bằng ghép từ theo thứ tự
+                default: // WordOrder, TranslateFromVietnamese
                     {
                         var userAnswer = string.Join(" ", input.UserOrderedWords ?? new List<string>());
                         return string.Equals(
@@ -92,6 +98,9 @@ namespace EnglishLearningApp.AppServices.Contents
             await _sentenceRepo.InsertAsync(exercise);
             return BuildDto(exercise);
         }
+
+        // Nhập hàng loạt - validate đủ field bắt buộc theo ExerciseType trước, rồi tự sinh audio
+        // qua Gemini TTS (đọc CorrectSentence) cho item nào chưa có AudioUrl.
         [Authorize(EnglishLearningAppPermissions.ContentManagement.Create)]
         public async Task<List<SentenceExerciseDto>> CreateManyAsync(List<CreateUpdateSentenceExerciseDto> inputs)
         {
@@ -99,6 +108,12 @@ namespace EnglishLearningApp.AppServices.Contents
             {
                 throw new UserFriendlyException(L["ImportListCannotBeEmpty"]);
             }
+
+            if (inputs.Count > MaxBatchSize)
+            {
+                throw new UserFriendlyException(L["ImportBatchTooLarge"]);
+            }
+
             foreach (var input in inputs)
             {
                 if (input.ExerciseType == ExerciseType.AnswerQuestion && string.IsNullOrWhiteSpace(input.PromptText))
@@ -111,10 +126,11 @@ namespace EnglishLearningApp.AppServices.Contents
                     throw new UserFriendlyException(L["VietnameseTranslationRequired"]);
                 }
             }
-            if (inputs.Count > MaxBatchSize)
-            {
-                throw new UserFriendlyException(L["ImportBatchTooLarge"]);
-            }
+
+            await Task.WhenAll(inputs
+                .Where(x => string.IsNullOrWhiteSpace(x.AudioUrl))
+                .Select(async x => x.AudioUrl = await _audioService.GenerateAudioUrlAsync(x.CorrectSentence)));
+
             var exercises = inputs
                 .Select(x => ObjectMapper.Map<CreateUpdateSentenceExerciseDto, SentenceExercise>(x))
                 .ToList();
@@ -139,8 +155,6 @@ namespace EnglishLearningApp.AppServices.Contents
             await _sentenceRepo.DeleteAsync(id);
         }
 
-        // Thay cho MapWithShuffledWords cũ - giờ rẽ nhánh theo ExerciseType,
-        // chỉ điền đúng field cần thiết cho từng dạng, không lộ CorrectSentence gốc
         private SentenceExerciseDto BuildDto(SentenceExercise exercise)
         {
             var dto = ObjectMapper.Map<SentenceExercise, SentenceExerciseDto>(exercise);

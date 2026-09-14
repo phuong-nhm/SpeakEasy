@@ -14,7 +14,7 @@ namespace EnglishLearningApp.Entities.Content
 
         // Navigation: trỏ ngược về Lesson cha
         public Lesson Lesson { get; set; }
-
+        public WordType WordType { get; set; }
         protected Vocabulary() { }
 
         public Vocabulary(

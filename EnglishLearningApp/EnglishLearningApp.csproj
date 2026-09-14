@@ -107,7 +107,6 @@
     <Folder Include="Dtos\Contents\" />
     <Folder Include="Dtos\Progresses\" />
     <Folder Include="Dtos\Writings\" />
-    <Folder Include="Services\Contents\" />
     <Folder Include="Services\Writings\" />
     <Folder Include="Services\Progresses\" />
   </ItemGroup>

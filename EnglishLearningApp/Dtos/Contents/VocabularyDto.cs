@@ -1,3 +1,4 @@
+using EnglishLearningApp.Entities;
 using System;
 using Volo.Abp.Application.Dtos;
 
@@ -11,6 +12,7 @@ namespace EnglishLearningApp.Dtos.Contents
         public string Meaning { get; set; }
         public string ImageUrl { get; set; }
         public string AudioUrl { get; set; }
+        public WordType WordType { get; set; }
     }
 
     // Dùng cho Admin CMS - có đủ field kể cả Distractor
@@ -22,6 +24,7 @@ namespace EnglishLearningApp.Dtos.Contents
         public string ImageUrl { get; set; }
         public string AudioUrl { get; set; }
         public string Distractor { get; set; }
+        public WordType WordType { get; set; }
     }
 
     // Dùng riêng cho màn quiz trắc nghiệm 2 lựa chọn - đã trộn sẵn vị trí đúng/sai

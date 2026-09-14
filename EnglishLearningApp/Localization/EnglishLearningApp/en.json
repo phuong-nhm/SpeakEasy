@@ -17,6 +17,11 @@
         "InvalidBlankIndex": "Invalid missing word position.",
         "PromptTextRequiredForAnswerQuestion": "Please enter the question content (PromptText) for the Answer Question exercise type.",
         "VietnameseTranslationRequired": "Please enter the Vietnamese translation (VietnameseTranslation) for the Translate exercise type.",
-        "ImportBatchTooLarge": "The number of items to import exceeds the allowed limit per batch (max 200)."
+        "ImportBatchTooLarge": "The number of items to import exceeds the allowed limit per batch (max 200).",
+        "NoFilesUploaded": "No files have been uploaded.",
+        "TooManyFilesInBatch": "The number of files exceeds the allowed limit per batch (maximum 50).",
+        "FileTooLarge": "The file exceeds the allowed size limit (5MB).",
+        "UnsupportedFileExtension": "The file format '{0}' is not supported.",
+        "ImportListCannotBeEmpty": "The import list cannot be empty."
     }
 }
