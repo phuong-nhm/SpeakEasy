@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { UserWritingDto } from "@/types/user-writings";
+import { UserWritingDto } from "@/features/admin/student-writings/types/user-writings";
 
 // Mock Data khớp chuẩn UserWritingDto C#
 const mockUserWritings: UserWritingDto[] = [

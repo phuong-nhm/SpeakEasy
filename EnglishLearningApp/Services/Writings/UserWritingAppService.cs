@@ -89,6 +89,61 @@ namespace EnglishLearningApp.AppServices.Writings
             return MapWithFeedback(writing);
         }
 
+        // ================= ADMIN =================
+                [Authorize(EnglishLearningAppPermissions.StudentWritings.View)]
+        public async Task<PagedResultDto<UserWritingDto>> GetListForAdminAsync(GetUserWritingListInput input)
+        {
+            var writingQueryable = await _writingRepo.GetQueryableAsync();
+            var topicQueryable = await _topicRepo.GetQueryableAsync();
+            var userQueryable = await _userRepo.GetQueryableAsync();
+
+            var query = from w in writingQueryable
+                        join t in topicQueryable on w.TopicId equals t.Id
+                        join u in userQueryable on w.UserId equals u.Id
+                        where (!input.UserId.HasValue || w.UserId == input.UserId)
+                              && (!input.TopicId.HasValue || w.TopicId == input.TopicId)
+                        orderby w.CreationTime descending
+                        select new { Writing = w, TopicTitle = t.PromptTitle, UserName = u.UserName };
+
+            var totalCount = await AsyncExecuter.CountAsync(query);
+
+            var pagedQuery = query.Skip(input.SkipCount).Take(input.MaxResultCount);
+            var pageList = await AsyncExecuter.ToListAsync(pagedQuery);
+
+            var result = pageList.Select(x =>
+            {
+                var dto = MapWithFeedback(x.Writing);
+                dto.TopicTitle = x.TopicTitle;
+                dto.UserName = x.UserName;
+                return dto;
+            }).ToList();
+
+            return new PagedResultDto<UserWritingDto>(totalCount, result);
+        }
+
+        [Authorize(EnglishLearningAppPermissions.StudentWritings.View)]
+        public async Task<UserWritingDto> GetDetailForAdminAsync(Guid writingId)
+        {
+            var writing = await _writingRepo.GetAsync(writingId);
+
+            var topic = await _topicRepo.FindAsync(writing.TopicId);
+            var user = await _userRepo.FindAsync(writing.UserId);
+
+            var dto = MapWithFeedback(writing);
+            dto.TopicTitle = topic?.PromptTitle;
+            dto.UserName = user?.UserName;
+
+            return dto;
+        }
+
+        [Authorize(EnglishLearningAppPermissions.StudentWritings.Delete)]
+        public async Task DeleteAsync(Guid writingId)
+        {
+            await _writingRepo.DeleteAsync(writingId);
+        }
+
+        // ================= PRIVATE =================
+
         private UserWritingDto MapWithFeedback(UserWriting writing)
         {
             var dto = ObjectMapper.Map<UserWriting, UserWritingDto>(writing);

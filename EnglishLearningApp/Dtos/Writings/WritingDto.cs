@@ -40,6 +40,8 @@ namespace EnglishLearningApp.Dtos.Writings
     public class UserWritingDto : EntityDto<Guid>
     {
         public Guid TopicId { get; set; }
+        public string TopicTitle { get; set; }   // thêm mới - join từ WritingTopic
+        public string UserName { get; set; } 
         public string UserContent { get; set; }
         public AiFeedbackDto Feedback { get; set; }
         public DateTime CreationTime { get; set; }

@@ -22,6 +22,8 @@
         "TooManyFilesInBatch": "The number of files exceeds the allowed limit per batch (maximum 50).",
         "FileTooLarge": "The file exceeds the allowed size limit (5MB).",
         "UnsupportedFileExtension": "The file format '{0}' is not supported.",
-        "ImportListCannotBeEmpty": "The import list cannot be empty."
+        "ImportListCannotBeEmpty": "The import list cannot be empty.",
+        "Permission:StudentWritings": "Student Writings",
+  "Permission:View": "View"
     }
 }

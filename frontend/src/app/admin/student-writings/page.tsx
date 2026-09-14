@@ -1,7 +1,7 @@
 "use client";
 
-import { useUserWriting } from "@/hooks/useUserWriting";
-import { UserWritingDetailModal } from "@/components/UserWritingDetailModal";
+import { useUserWriting } from "@/features/admin/student-writings/hooks/useUserWriting";
+import { UserWritingDetailModal } from "@/features/admin/student-writings/components/UserWritingDetailModal";
 
 export default function UserWritingsPage() {
   const {

@@ -22,6 +22,8 @@
         "TooManyFilesInBatch": "Số lượng file vượt quá giới hạn cho phép trong 1 lần (tối đa 50).",
         "FileTooLarge": "File vượt quá dung lượng cho phép (5MB).",
         "UnsupportedFileExtension": "Định dạng file '{0}' không được hỗ trợ.",
-        "ImportListCannotBeEmpty": "Danh sách import không được để trống."
+        "ImportListCannotBeEmpty": "Danh sách import không được để trống.",
+        "Permission:StudentWritings": "Bài viết học viên",
+        "Permission:View": "Xem"
     }
 }

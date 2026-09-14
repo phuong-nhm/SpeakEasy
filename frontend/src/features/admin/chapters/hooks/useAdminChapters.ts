@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { LevelDto } from "@/features/admin/levels/types/level";
 import { ChapterDto } from "@/features/admin/chapters/types/chapter";
 import { levelService } from "@/features/admin/levels/services/levelService";
-import { chapterService } from "@/mock/mockContentService";
+import { chapterService } from "@/features/admin/chapters/services/chapterService";
 
 export function useAdminChapters() {
   const [levels, setLevels] = useState<LevelDto[]>([]);

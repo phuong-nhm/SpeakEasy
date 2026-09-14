@@ -1,6 +1,6 @@
 "use client";
 
-import { UserWritingDto } from "@/types/user-writings";
+import { UserWritingDto } from "@/features/admin/student-writings/types/user-writings";
 
 interface UserWritingDetailModalProps {
   isOpen: boolean;

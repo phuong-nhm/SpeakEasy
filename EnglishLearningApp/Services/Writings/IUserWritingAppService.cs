@@ -11,5 +11,9 @@ namespace EnglishLearningApp.AppServices.Writings
         Task<UserWritingDto> SubmitWritingAsync(SubmitWritingDto input);
         Task<List<UserWritingDto>> GetHistoryAsync();
         Task<UserWritingDto> GetDetailAsync(Guid writingId);
+
+        Task<PagedResultDto<UserWritingDto>> GetListForAdminAsync(GetUserWritingListInput input);
+        Task<UserWritingDto> GetDetailForAdminAsync(Guid writingId);
+        Task DeleteAsync(Guid writingId);
     }
 }
