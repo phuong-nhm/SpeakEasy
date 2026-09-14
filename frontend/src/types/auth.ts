@@ -11,6 +11,11 @@ export interface AuthResponse {
   accessToken: string;
 }
 
+export interface AuthSession {
+  user: User;
+  accessToken: string;
+}
+
 export interface FormError {
   email?: string;
   password?: string;

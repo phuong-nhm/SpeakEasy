@@ -23,7 +23,6 @@ export default function RegisterPage() {
     errors,
     handleRegister,
   } = useAuth();
-  const {} = useAuth();
 
   return (
     <div className="bg-white rounded-2xl shadow-xl p-8 border border-slate-100">
@@ -42,18 +41,18 @@ export default function RegisterPage() {
       {/* Gợi ý: Kiểm tra errors.general && render div thông báo lỗi */}
 
       <form onSubmit={handleRegister} className="space-y-4">
-        {/* Hàng chứa Họ và Tên */}
         <div className="grid grid-cols-2 gap-3">
-          {/* Ô nhập Họ */}
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">
               Họ
             </label>
             <input
               type="text"
+              value={surname}
+              onChange={(e) => setSurname(e.target.value)}
               placeholder="Nguyễn Văn"
               className={`w-full px-3.5 py-2.5 rounded-lg border outline-none transition text-sm ${
-                errors.surname /* Đổi thành điều kiện kiểm tra errors.surname */
+                errors.surname
                   ? "border-red-500 focus:ring-2 focus:ring-red-200"
                   : "border-slate-300 focus:ring-2 focus:ring-blue-200 focus:border-blue-500"
               }`}
@@ -63,16 +62,17 @@ export default function RegisterPage() {
             )}
           </div>
 
-          {/* Ô nhập Tên */}
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">
               Tên
             </label>
             <input
               type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
               placeholder="A"
               className={`w-full px-3.5 py-2.5 rounded-lg border outline-none transition text-sm ${
-                errors.name /* Đổi thành điều kiện kiểm tra errors.name */
+                errors.name
                   ? "border-red-500 focus:ring-2 focus:ring-red-200"
                   : "border-slate-300 focus:ring-2 focus:ring-blue-200 focus:border-blue-500"
               }`}
