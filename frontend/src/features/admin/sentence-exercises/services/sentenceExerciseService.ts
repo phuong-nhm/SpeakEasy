@@ -42,10 +42,64 @@ let mockExercises: SentenceExerciseDto[] = [
 
 const delay = (ms = 300) => new Promise((res) => setTimeout(res, ms));
 
+const generateExerciseId = (): string =>
+  typeof crypto !== "undefined" && crypto.randomUUID
+    ? crypto.randomUUID()
+    : `ex-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+
 export const sentenceExerciseService = {
   getByLessonId: async (lessonId: string): Promise<SentenceExerciseDto[]> => {
     await delay();
     return mockExercises.filter((ex) => ex.lessonId === lessonId);
+  },
+
+  createMany: async (
+    inputs: CreateUpdateSentenceExerciseDto[],
+  ): Promise<SentenceExerciseDto[]> => {
+    await delay();
+
+    if (!inputs || inputs.length === 0) {
+      throw new Error("Danh sách import không được để trống");
+    }
+
+    const createdExercises: SentenceExerciseDto[] = [];
+
+    for (const input of inputs) {
+      if (
+        input.exerciseType === ExerciseType.AnswerQuestion &&
+        !input.promptText?.trim()
+      ) {
+        throw new Error(
+          "Bài tập dạng AnswerQuestion bắt buộc phải có promptText",
+        );
+      }
+
+      if (
+        input.exerciseType === ExerciseType.TranslateFromVietnamese &&
+        !input.vietnameseTranslation?.trim()
+      ) {
+        throw new Error(
+          "Bài tập dạng TranslateFromVietnamese bắt buộc phải có vietnameseTranslation",
+        );
+      }
+
+      const newExercise: SentenceExerciseDto = {
+        id: generateExerciseId(),
+        lessonId: input.lessonId,
+        sectionType: input.sectionType,
+        correctSentence: input.correctSentence,
+        audioUrl:
+          input.audioUrl?.trim() || "https://example.com/audio/default.mp3",
+        exerciseType: input.exerciseType,
+        promptText: input.promptText,
+        vietnameseTranslation: input.vietnameseTranslation,
+      };
+
+      createdExercises.push(newExercise);
+    }
+
+    mockExercises.push(...createdExercises);
+    return createdExercises;
   },
 
   create: async (
@@ -53,11 +107,10 @@ export const sentenceExerciseService = {
   ): Promise<SentenceExerciseDto> => {
     await delay();
     const newExercise: SentenceExerciseDto = {
-      id:
-        typeof crypto !== "undefined" && crypto.randomUUID
-          ? crypto.randomUUID()
-          : `ex-${Date.now()}`,
+      id: generateExerciseId(),
       ...input,
+      audioUrl:
+        input.audioUrl?.trim() || "https://example.com/audio/default.mp3",
     };
     mockExercises.push(newExercise);
     return newExercise;

@@ -4,6 +4,7 @@ import { useSentenceExercise } from "@/features/admin/sentence-exercises/hooks/u
 import { CascadingFilter } from "@/features/admin/sentence-exercises/components/CascadingFilter";
 import { SentenceExerciseTable } from "@/features/admin/sentence-exercises/components/SentenceExerciseTable";
 import { SentenceExerciseModal } from "@/features/admin/sentence-exercises/components/SentenceExerciseModal";
+import { SentenceImportModal } from "@/features/admin/sentence-exercises/components/SentenceImportModal";
 
 export default function SentenceExercisePage() {
   const {
@@ -20,9 +21,14 @@ export default function SentenceExercisePage() {
     loading,
     isModalOpen,
     editingExercise,
+    isImportModalOpen,
+    isSubmitting,
     openAddModal,
     openEditModal,
     closeModal,
+    openImportModal,
+    closeImportModal,
+    handleImportMany,
     createExercise,
     updateExercise,
     deleteExercise,
@@ -42,13 +48,24 @@ export default function SentenceExercisePage() {
           </p>
         </div>
 
-        <button
-          onClick={openAddModal}
-          disabled={!selectedLessonId}
-          className="inline-flex items-center justify-center rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          + Thêm Bài tập mới
-        </button>
+        <div className="flex flex-wrap gap-3">
+          <button
+            type="button"
+            onClick={openImportModal}
+            disabled={!selectedLessonId}
+            className="inline-flex items-center justify-center rounded-lg border border-emerald-600 bg-emerald-50 px-4 py-2 text-sm font-medium text-emerald-700 shadow-sm hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            Import Hàng Loạt
+          </button>
+
+          <button
+            onClick={openAddModal}
+            disabled={!selectedLessonId}
+            className="inline-flex items-center justify-center rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            + Thêm Bài tập mới
+          </button>
+        </div>
       </div>
 
       {/* Cascading Filter Header */}
@@ -85,6 +102,15 @@ export default function SentenceExercisePage() {
           } else {
             createExercise(input);
           }
+        }}
+      />
+
+      <SentenceImportModal
+        isOpen={isImportModalOpen}
+        isSubmitting={isSubmitting}
+        onClose={closeImportModal}
+        onImport={async (rawItems) => {
+          await handleImportMany(rawItems);
         }}
       />
     </div>

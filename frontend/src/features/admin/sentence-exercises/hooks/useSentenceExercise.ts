@@ -3,6 +3,8 @@ import {
   SentenceExerciseDto,
   CreateUpdateSentenceExerciseDto,
   FilterOption,
+  SectionType,
+  ExerciseType,
 } from "@/features/admin/sentence-exercises/types/sentence-exercise";
 
 import { LevelDto } from "@/features/admin/levels/types/level";
@@ -33,6 +35,10 @@ export function useSentenceExercise() {
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const [editingExercise, setEditingExercise] =
     useState<SentenceExerciseDto | null>(null);
+
+  // Modal Import Hàng Loạt
+  const [isImportModalOpen, setIsImportModalOpen] = useState<boolean>(false);
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
   // 1. Load danh sách bài tập theo LessonId
   const loadExercises = useCallback(async (lessonId: string) => {
@@ -172,6 +178,55 @@ export function useSentenceExercise() {
     setEditingExercise(null);
   };
 
+  const openImportModal = useCallback(() => {
+    setIsImportModalOpen(true);
+  }, []);
+
+  const closeImportModal = useCallback(() => {
+    setIsImportModalOpen(false);
+  }, []);
+
+  const handleImportMany = useCallback(
+    async (
+      rawItems: Omit<CreateUpdateSentenceExerciseDto, "lessonId">[],
+      customLessonId?: string,
+    ) => {
+      const targetLessonId = customLessonId || selectedLessonId;
+
+      if (!targetLessonId || rawItems.length === 0) {
+        alert("Vui lòng chọn Bài học và kiểm tra danh sách bài tập câu!");
+        return;
+      }
+
+      setIsSubmitting(true);
+
+      try {
+        const payload: CreateUpdateSentenceExerciseDto[] = rawItems.map(
+          (item) => ({
+            ...item,
+            sectionType: item.sectionType ?? SectionType.Grammar,
+            exerciseType: item.exerciseType ?? ExerciseType.WordOrder,
+            lessonId: targetLessonId,
+          }),
+        );
+
+        await sentenceExerciseService.createMany(payload);
+
+        setIsImportModalOpen(false);
+
+        const updatedExercises =
+          await sentenceExerciseService.getByLessonId(selectedLessonId);
+        setExercises(updatedExercises);
+      } catch (err) {
+        console.error("Lỗi khi import danh sách bài tập câu:", err);
+        throw err;
+      } finally {
+        setIsSubmitting(false);
+      }
+    },
+    [selectedLessonId],
+  );
+
   // CRUD Actions
   const createExercise = async (input: CreateUpdateSentenceExerciseDto) => {
     setLoading(true);
@@ -230,9 +285,14 @@ export function useSentenceExercise() {
     loading,
     isModalOpen,
     editingExercise,
+    isImportModalOpen,
+    isSubmitting,
     openAddModal,
     openEditModal,
     closeModal,
+    openImportModal,
+    closeImportModal,
+    handleImportMany,
     createExercise,
     updateExercise,
     deleteExercise,
