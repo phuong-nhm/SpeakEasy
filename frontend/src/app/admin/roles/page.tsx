@@ -1,15 +1,18 @@
 "use client";
 
-import { useRoleManagement } from "@/hooks/useRoleManagement";
-import { RoleModal } from "@/components/RoleModal";
-import { PermissionModal } from "@/components/PermissionModal";
+import { PermissionModal } from "@/features/admin/roles/components/PermissionModal";
+import { RoleFilter } from "@/features/admin/roles/components/RoleFilter";
+import { RoleModal } from "@/features/admin/roles/components/RoleModal";
+import { RoleTable } from "@/features/admin/roles/components/RoleTable";
+import { useRoleManagement } from "@/features/admin/roles/hooks/useRoleManagement";
 
 export default function RolesPage() {
   const {
     roles,
+    loading,
+    error,
     searchQuery,
     setSearchQuery,
-    // Role Modal
     isRoleModalOpen,
     editingRole,
     openCreateRoleModal,
@@ -17,7 +20,6 @@ export default function RolesPage() {
     closeRoleModal,
     handleSaveRole,
     handleDeleteRole,
-    // Permission Modal
     isPermissionModalOpen,
     permissionRole,
     permissionData,
@@ -27,9 +29,8 @@ export default function RolesPage() {
   } = useRoleManagement();
 
   return (
-    <div className="p-6 space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div className="space-y-6 p-6">
+      <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">
             Quản lý Vai trò & Phân quyền (Roles)
@@ -39,106 +40,35 @@ export default function RolesPage() {
             (Permissions) theo tiêu chuẩn ABP Framework.
           </p>
         </div>
+
         <button
+          type="button"
           onClick={openCreateRoleModal}
-          className="inline-flex items-center justify-center rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 shadow-sm"
+          className="inline-flex items-center justify-center rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700"
         >
           + Thêm vai trò mới
         </button>
       </div>
 
-      {/* Search Input */}
-      <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-        <input
-          type="text"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="Tìm kiếm vai trò theo tên..."
-          className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none"
-        />
-      </div>
+      <RoleFilter
+        searchQuery={searchQuery}
+        onSearchQueryChange={setSearchQuery}
+      />
 
-      {/* Table Data */}
-      <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-        <table className="w-full text-left border-collapse">
-          <thead>
-            <tr className="border-b border-slate-200 bg-slate-50 text-xs font-semibold text-slate-500 uppercase">
-              <th className="py-3 px-4 w-16">STT</th>
-              <th className="py-3 px-4">Tên vai trò</th>
-              <th className="py-3 px-4">Đặc tính</th>
-              <th className="py-3 px-4 text-center w-32">Loại Role</th>
-              <th className="py-3 px-4 text-right w-48">Thao tác</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-200 text-sm">
-            {roles.length === 0 ? (
-              <tr>
-                <td colSpan={5} className="py-8 text-center text-slate-400">
-                  Không tìm thấy vai trò nào.
-                </td>
-              </tr>
-            ) : (
-              roles.map((item, idx) => (
-                <tr key={item.id} className="hover:bg-slate-50/50">
-                  <td className="py-3 px-4 text-slate-500">{idx + 1}</td>
-                  <td className="py-3 px-4 font-semibold text-slate-800">
-                    {item.name}
-                  </td>
-                  <td className="py-3 px-4">
-                    <div className="flex flex-wrap gap-1.5">
-                      {item.isDefault && (
-                        <span className="inline-block rounded px-2 py-0.5 text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
-                          Mặc định (Default)
-                        </span>
-                      )}
-                      {item.isPublic && (
-                        <span className="inline-block rounded px-2 py-0.5 text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
-                          Công khai (Public)
-                        </span>
-                      )}
-                    </div>
-                  </td>
-                  <td className="py-3 px-4 text-center">
-                    {item.isStatic ? (
-                      <span className="inline-block px-2.5 py-0.5 text-xs font-medium rounded-full bg-slate-100 text-slate-600 border border-slate-200">
-                        Cố định
-                      </span>
-                    ) : (
-                      <span className="inline-block px-2.5 py-0.5 text-xs font-medium rounded-full bg-amber-50 text-amber-700 border border-amber-200">
-                        Tùy chỉnh
-                      </span>
-                    )}
-                  </td>
-                  <td className="py-3 px-4 text-right space-x-2">
-                    <button
-                      onClick={() => openPermissionModal(item)}
-                      className="text-xs font-medium text-indigo-600 hover:text-indigo-800 bg-indigo-50 px-2 py-1 rounded border border-indigo-100"
-                    >
-                      Quyền hạn
-                    </button>
-                    <button
-                      onClick={() => openEditRoleModal(item)}
-                      className="text-xs font-medium text-slate-600 hover:text-slate-800"
-                    >
-                      Sửa
-                    </button>
-                    {!item.isStatic && (
-                      <button
-                        onClick={() => handleDeleteRole(item.id)}
-                        className="text-xs font-medium text-rose-600 hover:text-rose-800"
-                      >
-                        Xóa
-                      </button>
-                    )}
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+      {error ? (
+        <div className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
+          {error}
+        </div>
+      ) : null}
 
-      {/* Role Modal */}
+      <RoleTable
+        roles={roles}
+        isLoading={loading}
+        onPermissionClick={openPermissionModal}
+        onEdit={openEditRoleModal}
+        onDelete={handleDeleteRole}
+      />
+
       <RoleModal
         isOpen={isRoleModalOpen}
         editingRole={editingRole}
@@ -146,7 +76,6 @@ export default function RolesPage() {
         onSave={handleSaveRole}
       />
 
-      {/* Permission Modal */}
       <PermissionModal
         isOpen={isPermissionModalOpen}
         role={permissionRole}

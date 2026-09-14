@@ -46,7 +46,7 @@ export function LessonModal({
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              className="w-full px-3.5 py-2 border rounded-lg text-sm outline-none"
+              className="w-full rounded-lg border border-slate-300 bg-slate-50 px-3 py-2 text-sm text-slate-700 transition-colors placeholder:text-slate-400 focus:border-indigo-500 focus:bg-white focus:outline-none"
               required
             />
           </div>
@@ -58,7 +58,7 @@ export function LessonModal({
             <select
               value={lessonType}
               onChange={(e) => setLessonType(Number(e.target.value))}
-              className="w-full px-3.5 py-2 border rounded-lg text-sm bg-white"
+              className="w-full rounded-lg border border-slate-300 bg-slate-50 px-3 py-2 text-sm text-slate-700 transition-colors focus:border-indigo-500 focus:bg-white focus:outline-none"
             >
               <option value={LessonType.Vocabulary}>
                 Từ Vựng (Vocabulary)
@@ -76,7 +76,7 @@ export function LessonModal({
               type="number"
               value={orderIndex}
               onChange={(e) => setOrderIndex(Number(e.target.value))}
-              className="w-full px-3.5 py-2 border rounded-lg text-sm"
+              className="w-full rounded-lg border border-slate-300 bg-slate-50 px-3 py-2 text-sm text-slate-700 transition-colors focus:border-indigo-500 focus:bg-white focus:outline-none"
               required
             />
           </div>

@@ -19,7 +19,7 @@ export function ChapterFilterBar({
       <select
         value={selectedLevelId}
         onChange={(e) => onLevelChange(e.target.value)}
-        className="px-4 py-2 border rounded-lg text-sm bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-200"
+        className="w-full min-w-[220px] rounded-lg border border-slate-300 bg-slate-50 px-3 py-2 text-sm text-slate-700 transition-colors focus:border-indigo-500 focus:bg-white focus:outline-none"
       >
         {levels.map((lvl) => (
           <option key={lvl.id} value={lvl.id}>

@@ -96,7 +96,7 @@ export function WritingTopicModal({
                 setFormData({ ...formData, chapterId: e.target.value })
               }
               required
-              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none"
+              className="w-full rounded-lg border border-slate-300 bg-slate-50 px-3 py-2 text-sm text-slate-700 transition-colors focus:border-indigo-500 focus:bg-white focus:outline-none"
             >
               {chapters.length === 0 ? (
                 <option value="">-- Không có Chapter nào --</option>
@@ -123,7 +123,7 @@ export function WritingTopicModal({
                   topicType: Number(e.target.value) as WritingTopicType,
                 })
               }
-              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none"
+              className="w-full rounded-lg border border-slate-300 bg-slate-50 px-3 py-2 text-sm text-slate-700 transition-colors focus:border-indigo-500 focus:bg-white focus:outline-none"
             >
               <option value={WritingTopicType.Weekly}>Weekly</option>
               <option value={WritingTopicType.Monthly}>Monthly</option>
@@ -143,7 +143,7 @@ export function WritingTopicModal({
                 setFormData({ ...formData, promptTitle: e.target.value })
               }
               placeholder="Nhập đề bài viết..."
-              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none"
+              className="w-full rounded-lg border border-slate-300 bg-slate-50 px-3 py-2 text-sm text-slate-700 transition-colors placeholder:text-slate-400 focus:border-indigo-500 focus:bg-white focus:outline-none"
             />
           </div>
 

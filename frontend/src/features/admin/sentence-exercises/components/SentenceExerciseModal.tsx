@@ -107,7 +107,7 @@ export function SentenceExerciseModal({
               onChange={(e) =>
                 setFormData({ ...formData, lessonId: e.target.value })
               }
-              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none"
+              className="w-full rounded-lg border border-slate-300 bg-slate-50 px-3 py-2 text-sm text-slate-700 transition-colors focus:border-indigo-500 focus:bg-white focus:outline-none"
             >
               {lessons.map((les) => (
                 <option key={les.id} value={les.id}>
@@ -131,7 +131,7 @@ export function SentenceExerciseModal({
                     sectionType: Number(e.target.value) as SectionType,
                   })
                 }
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none"
+                className="w-full rounded-lg border border-slate-300 bg-slate-50 px-3 py-2 text-sm text-slate-700 transition-colors focus:border-indigo-500 focus:bg-white focus:outline-none"
               >
                 <option value={SectionType.Vocabulary}>Vocabulary</option>
                 <option value={SectionType.Grammar}>Grammar</option>
@@ -152,7 +152,7 @@ export function SentenceExerciseModal({
                     exerciseType: Number(e.target.value) as ExerciseType,
                   })
                 }
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none"
+                className="w-full rounded-lg border border-slate-300 bg-slate-50 px-3 py-2 text-sm text-slate-700 transition-colors focus:border-indigo-500 focus:bg-white focus:outline-none"
               >
                 <option value={ExerciseType.WordOrder}>Xếp từ thành câu</option>
                 <option value={ExerciseType.FillInBlank}>Điền chỗ trống</option>
@@ -181,7 +181,7 @@ export function SentenceExerciseModal({
                   setFormData({ ...formData, promptText: e.target.value })
                 }
                 placeholder="Ví dụ: How are you today?"
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none"
+                className="w-full rounded-lg border border-slate-300 bg-slate-50 px-3 py-2 text-sm text-slate-700 transition-colors placeholder:text-slate-400 focus:border-indigo-500 focus:bg-white focus:outline-none"
               />
             </div>
           )}
@@ -204,7 +204,7 @@ export function SentenceExerciseModal({
                   })
                 }
                 placeholder="Ví dụ: Rất vui được gặp bạn"
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none"
+                className="w-full rounded-lg border border-slate-300 bg-slate-50 px-3 py-2 text-sm text-slate-700 transition-colors placeholder:text-slate-400 focus:border-indigo-500 focus:bg-white focus:outline-none"
               />
             </div>
           )}
@@ -223,7 +223,7 @@ export function SentenceExerciseModal({
                 setFormData({ ...formData, correctSentence: e.target.value })
               }
               placeholder="Ví dụ: Nice to meet you"
-              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none"
+              className="w-full rounded-lg border border-slate-300 bg-slate-50 px-3 py-2 text-sm text-slate-700 transition-colors placeholder:text-slate-400 focus:border-indigo-500 focus:bg-white focus:outline-none"
             />
             {formData.exerciseType === ExerciseType.FillInBlank && (
               <p className="mt-1 text-xs text-amber-600">
@@ -245,7 +245,7 @@ export function SentenceExerciseModal({
                 setFormData({ ...formData, audioUrl: e.target.value })
               }
               placeholder="https://example.com/audio.mp3"
-              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none"
+              className="w-full rounded-lg border border-slate-300 bg-slate-50 px-3 py-2 text-sm text-slate-700 transition-colors placeholder:text-slate-400 focus:border-indigo-500 focus:bg-white focus:outline-none"
             />
           </div>
 

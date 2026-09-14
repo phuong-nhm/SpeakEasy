@@ -30,7 +30,7 @@ export function WritingTopicFilter({
         <select
           value={selectedLevelId}
           onChange={(e) => onSelectLevel(e.target.value)}
-          className="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none min-w-[200px]"
+          className="min-w-[200px] rounded-lg border border-slate-300 bg-slate-50 px-3 py-2 text-sm text-slate-700 transition-colors focus:border-indigo-500 focus:bg-white focus:outline-none"
         >
           {levels.map((lvl) => (
             <option key={lvl.id} value={lvl.id}>
@@ -49,7 +49,7 @@ export function WritingTopicFilter({
           value={selectedChapterId}
           onChange={(e) => onSelectChapter(e.target.value)}
           disabled={chapters.length === 0}
-          className="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none min-w-[240px] disabled:bg-slate-100 disabled:cursor-not-allowed"
+          className="min-w-[240px] rounded-lg border border-slate-300 bg-slate-50 px-3 py-2 text-sm text-slate-700 transition-colors focus:border-indigo-500 focus:bg-white focus:outline-none disabled:bg-slate-100 disabled:cursor-not-allowed"
         >
           {chapters.length === 0 ? (
             <option value="">-- Chưa có Chapter nào --</option>

@@ -54,7 +54,7 @@ export function LessonHeader({
           <select
             value={selectedLevelId}
             onChange={(e) => onLevelChange(e.target.value)}
-            className="px-4 py-2 border rounded-lg text-sm bg-slate-50 focus:outline-none"
+            className="min-w-[200px] rounded-lg border border-slate-300 bg-slate-50 px-3 py-2 text-sm text-slate-700 transition-colors focus:border-indigo-500 focus:bg-white focus:outline-none"
           >
             {levels.map((lvl) => (
               <option key={lvl.id} value={lvl.id}>
@@ -72,7 +72,7 @@ export function LessonHeader({
             value={selectedChapterId}
             onChange={(e) => onChapterChange(e.target.value)}
             disabled={chapters.length === 0}
-            className="px-4 py-2 border rounded-lg text-sm bg-slate-50 focus:outline-none disabled:opacity-50"
+            className="min-w-[220px] rounded-lg border border-slate-300 bg-slate-50 px-3 py-2 text-sm text-slate-700 transition-colors focus:border-indigo-500 focus:bg-white focus:outline-none disabled:opacity-50"
           >
             {chapters.length > 0 ? (
               chapters.map((chap) => (

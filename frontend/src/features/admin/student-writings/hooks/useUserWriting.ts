@@ -1,93 +1,149 @@
-import { useState, useMemo } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { UserWritingDto } from "@/features/admin/student-writings/types/user-writings";
+import userWritingService from "@/features/admin/student-writings/services/userWritingService";
 
-// Mock Data khớp chuẩn UserWritingDto C#
-const mockUserWritings: UserWritingDto[] = [
-  {
-    id: "3fa85f64-5717-4562-b3fc-2c963f66afa6",
-    topicId: "11111111-2222-3333-4444-555555555555",
-    topicTitle: "Describe your daily routine",
-    userName: "Nguyễn Văn A",
-    userContent:
-      "Every day I wakes up at 6 AM. I eats breakfast and go to school by bus.",
-    creationTime: "2026-03-28T08:30:00Z",
-    feedback: {
-      isCorrect: false,
-      score: 75,
-      explanation:
-        "Bài viết khá rõ ràng nhưng còn mắc một số lỗi chia động từ cơ bản ở thì hiện tại đơn.",
-      suggestedCorrection:
-        "Every day I wake up at 6 AM. I eat breakfast and go to school by bus.",
-      errors: [
-        {
-          errorType: "Grammar",
-          originalText: "I wakes up",
-          suggestion: "I wake up",
-        },
-        {
-          errorType: "Grammar",
-          originalText: "I eats",
-          suggestion: "I eat",
-        },
-      ],
-    },
-  },
-  {
-    id: "4ba85f64-5717-4562-b3fc-2c963f66afa7",
-    topicId: "22222222-3333-4444-5555-666666666666",
-    topicTitle: "My favorite hobby",
-    userName: "Trần Thị B",
-    userContent:
-      "My favorite hobby is reading books because it helps me relax after a stressful day.",
-    creationTime: "2026-03-28T09:15:00Z",
-    feedback: {
-      isCorrect: true,
-      score: 95,
-      explanation:
-        "Bài viết rất tốt, câu đúng cấu trúc ngữ pháp và từ vựng hợp lý.",
-      suggestedCorrection:
-        "My favorite hobby is reading books because it helps me relax after a stressful day.",
-      errors: [],
-    },
-  },
-];
+type UserWritingFilter = {
+  userId?: string;
+  topicId?: string;
+};
 
 export function useUserWriting() {
-  const [writings, setWritings] = useState<UserWritingDto[]>(mockUserWritings);
-  const [searchQuery, setSearchQuery] = useState("");
+  const [data, setData] = useState<UserWritingDto[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [skipCount, setSkipCount] = useState(0);
+  const [maxResultCount, setMaxResultCount] = useState(10);
+  const [totalCount, setTotalCount] = useState(0);
+  const [filter, setFilter] = useState<UserWritingFilter>({});
   const [selectedWriting, setSelectedWriting] = useState<UserWritingDto | null>(
     null,
   );
+  const [searchQuery, setSearchQuery] = useState("");
 
-  const filteredWritings = useMemo(() => {
-    return writings.filter((item) => {
-      const matchSearch =
-        (item.userName?.toLowerCase() || "").includes(
-          searchQuery.toLowerCase(),
-        ) ||
-        (item.topicTitle?.toLowerCase() || "").includes(
-          searchQuery.toLowerCase(),
-        ) ||
-        item.userContent.toLowerCase().includes(searchQuery.toLowerCase());
+  const loadData = useCallback(
+    async (
+      nextFilter: UserWritingFilter = filter,
+      nextSkipCount = skipCount,
+      nextMaxResultCount = maxResultCount,
+    ) => {
+      setLoading(true);
+      setError(null);
 
-      return matchSearch;
-    });
-  }, [writings, searchQuery]);
+      try {
+        const result = await userWritingService.getListForAdmin({
+          userId: nextFilter.userId,
+          topicId: nextFilter.topicId,
+          skipCount: nextSkipCount,
+          maxResultCount: nextMaxResultCount,
+        });
 
-  const openDetailModal = (item: UserWritingDto) => {
-    setSelectedWriting(item);
-  };
+        setData(result.items);
+        setTotalCount(result.totalCount);
+      } catch (err) {
+        const message =
+          err instanceof Error ? err.message : "Failed to load writings.";
+        setError(message);
+        setData([]);
+        setTotalCount(0);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [filter, maxResultCount, skipCount],
+  );
 
-  const closeDetailModal = () => {
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      void loadData();
+    }, 0);
+
+    return () => {
+      window.clearTimeout(timer);
+    };
+  }, [loadData]);
+
+  const updateFilter = useCallback((nextFilter: Partial<UserWritingFilter>) => {
+    setFilter((previous) => ({
+      ...previous,
+      ...nextFilter,
+    }));
+    setSkipCount(0);
+  }, []);
+
+  const openDetailModal = useCallback(async (writingId: string) => {
+    setDetailLoading(true);
+    setError(null);
+
+    try {
+      const writing = await userWritingService.getDetailForAdmin(writingId);
+      setSelectedWriting(writing ?? null);
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "Failed to fetch writing detail.";
+      setError(message);
+      setSelectedWriting(null);
+    } finally {
+      setDetailLoading(false);
+    }
+  }, []);
+
+  const closeDetailModal = useCallback(() => {
     setSelectedWriting(null);
-  };
+  }, []);
+
+  const deleteWriting = useCallback(
+    async (writingId: string) => {
+      setLoading(true);
+      setError(null);
+
+      try {
+        const isDeleted = await userWritingService.deleteWriting(writingId);
+
+        if (!isDeleted) {
+          throw new Error("Writing not found.");
+        }
+
+        await loadData(filter, skipCount, maxResultCount);
+      } catch (err) {
+        const message =
+          err instanceof Error ? err.message : "Failed to delete writing.";
+        setError(message);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [filter, loadData, maxResultCount, skipCount],
+  );
 
   return {
-    writings: filteredWritings,
+    data,
+    writings: data,
+    loading,
+    detailLoading,
+    error,
+    pagination: {
+      skipCount,
+      maxResultCount,
+      totalCount,
+    },
+    filter,
+    userId: filter.userId,
+    topicId: filter.topicId,
+    setFilter: updateFilter,
+    setUserId: (userId?: string) => updateFilter({ userId }),
+    setTopicId: (topicId?: string) => updateFilter({ topicId }),
+    setSkipCount,
+    setMaxResultCount: (value: number) => {
+      setMaxResultCount(value);
+      setSkipCount(0);
+    },
     searchQuery,
     setSearchQuery,
     selectedWriting,
     openDetailModal,
     closeDetailModal,
+    loadData,
+    deleteWriting,
   };
 }

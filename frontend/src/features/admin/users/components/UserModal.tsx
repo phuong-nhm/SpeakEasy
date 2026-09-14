@@ -1,14 +1,19 @@
 "use client";
 
 import { useState } from "react";
-import { IdentityUserDto, IdentityRoleLookupDto } from "@/types/users";
+import {
+  CreateIdentityUserDto,
+  IdentityUserDto,
+  IdentityRoleLookupDto,
+  UpdateIdentityUserDto,
+} from "@/features/admin/users/types/users";
 
 interface UserModalProps {
   isOpen: boolean;
   editingUser: IdentityUserDto | null;
   roles: IdentityRoleLookupDto[];
   onClose: () => void;
-  onSave: (data: any) => void;
+  onSave: (data: CreateIdentityUserDto | UpdateIdentityUserDto) => void;
 }
 
 function UserModalForm({
@@ -20,7 +25,7 @@ function UserModalForm({
   editingUser: IdentityUserDto | null;
   roles: IdentityRoleLookupDto[];
   onClose: () => void;
-  onSave: (data: any) => void;
+  onSave: (data: CreateIdentityUserDto | UpdateIdentityUserDto) => void;
 }) {
   const [userName, setUserName] = useState(editingUser?.userName || "");
   const [name, setName] = useState(editingUser?.name || "");
@@ -47,7 +52,8 @@ function UserModalForm({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSave({
+
+    const payload: CreateIdentityUserDto | UpdateIdentityUserDto = {
       userName,
       name,
       surname,
@@ -57,7 +63,9 @@ function UserModalForm({
       isActive,
       lockoutEnabled: true,
       roleNames: selectedRoles,
-    });
+    };
+
+    onSave(payload);
   };
 
   return (

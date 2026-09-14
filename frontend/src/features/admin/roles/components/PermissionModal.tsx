@@ -5,7 +5,7 @@ import {
   IdentityRoleDto,
   GetPermissionListResultDto,
   UpdatePermissionsDto,
-} from "@/types/roles";
+} from "@/features/admin/roles/types/roles";
 
 interface PermissionModalProps {
   isOpen: boolean;

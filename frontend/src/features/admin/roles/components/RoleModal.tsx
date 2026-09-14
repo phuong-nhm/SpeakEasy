@@ -5,7 +5,7 @@ import {
   IdentityRoleDto,
   CreateIdentityRoleDto,
   UpdateIdentityRoleDto,
-} from "@/types/roles";
+} from "@/features/admin/roles/types/roles";
 
 interface RoleModalProps {
   isOpen: boolean;

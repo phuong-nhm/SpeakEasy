@@ -52,7 +52,7 @@ export function VocabularyFormModal({
               value={word}
               onChange={(e) => setWord(e.target.value)}
               placeholder="Ví dụ: Apple"
-              className="w-full px-3.5 py-2 border rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-200"
+              className="w-full rounded-lg border border-slate-300 bg-slate-50 px-3 py-2 text-sm text-slate-700 transition-colors placeholder:text-slate-400 focus:border-indigo-500 focus:bg-white focus:outline-none"
               required
             />
           </div>
@@ -66,7 +66,7 @@ export function VocabularyFormModal({
               value={meaning}
               onChange={(e) => setMeaning(e.target.value)}
               placeholder="Ví dụ: Quả táo"
-              className="w-full px-3.5 py-2 border rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-200"
+              className="w-full rounded-lg border border-slate-300 bg-slate-50 px-3 py-2 text-sm text-slate-700 transition-colors placeholder:text-slate-400 focus:border-indigo-500 focus:bg-white focus:outline-none"
               required
             />
           </div>
@@ -80,7 +80,7 @@ export function VocabularyFormModal({
               value={imageUrl}
               onChange={(e) => setImageUrl(e.target.value)}
               placeholder="https://..."
-              className="w-full px-3.5 py-2 border rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-200"
+              className="w-full rounded-lg border border-slate-300 bg-slate-50 px-3 py-2 text-sm text-slate-700 transition-colors placeholder:text-slate-400 focus:border-indigo-500 focus:bg-white focus:outline-none"
             />
           </div>
 
@@ -93,7 +93,7 @@ export function VocabularyFormModal({
               value={audioUrl}
               onChange={(e) => setAudioUrl(e.target.value)}
               placeholder="https://..."
-              className="w-full px-3.5 py-2 border rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-200"
+              className="w-full rounded-lg border border-slate-300 bg-slate-50 px-3 py-2 text-sm text-slate-700 transition-colors placeholder:text-slate-400 focus:border-indigo-500 focus:bg-white focus:outline-none"
             />
           </div>
 
@@ -106,7 +106,7 @@ export function VocabularyFormModal({
               value={distractor}
               onChange={(e) => setDistractor(e.target.value)}
               placeholder="Ví dụ: Quả cam"
-              className="w-full px-3.5 py-2 border rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-200"
+              className="w-full rounded-lg border border-slate-300 bg-slate-50 px-3 py-2 text-sm text-slate-700 transition-colors placeholder:text-slate-400 focus:border-indigo-500 focus:bg-white focus:outline-none"
             />
           </div>
 
