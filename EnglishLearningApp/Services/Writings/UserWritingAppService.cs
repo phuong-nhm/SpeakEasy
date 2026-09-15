@@ -6,11 +6,14 @@ using System.Threading.Tasks;
 using EnglishLearningApp.Dtos.Writings;
 using EnglishLearningApp.Entities;
 using EnglishLearningApp.Entities.Writing;
+using EnglishLearningApp.Permissions;
 using EnglishLearningApp.Services;
 using Microsoft.AspNetCore.Authorization;
 using Volo.Abp;
+using Volo.Abp.Application.Dtos;
 using Volo.Abp.Domain.Repositories;
 using Volo.Abp.Users;
+using Volo.Abp.Identity;
 
 namespace EnglishLearningApp.AppServices.Writings
 {
@@ -21,16 +24,18 @@ namespace EnglishLearningApp.AppServices.Writings
         private readonly IRepository<WritingTopic, Guid> _topicRepo;
         private readonly ICurrentUser _currentUser;
         private readonly IGeminiGradingService _geminiGradingService;
-
+        private readonly IRepository<IdentityUser, Guid> _userRepo;
         public UserWritingAppService(
             IRepository<UserWriting, Guid> writingRepo,
             IRepository<WritingTopic, Guid> topicRepo,
             ICurrentUser currentUser,
+            IRepository<IdentityUser, Guid> userRepo,
             IGeminiGradingService geminiGradingService)
         {
             _writingRepo = writingRepo;
             _topicRepo = topicRepo;
             _currentUser = currentUser;
+            _userRepo = userRepo;
             _geminiGradingService = geminiGradingService;
         }
 
@@ -90,7 +95,7 @@ namespace EnglishLearningApp.AppServices.Writings
         }
 
         // ================= ADMIN =================
-                [Authorize(EnglishLearningAppPermissions.StudentWritings.View)]
+                [Authorize(EnglishLearningAppPermissions.ContentManagement.View)]
         public async Task<PagedResultDto<UserWritingDto>> GetListForAdminAsync(GetUserWritingListInput input)
         {
             var writingQueryable = await _writingRepo.GetQueryableAsync();
@@ -121,7 +126,7 @@ namespace EnglishLearningApp.AppServices.Writings
             return new PagedResultDto<UserWritingDto>(totalCount, result);
         }
 
-        [Authorize(EnglishLearningAppPermissions.StudentWritings.View)]
+        [Authorize(EnglishLearningAppPermissions.ContentManagement.View)]
         public async Task<UserWritingDto> GetDetailForAdminAsync(Guid writingId)
         {
             var writing = await _writingRepo.GetAsync(writingId);
@@ -136,7 +141,7 @@ namespace EnglishLearningApp.AppServices.Writings
             return dto;
         }
 
-        [Authorize(EnglishLearningAppPermissions.StudentWritings.Delete)]
+        [Authorize(EnglishLearningAppPermissions.ContentManagement.Delete)]
         public async Task DeleteAsync(Guid writingId)
         {
             await _writingRepo.DeleteAsync(writingId);

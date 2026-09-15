@@ -13,9 +13,8 @@ namespace EnglishLearningApp.Permissions
             public const string Update = Default + ".Update";
             public const string Delete = Default + ".Delete";
 
-            public const string Default = GroupName + ".StudentWritings";
             public const string View = Default + ".View";
-            public const string Delete = Default + ".Delete";
+
         }
     }
 }

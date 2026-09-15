@@ -385,7 +385,175 @@ Trong tương lai, khi backend đã có API thật, cần thay thế mock theo h
 
 Đây là cách tốt nhất để giữ UI stable và dễ tích hợp ABP / backend thật sau này.
 
----
+## 9. Phase 3 - Module Checkpoint cuối Chapter, Bài Luyện Nghe & AI Gemini chấm Writing
+
+Thêm các components và route mới để hỗ trợ bài Checkpoint cuối Chapter gồm Listening + AI Writing:
+
+- `ListeningExercise` (frontend/src/features/frontend/lesson/components/exercises/ListeningExercise.tsx)
+  - Dạng: nghe audio, chọn đáp án hoặc gõ lại câu nghe được.
+  - Dùng HTML5 Audio API để phát audio; hỗ trợ options hoặc input text.
+
+- `CheckpointWritingExercise` (frontend/src/features/frontend/lesson/components/exercises/CheckpointWritingExercise.tsx)
+  - Dạng: ô nhập bài viết theo `WritingTopicDto` (hiển thị `promptTitle`, `promptText`).
+  - Nút `GỬI AI CHẤM BÀI` gửi `POST /api/app/user-writing/submit` và hiển thị `AiFeedbackCard`.
+
+- `AiFeedbackCard` (frontend/src/features/frontend/lesson/components/AiFeedbackCard.tsx)
+
+## 10. Phase 4 - Spaced Repetition Hub & Game Hub (NEW)
+
+### 10.1 Spaced Repetition Hub
+
+- Route: `src/app/(main)/review/page.tsx`
+- Mục tiêu: cung cấp "hub" để người dùng xem số lượng từ / bài học đến hạn ôn tập, và bắt đầu các flow ôn tập (Flashcard / Quiz).
+- FE implementation summary:
+  - Server-side page fetches: `GET /api/app/user-lesson-review/due-reviews` (uses `fetch(..., { cache: 'no-store' })`).
+  - Shows count of due items and a small preview list.
+  - `ReviewStartButton` client component (`frontend/src/components/ReviewStartButton.tsx`) provides actions: "Start Flashcard Review" and "Start Quiz". These can route to dedicated review flows (`/review/flashcards`, `/review/quiz`) to be implemented later or integrated with existing lesson flows.
+
+### 10.2 Game Hub - Matching Game
+
+- Route: `src/app/(main)/games/page.tsx`
+- Mục tiêu: mini-game để củng cố từ vựng (Matching Game) và thưởng XP khi thắng.
+- FE implementation summary:
+  - `MatchingGameClient` (`frontend/src/components/MatchingGameClient.tsx`) is a client-side React component that:
+    - Loads pairs from `GET /api/app/matching-game/data` and prioritizes items returned by the backend (backend should return due/prioritized items when possible).
+    - Builds shuffled cards, handles flips, detects matches, tracks score and combo, and enforces a timer.
+    - On completion (all pairs matched) it displays a Victory section awarding XP and attempts to call `POST /api/app/user-lesson-review/complete-review` with the reviewed vocabulary ids to mark them complete.
+
+### 10.3 Backend APIs used (add to integration checklist)
+
+- `GET /api/app/user-lesson-review/due-reviews` — returns list of due review items (vocabulary / lesson review entries). Expected response shape: `{ items: [{ id, word, lessonId, nextReviewTime, currentIntervalStage, ... }] }`.
+- `POST /api/app/user-lesson-review/complete-review` — accept `{ ids: [] }` to mark reviewed items as completed.
+- `GET /api/app/matching-game/data` — returns matching pairs for the game. Expected response shape: `{ items: [{ id, left, right, vocabId? }] }`.
+
+### 10.4 Notes & next steps
+
+- The pages added are minimal, focused on connecting to the ABP endpoints and providing a working Matching Game UI. They are intentionally small and live in `frontend/src/app/(main)/...` so they follow the current app router structure.
+- Next tasks you may want me to implement:
+  - Full Flashcard Review and Quiz flows (`/review/flashcards`, `/review/quiz`).
+  - Persisting game session results to backend with richer payloads (time, accuracy, earnedXp).
+  - Add unit tests and TypeScript DTO files under `src/features/frontend/review/types` and `services` to formalize contracts.
+
+### 10.5 Implemented Flashcard & Quiz flows (Phase 4 - additions)
+
+- Routes:
+  - `src/app/(main)/review/flashcards/page.tsx` — Flashcard review flow (client component: `frontend/src/components/FlashcardReviewClient.tsx`).
+  - `src/app/(main)/review/quiz/page.tsx` — Quiz review flow (client component: `frontend/src/components/QuizReviewClient.tsx`).
+- Entry points:
+  - Header dropdown updated: `frontend/src/components/layout/AppHeader.tsx` now includes quick links to `Spaced Repetition Hub` and `Game Hub` for authenticated users.
+- Flashcard flow details:
+  - Loads items from `GET /api/app/user-lesson-review/due-reviews`.
+  - Shows one card at a time (word + reveal meaning), supports "I remember" action which advances to next card.
+  - On finish calls `POST /api/app/user-lesson-review/complete-review` with reviewed ids.
+- Quiz flow details:
+  - Loads due items and maps to simple multiple-choice questions (uses `word`, `meaning`, and optional `distractors` from backend if available).
+  - Tracks score and completed count; on finish calls `POST /api/app/user-lesson-review/complete-review`.
+
+  - Hiển thị Band, score, danh sách lỗi ngữ pháp (original + suggestion) và improvedText.
+
+Additional implementation details (Phase 3 extras):
+
+- Files added in Phase 3:
+  - `frontend/src/features/frontend/lesson/components/exercises/ListeningExercise.tsx` — listening task UI (audio play + answer input/options).
+  - `frontend/src/features/frontend/lesson/components/exercises/CheckpointWritingExercise.tsx` — writing prompt + submit flow to AI grader.
+  - `frontend/src/features/frontend/lesson/components/AiFeedbackCard.tsx` — AI feedback presenter.
+  - `frontend/src/app/(main)/lesson/checkpoint/[chapterId]/page.tsx` — checkpoint orchestration page (hearts, tasks, pass rule, unlock flow).
+
+- Local mock API routes added for easier local testing (can be swapped with real backend later):
+  - `GET /api/app/writing-topic/by-chapter` -> `src/app/api/app/writing-topic/by-chapter/route.ts`
+  - `GET /api/app/listening/by-chapter` -> `src/app/api/app/listening/by-chapter/route.ts`
+  - `POST /api/app/user-writing/submit` -> `src/app/api/app/user-writing/submit/route.ts` (returns `aiFeedback`)
+  - `POST /api/app/chapter/{id}/unlock-checkpoint` -> `src/app/api/app/chapter/[id]/unlock-checkpoint/route.ts`
+
+- Dashboard integration:
+  - `frontend/src/features/frontend/dashboard/components/ChapterCard.tsx` was updated to expose two action links directly on each chapter card:
+    - `Mở Lesson` -> navigates to the first lesson: `/lesson/{lessonId}`
+    - `Checkpoint` -> navigates to `/lesson/checkpoint/{chapterId}`
+
+- Checkpoint behavior summary:
+  - Default `3` hearts, a mix of tasks (listening + writing + one additional task), simple scoring where passing requires ≥80%.
+  - On pass, frontend calls `POST /api/app/chapter/{id}/unlock-checkpoint` then redirects to `/dashboard`.
+
+- Notes and next steps for Phase 3:
+  - Improve orchestration: shuffle questions, persist progress, show failure modal + retry flow.
+  - Replace mock API routes with backend ABP endpoints when available and map the returned `AiFeedbackJson` to `AiFeedbackCard`.
+
+Route mới:
+
+- `src/app/(main)/lesson/checkpoint/[chapterId]/page.tsx`
+  - Màn Checkpoint tải `GET /api/app/writing-topic/by-chapter?chapterId={id}` và `GET /api/app/listening/by-chapter?chapterId={id}` (fallback mock nếu không có API).
+  - Bài Checkpoint có 3 hearts mặc định và 3 task (listening + writing + plus one internal task). Pass nếu đạt ≥80%.
+  - Khi pass, frontend gọi `POST /api/app/chapter/{id}/unlock-checkpoint` để mở khóa chapter tiếp theo và điều hướng về dashboard.
+
+API backend ABP tương ứng (đề xuất):
+
+- `GET /api/app/writing-topic/by-chapter` — Lấy đề bài viết theo chapter
+- `POST /api/app/user-writing/submit` — Nộp bài viết và nhận `AiFeedbackJson` trả về từ GeminiGradingService
+- `POST /api/app/chapter/{id}/unlock-checkpoint` — Mở khóa chapter trên server
+
+Các file mới đã thêm vào codebase và đã được kiểm tra TypeScript/VSCode diagnostics (không có lỗi trong các file mới).
+
+### 10.6 Fix mock-first cho Phase 4 (Review Hub & Game Hub)
+
+- Phát hiện lỗi: `reviewService.ts` và `matchingGameService.ts` (Phase 4) đang code thẳng `fetch()` gọi API thật (`/api/app/user-lesson-review/due-reviews`, `/api/app/matching-game/data`), khác với pattern mock-first mà các feature khác (Auth, Lesson) đang tuân theo → gây lỗi `Failed to parse URL` khi backend chưa chạy/chưa đúng URL.
+- Đã sửa lại cả 2 service theo đúng chuẩn mock-first:
+  - Thêm file `src/features/frontend/review/mock/mockReviewData.ts` — chứa `mockDueReviews` (5 items, đúng field `DueReviewItem`: word, meaning, exampleSentence, lessonId, lessonTitle, nextReviewTime, currentIntervalStage, intervalDays, easeFactor, vocabId, distractors) và `mockMatchingPairs` (5 pairs, đúng field `MatchingPairDto`).
+  - `reviewService.ts`: thêm flag `USE_MOCK = true` ở đầu file — `getDueReviews()` và `completeReview()` trả mock data (có delay giả lập `setTimeout`) khi `USE_MOCK = true`, giữ nguyên code gọi API thật bên dưới để chỉ cần đổi `USE_MOCK = false` khi backend sẵn sàng, không cần sửa UI/hook.
+  - `matchingGameService.ts`: áp dụng cùng pattern `USE_MOCK` cho `getMatchingData()`.
+- Function signature giữ nguyên hoàn toàn → `review/page.tsx`, `games/page.tsx`, `FlashcardReviewClient.tsx`, `QuizReviewClient.tsx`, `MatchingGameClient.tsx` không cần sửa gì.
+
+### 10.7 Quick-action Review/Games trên Dashboard header
+
+- Thêm 2 nút quick-action (Ôn tập → `/review`, Mini Games → `/games`) vào `HeaderStats.tsx` (dashboard header), đặt giữa progress bar và hàng stats (Completed/Streak/XP).
+- Dùng `next/link` + icon `BookOpenCheck`/`Gamepad2` từ `lucide-react`, style theo đúng tông gradient/glass (`bg-white/10 backdrop-blur-sm`) đã có sẵn trong component.
+
+## 11. Phase 5 (PHASE CUỐI CÙNG) - Profile, Leaderboard & Navigation Integration
+
+### 11.1 Màn Profile
+
+- Route: `src/app/(main)/profile/page.tsx` (Server Component, fetch song song profile + achievements + learning stats weekly/monthly)
+- Hiển thị: Avatar (initial letter), tên (`fullName ?? userName`, fallback cho trường hợp IdentityUser chưa điền Name/Surname), Streak, Total XP, Gems.
+- Danh sách Achievements/Badges dạng grid card, mỗi item có progress bar (`progressCurrent/progressTarget`) và trạng thái `isUnlocked`.
+- Bảng thống kê học tập (bar chart CSS thuần, không dùng lib chart) với tab chuyển đổi Tuần/Tháng — xử lý client-side qua component con `LearningStatsTabs.tsx`, không gọi lại API khi đổi tab (data cả 2 period đã fetch sẵn ở server).
+- Files:
+  - `frontend/src/features/frontend/profile/types/profile.ts` — `UserProfileDto` (có `userName`/`fullName` optional dựa theo IdentityUser), `AchievementDto`, `LearningStatEntryDto`, `LearningStatsDto`
+  - `frontend/src/features/frontend/profile/mock/mockProfileData.ts`
+  - `frontend/src/features/frontend/profile/services/profileService.ts` — `getUserProfile()`, `getUserAchievements()`, `getLearningStats(period)`
+  - `frontend/src/features/frontend/profile/components/LearningStatsTabs.tsx` (Client Component)
+  - `frontend/src/app/(main)/profile/page.tsx`
+
+### 11.2 Màn Leaderboard (bản đơn giản, chưa có backend thật - chỉ mock)
+
+- Route: `src/app/(main)/leaderboard/page.tsx` (Server Component, fetch song song weekly + friends)
+- Bản tối giản theo yêu cầu: chỉ hiển thị 1 division cố định (chưa có bảng division thật trong DB), có Top 1-3 dạng podium + Crown cho hạng 1, danh sách rank còn lại có highlight vị trí user hiện tại (`isCurrentUser`).
+- Tab chuyển đổi "Bảng xếp hạng Tuần" / "Bạn bè" xử lý client-side qua `LeaderboardTabs.tsx`, không gọi lại API khi đổi tab.
+- Type đã có sẵn `LeaderboardDivision` (Bronze/Silver/Gold/Diamond) dù UI hiện chỉ dùng 1 division — chuẩn bị sẵn cho việc mở rộng sau này khi có bảng division thật trong DB.
+- Files:
+  - `frontend/src/features/frontend/leaderboard/types/leaderboard.ts` — `LeaderboardDivision`, `LeaderboardScope`, `LeaderboardEntryDto`, `LeaderboardResultDto`
+  - `frontend/src/features/frontend/leaderboard/mock/mockLeaderboardData.ts`
+  - `frontend/src/features/frontend/leaderboard/services/leaderboardService.ts` — `getLeaderboard(scope)`
+  - `frontend/src/features/frontend/leaderboard/components/LeaderboardTabs.tsx` (Client Component)
+  - `frontend/src/app/(main)/leaderboard/page.tsx`
+
+### 11.3 Navigation Integration
+
+- `AppHeader.tsx`: thêm hàng nav icon chính (desktop, `md:flex`) với 5 route — Dashboard/Review/Games/Leaderboard/Profile, có active state theo `usePathname()`. Dropdown avatar được dọn lại chỉ còn "Hồ sơ của tôi", "Trang quản trị", "Đăng xuất" (bỏ Review/Games ra khỏi dropdown vì đã có ở nav chính, tránh trùng lặp).
+- `BottomNav.tsx` (mới) — thanh nav cố định đáy màn hình, chỉ hiện trên mobile (`md:hidden`), cùng 5 route, tự ẩn khi chưa đăng nhập (tự gọi `useAuth()` nội bộ, không cần `MainLayout` truyền props xuống).
+- `MainLayout.tsx` (`src/app/(main)/layout.tsx`): gắn `BottomNav`, thêm `pb-24 md:pb-6` cho `<main>` để nội dung không bị `BottomNav` che trên mobile.
+- `HeaderStats.tsx` (dashboard widget): đã có sẵn link Review/Games từ Phase 4, Phase 5 thêm link Profile — grid 3 quick-action (Ôn tập / Mini Games / Hồ sơ) nằm giữa progress bar và hàng stats.
+
+### 11.4 Xác nhận hoàn tất
+
+- Đã hoàn tất 100% cả 5 Phase giao diện Frontend (Landing/Auth/Dashboard → Lesson learning flow → Checkpoint/Listening/Writing AI → Spaced Repetition Hub/Game Hub → Profile/Leaderboard/Navigation).
+- Toàn bộ mock-first architecture xuyên suốt các feature (Auth, Lesson, Review, Games, Profile, Leaderboard) đều theo cùng 1 pattern: `types/` + `mock/` + `services/` (flag `USE_MOCK`) + `hooks/` hoặc trực tiếp Server Component fetch + `components/`.
+
+### 11.5 API ABP Backend dự kiến cho Phase 5
+
+- `GET /api/app/user-profile/me` — trả `UserProfileDto` (userName, fullName ghép từ IdentityUser.Surname+Name, currentStreak, totalXp, gems, level...)
+- `GET /api/app/user-profile/learning-stats?period=weekly|monthly` — trả `LearningStatsDto`
+- `GET /api/app/achievement/user-achievements` — trả danh sách `AchievementDto` kèm tiến độ
+- `GET /api/app/leaderboard/weekly` — trả `LeaderboardResultDto` (scope=weekly)
+- `GET /api/app/leaderboard/friends` — trả `LeaderboardResultDto` (scope=friends) — cần bảng/quan hệ Friend riêng, hiện DB chưa có, để dành phát triển sau
 
 ## 8. Phase 2.4 - Cấu trúc 1 lesson chuẩn 3 phần (không checkpoint)
 

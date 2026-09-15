@@ -27,9 +27,9 @@ namespace EnglishLearningApp.Permissions
             contentManagement.AddChild(
                 EnglishLearningAppPermissions.ContentManagement.Delete,
                 L("Permission:Delete"));
-            var studentWritingsPermission = group.AddPermission(EnglishLearningAppPermissions.StudentWritings.Default, L("Permission:StudentWritings"));
-studentWritingsPermission.AddChild(EnglishLearningAppPermissions.StudentWritings.View, L("Permission:View"));
-studentWritingsPermission.AddChild(EnglishLearningAppPermissions.StudentWritings.Delete, L("Permission:Delete"));
+            contentManagement.AddChild(
+    EnglishLearningAppPermissions.ContentManagement.View,
+    L("Permission:View"));
         }
 
         private static LocalizableString L(string name)
