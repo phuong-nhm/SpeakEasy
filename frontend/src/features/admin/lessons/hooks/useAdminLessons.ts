@@ -32,6 +32,7 @@ export function useAdminLessons() {
     LessonType.Vocabulary,
   );
   const [orderIndex, setOrderIndex] = useState(1);
+  const [grammarTopic, setGrammarTopic] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // 1. Tải danh sách Levels ban đầu
@@ -68,7 +69,7 @@ export function useAdminLessons() {
             setSelectedChapterId(data[0].id);
           } else {
             setSelectedChapterId("");
-            setLessons([]); // Clear danh sách lessons khi level không có chapter nào
+            setLessons([]);
           }
         }
       } catch (err) {
@@ -83,7 +84,6 @@ export function useAdminLessons() {
 
   // 3. Tải danh sách Lessons theo selectedChapterId & refreshKey
   useEffect(() => {
-    // Nếu không có selectedChapterId, không thực hiện fetch
     if (!selectedChapterId) return;
 
     let isMounted = true;
@@ -115,7 +115,7 @@ export function useAdminLessons() {
   const handleChapterChange = useCallback((chapterId: string) => {
     setSelectedChapterId(chapterId);
     if (!chapterId) {
-      setLessons([]); // Clear danh sách khi người dùng chọn rỗng
+      setLessons([]);
     }
   }, []);
 
@@ -124,6 +124,7 @@ export function useAdminLessons() {
     setTitle("");
     setLessonType(LessonType.Vocabulary);
     setOrderIndex(lessons.length + 1);
+    setGrammarTopic("");
     setIsModalOpen(true);
   }, [lessons.length]);
 
@@ -132,6 +133,7 @@ export function useAdminLessons() {
     setTitle(les.title);
     setLessonType(les.lessonType);
     setOrderIndex(les.orderIndex);
+    setGrammarTopic(les.grammarTopic ?? "");
     setIsModalOpen(true);
   }, []);
 
@@ -139,6 +141,7 @@ export function useAdminLessons() {
     setIsModalOpen(false);
     setEditingLesson(null);
     setTitle("");
+    setGrammarTopic("");
   }, []);
 
   const handleSubmit = useCallback(
@@ -153,6 +156,7 @@ export function useAdminLessons() {
           lessonType: Number(lessonType),
           orderIndex,
           chapterId: selectedChapterId,
+          grammarTopic: grammarTopic.trim() || undefined,
         };
 
         if (editingLesson) {
@@ -175,6 +179,7 @@ export function useAdminLessons() {
       editingLesson,
       lessonType,
       orderIndex,
+      grammarTopic,
       closeModal,
       refetchLessons,
     ],
@@ -209,6 +214,8 @@ export function useAdminLessons() {
     setLessonType,
     orderIndex,
     setOrderIndex,
+    grammarTopic,
+    setGrammarTopic,
     isSubmitting,
     handleLevelChange,
     handleChapterChange,

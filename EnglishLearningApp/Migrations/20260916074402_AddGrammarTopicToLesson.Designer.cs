@@ -4,6 +4,7 @@ using EnglishLearningApp.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Volo.Abp.EntityFrameworkCore;
 
@@ -12,9 +13,11 @@ using Volo.Abp.EntityFrameworkCore;
 namespace EnglishLearningApp.Migrations
 {
     [DbContext(typeof(EnglishLearningAppDbContext))]
-    partial class EnglishLearningAppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260916074402_AddGrammarTopicToLesson")]
+    partial class AddGrammarTopicToLesson
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -109,21 +112,11 @@ namespace EnglishLearningApp.Migrations
                         .HasMaxLength(512)
                         .HasColumnType("nvarchar(512)");
 
-                    b.Property<Guid?>("DialogueGroupId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("DistractorSentence")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<int>("ExerciseType")
                         .HasColumnType("int");
 
                     b.Property<Guid>("LessonId")
                         .HasColumnType("uniqueidentifier");
-
-                    b.Property<int?>("OrderInGroup")
-                        .HasColumnType("int");
 
                     b.Property<string>("PromptText")
                         .IsRequired()
@@ -181,118 +174,6 @@ namespace EnglishLearningApp.Migrations
                     b.HasIndex("LessonId");
 
                     b.ToTable("AppVocabularies", (string)null);
-                });
-
-            modelBuilder.Entity("EnglishLearningApp.Entities.Listening.ListeningPassage", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("AudioUrl")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<Guid>("ChapterId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("Title")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Transcript")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ChapterId")
-                        .IsUnique();
-
-                    b.ToTable("AppListeningPassages", (string)null);
-                });
-
-            modelBuilder.Entity("EnglishLearningApp.Entities.Listening.ListeningQuestion", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("CorrectOptionKey")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("OptionA")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("OptionB")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("OptionC")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("OptionD")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("OrderIndex")
-                        .HasColumnType("int");
-
-                    b.Property<Guid>("PassageId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("QuestionText")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("QuestionType")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("PassageId");
-
-                    b.ToTable("AppListeningQuestions", (string)null);
-                });
-
-            modelBuilder.Entity("EnglishLearningApp.Entities.Listening.UserListeningAnswer", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("AiFeedbackJson")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime>("CreationTime")
-                        .HasColumnType("datetime2")
-                        .HasColumnName("CreationTime");
-
-                    b.Property<Guid?>("CreatorId")
-                        .HasColumnType("uniqueidentifier")
-                        .HasColumnName("CreatorId");
-
-                    b.Property<bool?>("IsCorrect")
-                        .HasColumnType("bit");
-
-                    b.Property<Guid>("QuestionId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("SelectedOptionKey")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("UserContent")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("AppUserListeningAnswers", (string)null);
                 });
 
             modelBuilder.Entity("EnglishLearningApp.Entities.Progress.UserLessonReview", b =>
@@ -2168,28 +2049,6 @@ namespace EnglishLearningApp.Migrations
                     b.Navigation("Lesson");
                 });
 
-            modelBuilder.Entity("EnglishLearningApp.Entities.Listening.ListeningPassage", b =>
-                {
-                    b.HasOne("EnglishLearningApp.Entities.Content.Chapter", "Chapter")
-                        .WithOne("ListeningPassage")
-                        .HasForeignKey("EnglishLearningApp.Entities.Listening.ListeningPassage", "ChapterId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Chapter");
-                });
-
-            modelBuilder.Entity("EnglishLearningApp.Entities.Listening.ListeningQuestion", b =>
-                {
-                    b.HasOne("EnglishLearningApp.Entities.Listening.ListeningPassage", "Passage")
-                        .WithMany("Questions")
-                        .HasForeignKey("PassageId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Passage");
-                });
-
             modelBuilder.Entity("Volo.Abp.AuditLogging.AuditLogAction", b =>
                 {
                     b.HasOne("Volo.Abp.AuditLogging.AuditLog", null)
@@ -2335,9 +2194,6 @@ namespace EnglishLearningApp.Migrations
             modelBuilder.Entity("EnglishLearningApp.Entities.Content.Chapter", b =>
                 {
                     b.Navigation("Lessons");
-
-                    b.Navigation("ListeningPassage")
-                        .IsRequired();
                 });
 
             modelBuilder.Entity("EnglishLearningApp.Entities.Content.Lesson", b =>
@@ -2350,11 +2206,6 @@ namespace EnglishLearningApp.Migrations
             modelBuilder.Entity("EnglishLearningApp.Entities.Content.Level", b =>
                 {
                     b.Navigation("Chapters");
-                });
-
-            modelBuilder.Entity("EnglishLearningApp.Entities.Listening.ListeningPassage", b =>
-                {
-                    b.Navigation("Questions");
                 });
 
             modelBuilder.Entity("Volo.Abp.AuditLogging.AuditLog", b =>

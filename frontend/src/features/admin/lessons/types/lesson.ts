@@ -9,6 +9,7 @@ export interface LessonDto {
   lessonType: LessonType;
   orderIndex: number;
   chapterId: string;
+  grammarTopic?: string; // Chủ điểm ngữ pháp, hiển thị đầu Part 2 bên Client
 }
 
 export interface CreateUpdateLessonDto {
@@ -16,4 +17,5 @@ export interface CreateUpdateLessonDto {
   lessonType: LessonType;
   orderIndex: number;
   chapterId: string;
+  grammarTopic?: string;
 }

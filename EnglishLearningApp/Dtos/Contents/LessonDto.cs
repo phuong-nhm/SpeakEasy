@@ -10,6 +10,7 @@ namespace EnglishLearningApp.Dtos.Contents
         public string Title { get; set; }
         public LessonType LessonType { get; set; }
         public int OrderIndex { get; set; }
+        public string? GrammarTopic { get; set; }
     }
 
     public class CreateUpdateLessonDto
@@ -18,5 +19,6 @@ namespace EnglishLearningApp.Dtos.Contents
         public string Title { get; set; }
         public LessonType LessonType { get; set; }
         public int OrderIndex { get; set; }
+        public string? GrammarTopic { get; set; }
     }
 }

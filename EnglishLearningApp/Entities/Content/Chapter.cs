@@ -1,4 +1,5 @@
-﻿using Volo.Abp.Domain.Entities;
+﻿using EnglishLearningApp.Entities.Listening;
+using Volo.Abp.Domain.Entities;
 
 namespace EnglishLearningApp.Entities.Content
 {
@@ -14,7 +15,7 @@ namespace EnglishLearningApp.Entities.Content
 
         // Navigation: 1 Chapter có nhiều Lesson
         public ICollection<Lesson> Lessons { get; set; }
-
+        public ListeningPassage ListeningPassage { get; set; }
         protected Chapter()
         {
             Lessons = new List<Lesson>();

@@ -1,4 +1,4 @@
-using System;
+    using System;
 using System.Collections.Generic;
 using EnglishLearningApp.Entities;
 using EnglishLearningApp.Entities.Content;
@@ -30,6 +30,14 @@ namespace EnglishLearningApp.Dtos.Contents
 
         // Dùng cho TranslateFromVietnamese - câu tiếng Việt gợi ý, hiển thị kèm ShuffledWords
         public string VietnameseTranslation { get; set; }
+        public List<string> ListenOptions { get; set; }
+
+        // Dùng để FE biết 2 exercise nào (câu A nghe-chọn + câu B dịch-đáp) thuộc cùng 1 cặp hội thoại
+        public Guid? DialogueGroupId { get; set; }
+
+        // 1 = câu A (người nói, ListenChoose), 2 = câu B (mình đáp, TranslateFromVietnamese)
+        public int? OrderInGroup { get; set; }
+
     }
 
     // Dùng cho Admin CMS
@@ -46,6 +54,12 @@ namespace EnglishLearningApp.Dtos.Contents
 
         // Chỉ cần điền khi ExerciseType = TranslateFromVietnamese
         public string VietnameseTranslation { get; set; }
+        // Chỉ cần điền khi ExerciseType = ListenChoose - câu nhiễu để tạo 2 lựa chọn
+        public string DistractorSentence { get; set; }
+
+        // Chỉ cần điền khi ExerciseType = ListenChoose hoặc TranslateFromVietnamese thuộc dạng Dialogue
+        public Guid? DialogueGroupId { get; set; }
+        public int? OrderInGroup { get; set; }
     }
 
     // Input khi user nộp đáp án - field nào dùng tuỳ ExerciseType của bài đó
@@ -61,5 +75,6 @@ namespace EnglishLearningApp.Dtos.Contents
 
         // Chỉ cần cho FillInBlank - lấy đúng giá trị BlankIndex server đã trả lúc lấy câu hỏi
         public int? BlankIndex { get; set; }
+        public string UserSelectedSentence { get; set; }
     }
 }

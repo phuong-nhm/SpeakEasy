@@ -18,6 +18,7 @@ let mockLessons: LessonDto[] = [
     lessonType: LessonType.Grammar,
     orderIndex: 2,
     chapterId: "chap-001",
+    grammarTopic: "To Be (am/is/are)",
   },
 ];
 

@@ -53,6 +53,7 @@ export interface LessonDto {
   estimatedMinutes: number;
   questions: LessonQuestion[];
   vocabulary: VocabularyDto[];
+  grammarTopic?: string; // Chủ điểm ngữ pháp, hiển thị đầu Part 2
 }
 
 export interface LessonSubmitRequest {

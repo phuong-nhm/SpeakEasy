@@ -9,6 +9,7 @@ export const mockLessonMap: Record<string, LessonDto> = {
     xpReward: 120,
     totalHearts: 5,
     estimatedMinutes: 6,
+    grammarTopic: "Present Simple (thì hiện tại đơn)",
     vocabulary: [
       {
         id: "vocab-1",
@@ -138,6 +139,7 @@ export const mockLessonMap: Record<string, LessonDto> = {
     xpReward: 140,
     totalHearts: 5,
     estimatedMinutes: 7,
+    grammarTopic: "Present Simple với trạng từ tần suất (usually, every day)",
     vocabulary: [
       {
         id: "vocab-8",

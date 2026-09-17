@@ -252,6 +252,16 @@ export function LessonScreen({ lessonId }: LessonScreenProps) {
 
     return (
       <>
+        {currentPart === "grammar" && lesson.grammarTopic && (
+          <div className="mb-5 rounded-2xl bg-indigo-50 px-4 py-3">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-indigo-500">
+              Hôm nay học
+            </p>
+            <h3 className="mt-1 text-lg font-bold text-indigo-700">
+              📘 {lesson.grammarTopic}
+            </h3>
+          </div>
+        )}
         <div className="mb-6 flex items-center justify-between text-sm text-slate-500">
           <span>
             Câu {currentQuestion ? currentIndex + 1 : 0}/{totalQuestions}

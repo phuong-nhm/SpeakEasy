@@ -80,6 +80,15 @@ namespace EnglishLearningApp.AppServices.Contents
                             StringComparison.OrdinalIgnoreCase);
                     }
 
+                // MỚI: chấm điểm cho bước A (nghe - chọn câu) trong Dialogue
+                case ExerciseType.ListenChoose:
+                    {
+                        return string.Equals(
+                            input.UserSelectedSentence?.Trim(),
+                            exercise.CorrectSentence.Trim(),
+                            StringComparison.OrdinalIgnoreCase);
+                    }
+
                 default: // WordOrder, TranslateFromVietnamese
                     {
                         var userAnswer = string.Join(" ", input.UserOrderedWords ?? new List<string>());
@@ -94,6 +103,8 @@ namespace EnglishLearningApp.AppServices.Contents
         [Authorize(EnglishLearningAppPermissions.ContentManagement.Create)]
         public async Task<SentenceExerciseDto> CreateAsync(CreateUpdateSentenceExerciseDto input)
         {
+            ValidateInput(input); // MỚI: gom validate ra hàm riêng, dùng chung Create + CreateMany
+
             var exercise = ObjectMapper.Map<CreateUpdateSentenceExerciseDto, SentenceExercise>(input);
             await _sentenceRepo.InsertAsync(exercise);
             return BuildDto(exercise);
@@ -116,15 +127,7 @@ namespace EnglishLearningApp.AppServices.Contents
 
             foreach (var input in inputs)
             {
-                if (input.ExerciseType == ExerciseType.AnswerQuestion && string.IsNullOrWhiteSpace(input.PromptText))
-                {
-                    throw new UserFriendlyException(L["PromptTextRequiredForAnswerQuestion"]);
-                }
-
-                if (input.ExerciseType == ExerciseType.TranslateFromVietnamese && string.IsNullOrWhiteSpace(input.VietnameseTranslation))
-                {
-                    throw new UserFriendlyException(L["VietnameseTranslationRequired"]);
-                }
+                ValidateInput(input); // MỚI: dùng lại hàm chung, đã bao gồm check ListenChoose
             }
 
             await Task.WhenAll(inputs
@@ -143,6 +146,8 @@ namespace EnglishLearningApp.AppServices.Contents
         [Authorize(EnglishLearningAppPermissions.ContentManagement.Update)]
         public async Task<SentenceExerciseDto> UpdateAsync(Guid id, CreateUpdateSentenceExerciseDto input)
         {
+            ValidateInput(input); // MỚI
+
             var exercise = await _sentenceRepo.GetAsync(id);
             ObjectMapper.Map(input, exercise);
             await _sentenceRepo.UpdateAsync(exercise);
@@ -153,6 +158,25 @@ namespace EnglishLearningApp.AppServices.Contents
         public async Task DeleteAsync(Guid id)
         {
             await _sentenceRepo.DeleteAsync(id);
+        }
+
+        // MỚI: gom validate theo ExerciseType vào 1 chỗ, Create/CreateMany/Update dùng chung
+        private void ValidateInput(CreateUpdateSentenceExerciseDto input)
+        {
+            if (input.ExerciseType == ExerciseType.AnswerQuestion && string.IsNullOrWhiteSpace(input.PromptText))
+            {
+                throw new UserFriendlyException(L["PromptTextRequiredForAnswerQuestion"]);
+            }
+
+            if (input.ExerciseType == ExerciseType.TranslateFromVietnamese && string.IsNullOrWhiteSpace(input.VietnameseTranslation))
+            {
+                throw new UserFriendlyException(L["VietnameseTranslationRequired"]);
+            }
+
+            if (input.ExerciseType == ExerciseType.ListenChoose && string.IsNullOrWhiteSpace(input.DistractorSentence))
+            {
+                throw new UserFriendlyException(L["DistractorSentenceRequiredForListenChoose"]);
+            }
         }
 
         private SentenceExerciseDto BuildDto(SentenceExercise exercise)
@@ -184,6 +208,18 @@ namespace EnglishLearningApp.AppServices.Contents
                     {
                         dto.VietnameseTranslation = exercise.VietnameseTranslation;
                         dto.ShuffledWords = exercise.CorrectSentence.Split(' ').OrderBy(_ => random.Next()).ToList();
+                        dto.DialogueGroupId = exercise.DialogueGroupId; // MỚI
+                        dto.OrderInGroup = exercise.OrderInGroup;       // MỚI
+                        break;
+                    }
+
+                // MỚI: bước A trong Dialogue - nghe rồi chọn đúng câu vừa nghe
+                case ExerciseType.ListenChoose:
+                    {
+                        var options = new List<string> { exercise.CorrectSentence, exercise.DistractorSentence };
+                        dto.ListenOptions = options.OrderBy(_ => random.Next()).ToList(); // xáo trộn, không lộ câu nào đúng
+                        dto.DialogueGroupId = exercise.DialogueGroupId;
+                        dto.OrderInGroup = exercise.OrderInGroup;
                         break;
                     }
 

@@ -58,6 +58,7 @@ export function LessonTable({
               <th className="px-6 py-3.5">Thứ tự</th>
               <th className="px-6 py-3.5">Tiêu đề bài học</th>
               <th className="px-6 py-3.5">Loại bài học (LessonType)</th>
+              <th className="px-6 py-3.5">Chủ điểm ngữ pháp</th>
               <th className="px-6 py-3.5 text-right">Thao tác</th>
             </tr>
           </thead>
@@ -75,6 +76,15 @@ export function LessonTable({
                 </td>
                 <td className="px-6 py-4">
                   {renderLessonTypeBadge(les.lessonType)}
+                </td>
+                <td className="px-6 py-4 text-slate-500">
+                  {les.grammarTopic ? (
+                    <span className="max-w-[160px] truncate inline-block align-bottom">
+                      {les.grammarTopic}
+                    </span>
+                  ) : (
+                    <span className="text-slate-300">—</span>
+                  )}
                 </td>
                 <td className="px-6 py-4 text-right space-x-2">
                   <button

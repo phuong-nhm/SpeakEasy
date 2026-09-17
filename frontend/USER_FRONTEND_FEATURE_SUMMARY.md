@@ -385,6 +385,98 @@ Trong tương lai, khi backend đã có API thật, cần thay thế mock theo h
 
 Đây là cách tốt nhất để giữ UI stable và dễ tích hợp ABP / backend thật sau này.
 
+## 8. Phase 2.4 - Cấu trúc 1 lesson chuẩn 3 phần (không checkpoint)
+
+### 8.1 Mục tiêu thiết kế
+
+Luồng học mỗi lesson đã được chuẩn hóa thành 3 phần rõ ràng, không dùng checkpoint trung gian nữa:
+
+1. Part 1: Vocabulary introduction
+2. Part 2: Grammar practice
+3. Part 3: Comprehensive review / spaced repetition
+
+Điểm khác biệt so với mô hình cũ là: người dùng sẽ học theo đúng flow giáo dục, từ vựng -> ngữ pháp -> ôn tập tổng hợp, thay vì xếp một chuỗi câu hỏi phẳng và không có nhánh nội dung rõ ràng.
+
+### 8.2 Part 1 - Vocabulary
+
+- Mục tiêu: giới thiệu ~7 từ vựng mới của lesson
+- Hiển thị: danh sách vocabulary card có từ, nghĩa, TTS, quick recall
+- UI hiện có:
+  - `VocabIntroCard.tsx`
+  - mỗi item có `word`, `meaning`, `audioUrl`, `distractor`
+- Interaction:
+  - click vào từ để chọn active word
+  - bấm `🔊 TTS` để nghe phát âm
+  - quick recognition quiz để chọn nghĩa đúng
+- Chuyển phần:
+  - bấm `BẮT ĐẦU PHẦN 2 · GRAMMAR`
+
+### 8.3 Part 2 - Grammar
+
+- Mục tiêu: luyện dạng câu/structure tiếng Anh theo các sentence exercise
+- Các dạng bài tập hiện hỗ trợ:
+  - `WordOrder`
+  - `FillInBlank`
+  - `AnswerQuestion`
+  - `TranslateFromVietnamese`
+- Flow hiện tại:
+  - `useLessonFlow()` tách `grammarQuestions` và `comprehensiveQuestions`
+  - `currentPart === "grammar"` render question theo từng câu hỏi
+  - khi hoàn tất phần này, tự động chuyển sang phần 3
+- Dữ liệu tuân theo chuẩn backend:
+  - `sectionType === 1`
+  - `exerciseType` map vào đúng component renderer
+
+### 8.4 Part 3 - Comprehensive review / Matching Game
+
+- Mục tiêu: ôn ngắn gọn bằng bài tập tổng hợp và game ghép từ
+- Các câu hỏi trong phần này được xáo trộn theo logic `shuffleItems()` để đảm bảo trải nghiệm ôn tập linh hoạt
+- Dạng phần này gồm:
+  - review question
+  - matching pair game
+  - spaced repetition style learning
+- UI hiện có:
+  - `MatchingGameExercise.tsx`
+  - `LessonScreen.tsx` switch phần `comprehensive`
+- Khi hoàn tất phần này, hệ thống finalize bài học -> hiển thị `CompleteScreen` với XP / độ chính xác / thời gian
+
+### 8.5 API backend dự kiến tương ứng
+
+Dựa theo Thỏa thuận contract ABP hiện có, FE nên chuẩn hóa mapping như sau:
+
+- `GET /api/app/vocabulary/by-lesson`
+  - trả về danh sách từ vựng thuộc lesson
+  - dùng để render `VocabIntroCard` và vocabulary section
+- `GET /api/app/sentence-exercise/by-lesson`
+  - trả về hàng loạt câu hỏi thuộc lesson
+  - dùng để render phần Grammar và Comprehensive review theo `exerciseType` + `sectionType`
+- `GET /api/app/user-lesson-review/due-reviews`
+  - trả về những review cần ôn tập theo spaced repetition / matching review
+  - dùng cho phần 3 `comprehensive`
+
+### 8.6 Mô hình dữ liệu đã normalize cho lesson
+
+- `VocabularyDto`
+  - `id`, `lessonId`, `word`, `meaning`, `imageUrl?`, `audioUrl?`, `distractor?`
+- `SentenceExerciseDto`
+  - `id`, `lessonId`, `sectionType`, `correctSentence`, `audioUrl?`, `exerciseType`, `promptText?`, `vietnameseTranslation?`
+- `LessonDto`
+  - `vocabulary: VocabularyDto[]`
+  - `questions: LessonQuestion[]`
+  - `totalHearts`, `xpReward`, `estimatedMinutes`
+
+### 8.7 Kết luận phần 2.4
+
+Flow lesson hiện tại đã được chuẩn hóa đúng theo mô hình 3 phần và phù hợp với mục tiêu học tập của user:
+
+- Học từ vựng trước
+- Luyện ngữ pháp sau
+- Ôn tổng hợp ở cuối
+
+Đây là cấu trúc đơn giản, dễ hiểu, dễ mở rộng và có thể chuyển thẳng sang backend ABP mà không cần sửa nhiều UI.
+
+---
+
 ## 9. Phase 3 - Module Checkpoint cuối Chapter, Bài Luyện Nghe & AI Gemini chấm Writing
 
 Thêm các components và route mới để hỗ trợ bài Checkpoint cuối Chapter gồm Listening + AI Writing:
@@ -555,94 +647,39 @@ Các file mới đã thêm vào codebase và đã được kiểm tra TypeScript
 - `GET /api/app/leaderboard/weekly` — trả `LeaderboardResultDto` (scope=weekly)
 - `GET /api/app/leaderboard/friends` — trả `LeaderboardResultDto` (scope=friends) — cần bảng/quan hệ Friend riêng, hiện DB chưa có, để dành phát triển sau
 
-## 8. Phase 2.4 - Cấu trúc 1 lesson chuẩn 3 phần (không checkpoint)
+## 12. Tính năng bổ sung sau Phase 5 - GrammarTopic (Chủ điểm ngữ pháp theo Lesson)
 
-### 8.1 Mục tiêu thiết kế
+### 12.1 Bối cảnh & quyết định thiết kế
 
-Luồng học mỗi lesson đã được chuẩn hóa thành 3 phần rõ ràng, không dùng checkpoint trung gian nữa:
+- Nhu cầu: khi vào Part 2 (Grammar) của 1 Lesson, hiển thị banner "Hôm nay học: {chủ điểm}" thay vì nhảy thẳng vào câu hỏi không có ngữ cảnh.
+- Quyết định: thêm 1 field `GrammarTopic` (nullable string) vào **Entity `Lesson`** (không tạo bảng mới) — vì mỗi Lesson chỉ dạy 1 chủ điểm ngữ pháp cố định (đúng nguyên tắc "Ngữ pháp tính theo Lesson" đã chốt trước đó), tránh lặp lại trên từng `SentenceExercise`.
+- Quyết định liên quan: xác nhận **Word Pattern/Word Formation không cần lưu vào bảng `Vocabulary`** — chỉ xuất hiện trực tiếp trong text của `SentenceExercise`, không cần nghĩa/ảnh/audio riêng, không vào Spaced Repetition.
 
-1. Part 1: Vocabulary introduction
-2. Part 2: Grammar practice
-3. Part 3: Comprehensive review / spaced repetition
+### 12.2 Backend (đã hoàn tất)
 
-Điểm khác biệt so với mô hình cũ là: người dùng sẽ học theo đúng flow giáo dục, từ vựng -> ngữ pháp -> ôn tập tổng hợp, thay vì xếp một chuỗi câu hỏi phẳng và không có nhánh nội dung rõ ràng.
+- `Lesson.cs`: thêm property `GrammarTopic` (nullable string), constructor thêm tham số optional `grammarTopic = null` (không phá code cũ đang gọi constructor).
+- `LessonDto.cs` / `CreateUpdateLessonDto.cs`: thêm field `GrammarTopic`.
+- AutoMapper Profile: không cần sửa (map tự động theo tên field trùng nhau, không có `.ForMember().Ignore()` cho Lesson).
+- `LessonAppService.cs`: không cần sửa (dùng `ObjectMapper.Map()` thuần cho mọi method).
+- Việc cần làm thủ công: chạy `dotnet ef migrations add AddGrammarTopicToLesson` + `dotnet ef database update`.
 
-### 8.2 Part 1 - Vocabulary
+### 12.3 Admin CMS (đã hoàn tất, dùng mock)
 
-- Mục tiêu: giới thiệu ~7 từ vựng mới của lesson
-- Hiển thị: danh sách vocabulary card có từ, nghĩa, TTS, quick recall
-- UI hiện có:
-  - `VocabIntroCard.tsx`
-  - mỗi item có `word`, `meaning`, `audioUrl`, `distractor`
-- Interaction:
-  - click vào từ để chọn active word
-  - bấm `🔊 TTS` để nghe phát âm
-  - quick recognition quiz để chọn nghĩa đúng
-- Chuyển phần:
-  - bấm `BẮT ĐẦU PHẦN 2 · GRAMMAR`
+- `features/admin/lessons/types/lesson.ts`: thêm `grammarTopic?: string` vào `LessonDto` và `CreateUpdateLessonDto`.
+- `features/admin/lessons/services/lessonService.ts`: thêm data mẫu có `grammarTopic` cho lesson mock.
+- `features/admin/lessons/hooks/useAdminLessons.ts`: thêm state `grammarTopic`/`setGrammarTopic`, đưa vào `openCreateModal`/`openEditModal`/`closeModal`/`handleSubmit` (gửi `undefined` nếu rỗng thay vì chuỗi trống).
+- `features/admin/lessons/components/LessonModal.tsx`: thêm input `Chủ điểm ngữ pháp` — chỉ hiện khi `LessonType` là `Grammar` hoặc `Combined` (ẩn khi `Vocabulary`).
+- `features/admin/lessons/components/LessonTable.tsx`: thêm cột "Chủ điểm ngữ pháp" trong bảng, truncate nếu dài, hiển thị "—" nếu rỗng.
+- `app/admin/lessons/page.tsx`: thêm `grammarTopic`/`setGrammarTopic` vào destructure từ hook và truyền prop xuống `<LessonModal />`.
 
-### 8.3 Part 2 - Grammar
+### 12.4 Client (đã hoàn tất, dùng mock)
 
-- Mục tiêu: luyện dạng câu/structure tiếng Anh theo các sentence exercise
-- Các dạng bài tập hiện hỗ trợ:
-  - `WordOrder`
-  - `FillInBlank`
-  - `AnswerQuestion`
-  - `TranslateFromVietnamese`
-- Flow hiện tại:
-  - `useLessonFlow()` tách `grammarQuestions` và `comprehensiveQuestions`
-  - `currentPart === "grammar"` render question theo từng câu hỏi
-  - khi hoàn tất phần này, tự động chuyển sang phần 3
-- Dữ liệu tuân theo chuẩn backend:
-  - `sectionType === 1`
-  - `exerciseType` map vào đúng component renderer
+- `features/frontend/lesson/types/lesson.ts`: thêm `grammarTopic?: string` vào `LessonDto`.
+- `features/frontend/lesson/mock/mockLessonData.ts`: thêm `grammarTopic` cho `lesson-1` ("Present Simple") và `lesson-2` ("Present Simple với trạng từ tần suất").
+- `features/frontend/lesson/components/LessonScreen.tsx`: trong `renderBody()`, chèn banner "📘 Hôm nay học: {lesson.grammarTopic}" ngay trước phần hiển thị số câu/thời gian, chỉ hiện khi `currentPart === "grammar"` và `lesson.grammarTopic` có giá trị.
+- `features/frontend/lesson/hooks/useLessonFlow.ts`: không cần sửa (field tự động đi theo object `lesson` trả về nguyên vẹn từ `lessonService.getLessonById()`).
 
-### 8.4 Part 3 - Comprehensive review / Matching Game
+### 12.5 API ABP Backend cần lưu ý khi tích hợp thật
 
-- Mục tiêu: ôn ngắn gọn bằng bài tập tổng hợp và game ghép từ
-- Các câu hỏi trong phần này được xáo trộn theo logic `shuffleItems()` để đảm bảo trải nghiệm ôn tập linh hoạt
-- Dạng phần này gồm:
-  - review question
-  - matching pair game
-  - spaced repetition style learning
-- UI hiện có:
-  - `MatchingGameExercise.tsx`
-  - `LessonScreen.tsx` switch phần `comprehensive`
-- Khi hoàn tất phần này, hệ thống finalize bài học -> hiển thị `CompleteScreen` với XP / độ chính xác / thời gian
-
-### 8.5 API backend dự kiến tương ứng
-
-Dựa theo Thỏa thuận contract ABP hiện có, FE nên chuẩn hóa mapping như sau:
-
-- `GET /api/app/vocabulary/by-lesson`
-  - trả về danh sách từ vựng thuộc lesson
-  - dùng để render `VocabIntroCard` và vocabulary section
-- `GET /api/app/sentence-exercise/by-lesson`
-  - trả về hàng loạt câu hỏi thuộc lesson
-  - dùng để render phần Grammar và Comprehensive review theo `exerciseType` + `sectionType`
-- `GET /api/app/user-lesson-review/due-reviews`
-  - trả về những review cần ôn tập theo spaced repetition / matching review
-  - dùng cho phần 3 `comprehensive`
-
-### 8.6 Mô hình dữ liệu đã normalize cho lesson
-
-- `VocabularyDto`
-  - `id`, `lessonId`, `word`, `meaning`, `imageUrl?`, `audioUrl?`, `distractor?`
-- `SentenceExerciseDto`
-  - `id`, `lessonId`, `sectionType`, `correctSentence`, `audioUrl?`, `exerciseType`, `promptText?`, `vietnameseTranslation?`
-- `LessonDto`
-  - `vocabulary: VocabularyDto[]`
-  - `questions: LessonQuestion[]`
-  - `totalHearts`, `xpReward`, `estimatedMinutes`
-
-### 8.7 Kết luận phần 2.4
-
-Flow lesson hiện tại đã được chuẩn hóa đúng theo mô hình 3 phần và phù hợp với mục tiêu học tập của user:
-
-- Học từ vựng trước
-- Luyện ngữ pháp sau
-- Ôn tổng hợp ở cuối
-
-Đây là cấu trúc đơn giản, dễ hiểu, dễ mở rộng và có thể chuyển thẳng sang backend ABP mà không cần sửa nhiều UI.
-
----
+- `GET /api/app/lesson/{id}` và `GET /api/app/lesson/by-chapter` (route thật theo Conventional Controller: `/api/app/lesson/{id}`, `/api/app/lesson/list-by-chapter?chapterId={id}`) — response giờ cần có thêm field `grammarTopic` (camelCase khi trả JSON) để FE nhận đúng.
+- Khi nối API thật, nhớ kiểm tra Admin CMS `lessonService.ts` (đang 100% mock) đổi sang gọi `POST /api/app/lesson`, `PUT /api/app/lesson/{id}` — payload `CreateUpdateLessonDto` đã có sẵn field `grammarTopic`, không cần sửa gì thêm ở tầng payload.

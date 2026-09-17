@@ -11,6 +11,8 @@ interface LessonModalProps {
   setLessonType: (type: LessonType) => void;
   orderIndex: number;
   setOrderIndex: (orderIndex: number) => void;
+  grammarTopic: string;
+  setGrammarTopic: (grammarTopic: string) => void;
   isSubmitting: boolean;
   onClose: () => void;
   onSubmit: (e: React.FormEvent) => void;
@@ -25,11 +27,17 @@ export function LessonModal({
   setLessonType,
   orderIndex,
   setOrderIndex,
+  grammarTopic,
+  setGrammarTopic,
   isSubmitting,
   onClose,
   onSubmit,
 }: LessonModalProps) {
   if (!isOpen) return null;
+
+  const showGrammarTopic =
+    Number(lessonType) === LessonType.Grammar ||
+    Number(lessonType) === LessonType.Combined;
 
   return (
     <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 z-50">
@@ -67,6 +75,24 @@ export function LessonModal({
               <option value={LessonType.Combined}>Tổng Hợp (Combined)</option>
             </select>
           </div>
+
+          {showGrammarTopic && (
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">
+                Chủ điểm ngữ pháp
+              </label>
+              <input
+                type="text"
+                value={grammarTopic}
+                onChange={(e) => setGrammarTopic(e.target.value)}
+                placeholder="Ví dụ: Present Simple, To Be (am/is/are)..."
+                className="w-full rounded-lg border border-slate-300 bg-slate-50 px-3 py-2 text-sm text-slate-700 transition-colors placeholder:text-slate-400 focus:border-indigo-500 focus:bg-white focus:outline-none"
+              />
+              <p className="mt-1 text-xs text-slate-400">
+                Hiển thị đầu Part 2 (Grammar) bên giao diện học viên
+              </p>
+            </div>
+          )}
 
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">

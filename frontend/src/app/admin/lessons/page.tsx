@@ -21,6 +21,8 @@ export default function AdminLessonsPage() {
     setLessonType,
     orderIndex,
     setOrderIndex,
+    grammarTopic,
+    setGrammarTopic,
     isSubmitting,
     handleLevelChange,
     handleChapterChange,
@@ -59,6 +61,8 @@ export default function AdminLessonsPage() {
         setLessonType={setLessonType}
         orderIndex={orderIndex}
         setOrderIndex={setOrderIndex}
+        grammarTopic={grammarTopic}
+        setGrammarTopic={setGrammarTopic}
         isSubmitting={isSubmitting}
         onClose={closeModal}
         onSubmit={handleSubmit}

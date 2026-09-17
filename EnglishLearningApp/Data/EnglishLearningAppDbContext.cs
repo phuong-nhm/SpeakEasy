@@ -1,4 +1,5 @@
 ﻿using EnglishLearningApp.Entities.Content;
+using EnglishLearningApp.Entities.Listening;
 using EnglishLearningApp.Entities.Progress;
 using EnglishLearningApp.Entities.Writing;
 using Microsoft.EntityFrameworkCore;
@@ -21,7 +22,9 @@ public class EnglishLearningAppDbContext : AbpDbContext<EnglishLearningAppDbCont
     public DbSet<Lesson> Lessons { get; set; }
     public DbSet<Vocabulary> Vocabularies { get; set; }
     public DbSet<SentenceExercise> SentenceExercises { get; set; }
-
+    public DbSet<ListeningPassage> ListeningPassages { get; set; }
+    public DbSet<ListeningQuestion> ListeningQuestions { get; set; }
+    public DbSet<UserListeningAnswer> UserListeningAnswers { get; set; }
     // Nhóm Writing
     public DbSet<WritingTopic> WritingTopics { get; set; }
     public DbSet<UserWriting> UserWritings { get; set; }
@@ -67,11 +70,15 @@ public class EnglishLearningAppDbContext : AbpDbContext<EnglishLearningAppDbCont
             b.ToTable("AppChapters");
             b.Property(x => x.Title).HasMaxLength(128).IsRequired();
 
-            // 1 Chapter - nhiều Lesson
             b.HasMany(x => x.Lessons)
                 .WithOne(x => x.Chapter)
                 .HasForeignKey(x => x.ChapterId)
                 .IsRequired();
+
+            // Thêm mới: 1 Chapter - 1 ListeningPassage (optional, không bắt buộc phải có)
+            b.HasOne(x => x.ListeningPassage)
+                .WithOne(x => x.Chapter)
+                .HasForeignKey<ListeningPassage>(x => x.ChapterId);
         });
 
         builder.Entity<Lesson>(b =>
@@ -104,7 +111,29 @@ public class EnglishLearningAppDbContext : AbpDbContext<EnglishLearningAppDbCont
             b.ToTable("AppSentenceExercises");
             b.Property(x => x.CorrectSentence).HasMaxLength(512).IsRequired();
         });
+        builder.Entity<ListeningPassage>(b =>
+        {
+            b.ToTable("AppListeningPassages");
+            b.Property(x => x.Transcript).IsRequired();
+            b.HasIndex(x => x.ChapterId).IsUnique(); // Mỗi Chapter chỉ có 1 Passage
 
+            // 1 Passage - nhiều Question
+            b.HasMany(x => x.Questions)
+                .WithOne(x => x.Passage)
+                .HasForeignKey(x => x.PassageId)
+                .IsRequired();
+        });
+
+        builder.Entity<ListeningQuestion>(b =>
+        {
+            b.ToTable("AppListeningQuestions");
+            b.Property(x => x.QuestionText).IsRequired();
+        });
+
+        builder.Entity<UserListeningAnswer>(b =>
+        {
+            b.ToTable("AppUserListeningAnswers");
+        });
         builder.Entity<WritingTopic>(b =>
         {
             b.ToTable("AppWritingTopics");

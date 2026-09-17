@@ -22,7 +22,16 @@ namespace EnglishLearningApp.Entities.Content
 
         // Chỉ dùng cho ExerciseType = TranslateFromVietnamese, các dạng khác để null
         public string VietnameseTranslation { get; set; }
+        // ==== Thêm cho Listening Dialogue (Kiểu 1) ====
 
+        // Chỉ dùng cho ExerciseType = ListenChoose: câu sai để tạo 2 lựa chọn khi nghe
+        public string DistractorSentence { get; set; }
+
+        // Nối câu A (nghe-chọn) và câu B (dịch-đáp) thành 1 cặp hội thoại. Null nếu không phải dialogue
+        public Guid? DialogueGroupId { get; set; }
+
+        // 1 = câu A (người nói, ListenChoose), 2 = câu B (mình đáp, TranslateFromVietnamese)
+        public int? OrderInGroup { get; set; }
         // Navigation: trỏ ngược về Lesson cha
         public Lesson Lesson { get; set; }
 
@@ -36,7 +45,10 @@ namespace EnglishLearningApp.Entities.Content
             string audioUrl = null,
             ExerciseType exerciseType = ExerciseType.WordOrder,
             string promptText = null,
-            string vietnameseTranslation = null) : base(id)
+            string vietnameseTranslation = null,
+            string distractorSentence = null,
+            Guid? dialogueGroupId = null,
+            int? orderInGroup = null) : base(id)
         {
             LessonId = lessonId;
             SectionType = sectionType;
@@ -45,6 +57,9 @@ namespace EnglishLearningApp.Entities.Content
             ExerciseType = exerciseType;
             PromptText = promptText;
             VietnameseTranslation = vietnameseTranslation;
+            DistractorSentence = distractorSentence;
+            DialogueGroupId = dialogueGroupId;
+            OrderInGroup = orderInGroup;
         }
 
         // Xếp block từ bị xáo trộn: tách CorrectSentence lúc runtime, không cần lưu riêng trong DB
