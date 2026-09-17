@@ -38,7 +38,7 @@ namespace EnglishLearningApp.AppServices.Contents
             {
                 query = query.Where(x => x.SectionType == sectionType.Value);
             }
-
+            query = query.OrderBy(x => x.DialogueGroupId).ThenBy(x => x.OrderInGroup);
             var list = await AsyncExecuter.ToListAsync(query);
             return list.Select(BuildDto).ToList();
         }
