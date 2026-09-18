@@ -10,6 +10,7 @@ export enum ExerciseType {
   FillInBlank = 1, // Điền từ khuyết trong câu
   AnswerQuestion = 2, // Trả lời 1 câu hỏi bằng câu hoàn chỉnh
   TranslateFromVietnamese = 3, // Ghép câu tiếng Anh từ gợi ý câu tiếng Việt
+  ListenChoose = 4, // Nghe rồi chọn đúng câu vừa nghe
 }
 
 // 2. Interfaces DTOs
@@ -25,6 +26,10 @@ export interface SentenceExerciseDto {
   blankIndex?: number;
   promptText?: string;
   vietnameseTranslation?: string;
+  distractorSentence?: string;
+  dialogueGroupId?: string;
+  orderInGroup?: number;
+  listenOptions?: string[];
 }
 
 export interface CreateUpdateSentenceExerciseDto {
@@ -35,6 +40,9 @@ export interface CreateUpdateSentenceExerciseDto {
   exerciseType: ExerciseType;
   promptText?: string;
   vietnameseTranslation?: string;
+  distractorSentence?: string;
+  dialogueGroupId?: string;
+  orderInGroup?: number;
 }
 
 // 3. Option Interfaces cho Cascading Filter
@@ -81,5 +89,9 @@ export const ExerciseTypeLabels: Record<
   [ExerciseType.TranslateFromVietnamese]: {
     label: "Dịch Việt - Anh",
     color: "bg-teal-100 text-teal-700 border-teal-200",
+  },
+  [ExerciseType.ListenChoose]: {
+    label: "Nghe - chọn câu",
+    color: "bg-orange-100 text-orange-700 border-orange-200",
   },
 };

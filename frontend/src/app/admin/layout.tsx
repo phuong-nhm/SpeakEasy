@@ -21,13 +21,14 @@ export default function AdminLayout({
         { name: "3. Quản lý Lesson", href: "/admin/lessons" },
         { name: "4. Từ vựng (Vocabulary)", href: "/admin/vocabularies" },
         { name: "5. Bài tập Xếp câu", href: "/admin/sentence-exercises" },
-        { name: "6. Topic Bài viết AI", href: "/admin/writing-topics" },
+        { name: "6. Quản lý Listening", href: "/admin/listening" },
+        { name: "7. Topic Bài viết AI", href: "/admin/writing-topics" },
       ],
     },
     {
       group: "NHÓM 2: VẬN HÀNH & AI",
       items: [
-        { name: "7. Lịch sử Viết Học viên", href: "/admin/student-writings" },
+        { name: "8. Lịch sử Viết Học viên", href: "/admin/student-writings" },
       ],
     },
     {

@@ -1,4 +1,5 @@
-"use client";
+export { PassageListeningExercise as default } from "./PassageListeningExercise";
+("use client");
 
 import React, { useState, useRef } from "react";
 

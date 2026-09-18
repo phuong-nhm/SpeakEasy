@@ -2,8 +2,16 @@
 
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import ListeningExercise from "@/features/frontend/lesson/components/exercises/ListeningExercise";
 import CheckpointWritingExercise from "@/features/frontend/lesson/components/exercises/CheckpointWritingExercise";
+import { DialogueListenExercise } from "@/features/frontend/lesson/components/exercises/DialogueListenExercise";
+import { PassageListeningExercise } from "@/features/frontend/lesson/components/exercises/PassageListeningExercise";
+import { lessonService } from "@/features/frontend/lesson/services/lessonService";
+import {
+  AiFeedbackDto,
+  ExerciseType,
+  ListeningPassageClientDto,
+  SentenceExerciseDto,
+} from "@/features/frontend/lesson/types/lesson";
 
 interface WritingTopicDto {
   id: string;
@@ -13,10 +21,43 @@ interface WritingTopicDto {
 }
 
 interface ListeningDto {
-  id: string;
-  audioUrl: string;
-  prompt?: string;
+  passage: ListeningPassageClientDto;
 }
+
+type ListeningMode = "passage" | "dialogue";
+
+const checkpointDialogueQuestions: SentenceExerciseDto[] = [
+  {
+    id: "checkpoint-dialogue-1",
+    lessonId: "checkpoint-demo",
+    sectionType: 1,
+    exerciseType: ExerciseType.ListenChoose,
+    dialogueGroupId: "checkpoint-demo-dialogue",
+    orderInGroup: 1,
+    prompt: "Nghe và chọn câu đúng.",
+    questionText: "Choose the sentence you hear.",
+    audioUrl: "/audio/checkpoint-dialogue-1.mp3",
+    listenOptions: ["Let's meet after class.", "I am at the library."],
+    correctSentence: "Let's meet after class.",
+    correctAnswer: "Let's meet after class.",
+    explanation: "A short spoken reply fits the dialogue flow.",
+  },
+  {
+    id: "checkpoint-dialogue-2",
+    lessonId: "checkpoint-demo",
+    sectionType: 1,
+    exerciseType: ExerciseType.TranslateFromVietnamese,
+    dialogueGroupId: "checkpoint-demo-dialogue",
+    orderInGroup: 2,
+    prompt: "Dịch câu tiếng Việt.",
+    questionText: "Translate into English.",
+    vietnameseTranslation: "Chúng ta gặp nhau sau giờ học.",
+    correctSentence: "We will meet after class.",
+    correctAnswer: "We will meet after class.",
+    shuffledWords: ["We", "will", "meet", "after", "class."],
+    explanation: "This keeps the dialogue flow moving naturally.",
+  },
+];
 
 export default function Page({ params }: { params: any }) {
   const router = useRouter();
@@ -29,7 +70,9 @@ export default function Page({ params }: { params: any }) {
   const [writingTopic, setWritingTopic] = useState<WritingTopicDto | null>(
     null,
   );
-  const [listening, setListening] = useState<ListeningDto | null>(null);
+  const [listeningPassage, setListeningPassage] =
+    useState<ListeningPassageClientDto | null>(null);
+  const [listeningMode, setListeningMode] = useState<ListeningMode>("passage");
   const [hearts, setHearts] = useState(3);
   const [score, setScore] = useState(0);
   const [passed, setPassed] = useState(false);
@@ -41,12 +84,12 @@ export default function Page({ params }: { params: any }) {
         const w = await fetch(
           `/api/app/writing-topic/by-chapter?chapterId=${chapterId}`,
         ).then((r) => r.json());
-        const l = await fetch(
-          `/api/app/listening/by-chapter?chapterId=${chapterId}`,
-        ).then((r) => r.json());
         if (!mounted) return;
         setWritingTopic(w[0] ?? null);
-        setListening(l[0] ?? null);
+
+        const passage = await lessonService.getPassageByChapter(chapterId);
+        if (!mounted) return;
+        setListeningPassage(passage);
       } catch (e) {
         // fallback mock
         if (!mounted) return;
@@ -56,10 +99,21 @@ export default function Page({ params }: { params: any }) {
           promptTitle: "Describe your last holiday",
           promptText: "Write about where you went and what you did.",
         });
-        setListening({
-          id: "mock-a",
+        setListeningPassage({
+          title: "Mock listening passage",
           audioUrl: "/audio/mock-a.mp3",
-          prompt: "Listen and type the sentence.",
+          questions: [
+            {
+              id: "mock-listen-1",
+              questionType: "MultipleChoice",
+              questionText: "What did the speaker mention?",
+              optionA: "A book.",
+              optionB: "A school.",
+              optionC: "A bus.",
+              optionD: "A friend.",
+              orderIndex: 1,
+            },
+          ],
         });
       }
     };
@@ -75,20 +129,34 @@ export default function Page({ params }: { params: any }) {
     setHearts((h) => Math.max(0, h - 1));
   };
 
-  const handleWritingSubmitted = async (feedback: any) => {
+  const handleWritingSubmitted = async (feedback: AiFeedbackDto) => {
     // simple scoring: writing passes if feedback.score >= 80
     const fscore = feedback?.score ?? 0;
     if (fscore >= 80) setScore((s) => s + 1);
     else setHearts((h) => Math.max(0, h - 1));
   };
 
+  const currentListeningTaskCount =
+    listeningMode === "passage"
+      ? (listeningPassage?.questions.length ?? 0)
+      : checkpointDialogueQuestions.length;
+
   useEffect(() => {
-    // simple pass threshold: 80% of 3 tasks
-    const totalTasks = 3; // multiple-choice/listen/write
+    const totalTasks = Math.max(
+      1,
+      currentListeningTaskCount + (writingTopic ? 1 : 0),
+    );
+
     if (score / totalTasks >= 0.8 && hearts > 0) {
       setPassed(true);
     }
-  }, [score, hearts]);
+  }, [
+    score,
+    hearts,
+    listeningPassage,
+    writingTopic,
+    currentListeningTaskCount,
+  ]);
 
   const unlockNext = async () => {
     try {
@@ -114,19 +182,54 @@ export default function Page({ params }: { params: any }) {
           </div>
         </div>
 
-        {listening && (
+        {listeningPassage && (
           <div className="rounded-2xl border bg-white p-4">
-            <h3 className="font-semibold">Listening task</h3>
-            <ListeningExercise
-              question={{
-                id: listening.id,
-                audioUrl: listening.audioUrl,
-                prompt: listening.prompt,
-                correctAnswer: "",
-              }}
-              onCorrect={handleCorrect}
-              onIncorrect={handleIncorrect}
-            />
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <h3 className="font-semibold">Listening task</h3>
+              <div className="inline-flex rounded-full border border-slate-200 bg-slate-50 p-1 text-sm font-semibold text-slate-600">
+                <button
+                  type="button"
+                  onClick={() => setListeningMode("passage")}
+                  className={`rounded-full px-3 py-1.5 transition ${
+                    listeningMode === "passage"
+                      ? "bg-indigo-600 text-white shadow-sm"
+                      : "hover:bg-slate-100"
+                  }`}
+                >
+                  Đoạn dài
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setListeningMode("dialogue")}
+                  className={`rounded-full px-3 py-1.5 transition ${
+                    listeningMode === "dialogue"
+                      ? "bg-indigo-600 text-white shadow-sm"
+                      : "hover:bg-slate-100"
+                  }`}
+                >
+                  Hội thoại
+                </button>
+              </div>
+            </div>
+
+            {listeningMode === "passage" ? (
+              <PassageListeningExercise
+                passage={listeningPassage}
+                onCorrect={handleCorrect}
+                onIncorrect={handleIncorrect}
+                onEssaySubmitted={handleWritingSubmitted}
+              />
+            ) : (
+              <DialogueListenExercise
+                questions={checkpointDialogueQuestions}
+                onQuestionResult={(isCorrect) =>
+                  isCorrect ? handleCorrect() : handleIncorrect()
+                }
+                onComplete={() => {
+                  // no-op: passage/demonstration mode already counts by per-question result
+                }}
+              />
+            )}
           </div>
         )}
 

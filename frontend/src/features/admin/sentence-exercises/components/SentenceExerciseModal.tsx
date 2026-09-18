@@ -26,7 +26,15 @@ const defaultFormData: CreateUpdateSentenceExerciseDto = {
   audioUrl: "",
   promptText: "",
   vietnameseTranslation: "",
+  distractorSentence: "",
+  dialogueGroupId: "",
+  orderInGroup: 1,
 };
+
+const generateDialogueGroupId = () =>
+  typeof crypto !== "undefined" && crypto.randomUUID
+    ? `dlg-${crypto.randomUUID()}`
+    : `dlg-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 
 // Helper để tạo initial data an toàn
 function getInitialFormData(
@@ -42,6 +50,9 @@ function getInitialFormData(
       audioUrl: editingExercise.audioUrl || "",
       promptText: editingExercise.promptText || "",
       vietnameseTranslation: editingExercise.vietnameseTranslation || "",
+      distractorSentence: editingExercise.distractorSentence || "",
+      dialogueGroupId: editingExercise.dialogueGroupId || "",
+      orderInGroup: editingExercise.orderInGroup ?? 1,
     };
   }
   return {
@@ -85,6 +96,36 @@ export function SentenceExerciseModal({
     e.preventDefault();
     if (!formData.correctSentence.trim()) return;
     onSubmit(formData);
+  };
+
+  const showDialogueFields =
+    formData.exerciseType === ExerciseType.ListenChoose;
+
+  const handleSetDialogueGroupId = () => {
+    setFormData({
+      ...formData,
+      dialogueGroupId: generateDialogueGroupId(),
+    });
+  };
+
+  const updateExerciseType = (nextType: ExerciseType) => {
+    if (nextType === ExerciseType.ListenChoose) {
+      setFormData({
+        ...formData,
+        exerciseType: nextType,
+        dialogueGroupId: formData.dialogueGroupId || generateDialogueGroupId(),
+        orderInGroup: formData.orderInGroup || 1,
+      });
+      return;
+    }
+
+    setFormData({
+      ...formData,
+      exerciseType: nextType,
+      distractorSentence: "",
+      dialogueGroupId: "",
+      orderInGroup: 1,
+    });
   };
 
   return (
@@ -147,10 +188,7 @@ export function SentenceExerciseModal({
               <select
                 value={formData.exerciseType}
                 onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    exerciseType: Number(e.target.value) as ExerciseType,
-                  })
+                  updateExerciseType(Number(e.target.value) as ExerciseType)
                 }
                 className="w-full rounded-lg border border-slate-300 bg-slate-50 px-3 py-2 text-sm text-slate-700 transition-colors focus:border-indigo-500 focus:bg-white focus:outline-none"
               >
@@ -161,6 +199,9 @@ export function SentenceExerciseModal({
                 </option>
                 <option value={ExerciseType.TranslateFromVietnamese}>
                   Dịch Việt - Anh
+                </option>
+                <option value={ExerciseType.ListenChoose}>
+                  Nghe - chọn câu
                 </option>
               </select>
             </div>
@@ -234,6 +275,76 @@ export function SentenceExerciseModal({
           </div>
 
           {/* Audio URL Input */}
+          {showDialogueFields && (
+            <>
+              <div>
+                <label className="mb-1 block text-sm font-medium text-slate-700">
+                  Distractor Sentence <span className="text-rose-500">*</span>
+                </label>
+                <textarea
+                  rows={2}
+                  required
+                  value={formData.distractorSentence}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      distractorSentence: e.target.value,
+                    })
+                  }
+                  placeholder="Câu nhiễu để tạo lựa chọn khi nghe"
+                  className="w-full rounded-lg border border-slate-300 bg-slate-50 px-3 py-2 text-sm text-slate-700 transition-colors placeholder:text-slate-400 focus:border-indigo-500 focus:bg-white focus:outline-none"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-slate-700">
+                    Dialogue Group Id
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={formData.dialogueGroupId}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          dialogueGroupId: e.target.value,
+                        })
+                      }
+                      placeholder="dlg-001"
+                      className="w-full rounded-lg border border-slate-300 bg-slate-50 px-3 py-2 text-sm text-slate-700 transition-colors placeholder:text-slate-400 focus:border-indigo-500 focus:bg-white focus:outline-none"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleSetDialogueGroupId}
+                      className="shrink-0 rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs font-semibold text-indigo-700 hover:bg-indigo-100"
+                    >
+                      Tạo đoạn hội thoại mới
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-slate-700">
+                    Order In Group
+                  </label>
+                  <input
+                    type="number"
+                    min={1}
+                    value={formData.orderInGroup ?? 1}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        orderInGroup: Number(e.target.value),
+                      })
+                    }
+                    className="w-full rounded-lg border border-slate-300 bg-slate-50 px-3 py-2 text-sm text-slate-700 transition-colors focus:border-indigo-500 focus:bg-white focus:outline-none"
+                  />
+                </div>
+              </div>
+            </>
+          )}
+
           <div>
             <label className="mb-1 block text-sm font-medium text-slate-700">
               Audio URL (Tùy chọn)

@@ -683,3 +683,100 @@ Các file mới đã thêm vào codebase và đã được kiểm tra TypeScript
 
 - `GET /api/app/lesson/{id}` và `GET /api/app/lesson/by-chapter` (route thật theo Conventional Controller: `/api/app/lesson/{id}`, `/api/app/lesson/list-by-chapter?chapterId={id}`) — response giờ cần có thêm field `grammarTopic` (camelCase khi trả JSON) để FE nhận đúng.
 - Khi nối API thật, nhớ kiểm tra Admin CMS `lessonService.ts` (đang 100% mock) đổi sang gọi `POST /api/app/lesson`, `PUT /api/app/lesson/{id}` — payload `CreateUpdateLessonDto` đã có sẵn field `grammarTopic`, không cần sửa gì thêm ở tầng payload.
+
+## 13. Phase 6 - Client Listening nâng cấp
+
+### 13.1 Mục tiêu
+
+- Tách luồng Listening thành 2 nhánh rõ ràng:
+  - Dialogue Exercise dùng lại `SentenceExercise` trong Lesson flow.
+  - Passage Listening dùng API riêng cho checkpoint chapter.
+- Giữ nguyên mock-first pattern trong FE, không làm ảnh hưởng các bài `WordOrder` / `FillInBlank` / `AnswerQuestion` / `MatchingGame` đang ổn định.
+
+### 13.2 File đã thêm / cập nhật
+
+- `frontend/src/features/frontend/lesson/components/exercises/DialogueListenExercise.tsx` — render nhóm `SentenceExercise` cùng `DialogueGroupId`, xử lý `ListenChoose` và `TranslateFromVietnamese` theo từng lượt.
+- `frontend/src/features/frontend/lesson/components/exercises/PassageListeningExercise.tsx` — render bài nghe đoạn dài theo shape `ListeningPassageClientDto`, chấm `MultipleChoice` và `Essay` riêng.
+- `frontend/src/features/frontend/lesson/components/exercises/ListeningExercise.tsx` — file cũ được thay sang nhánh passage mới.
+- `frontend/src/features/frontend/lesson/components/AiFeedbackCard.tsx` — dùng chung `AiFeedbackDto` cho bài essay nghe đoạn dài.
+- `frontend/src/features/frontend/lesson/types/lesson.ts` — thêm `ListenChoose`, `DialogueGroupId`, `OrderInGroup`, `ListenOptions`, `ListeningPassageClientDto`, `AiFeedbackDto` và các DTO submit mới.
+- `frontend/src/features/frontend/lesson/services/lessonService.ts` — thêm `getPassageByChapter(chapterId)`, `submitMultipleChoice(input)`, `submitEssay(input)` theo `USE_MOCK`.
+- `frontend/src/features/frontend/lesson/components/LessonScreen.tsx` — gom nhóm các câu cùng `DialogueGroupId` và render qua `DialogueListenExercise`.
+- `frontend/src/app/(main)/lesson/checkpoint/[chapterId]/page.tsx` — đổi sang `PassageListeningExercise` cho checkpoint Listening.
+- `frontend/src/features/frontend/lesson/mock/mockLessonData.ts` — thêm mock dialogue group để Lesson flow có dữ liệu demo.
+
+### 13.3 Ghi chú kiến trúc
+
+- `ListenChoose` dùng `ListenOptions` đã được xáo trộn sẵn từ backend, FE chỉ chọn và chấm theo kết quả mock/service.
+- Dialogue flow tự chuyển sang lượt kế tiếp khi đúng, và khi hết nhóm sẽ hiển thị trạng thái hoàn thành đoạn hội thoại.
+- Passage Listening ở checkpoint không dùng transcript và không lộ đáp án từ payload trả về.
+- `ListeningExercise.tsx` cũ đã được thay bằng `DialogueListenExercise.tsx` + `PassageListeningExercise.tsx` để tách rõ 2 use case.
+
+## 13. Phase 6 - Admin CMS Listening
+
+### 13.1 Mục tiêu
+
+- Bổ sung màn quản lý Listening Passage cho Admin CMS theo mock-first architecture.
+- 1 Chapter chỉ có 1 Listening Passage.
+- Hỗ trợ 2 loại câu hỏi: `MultipleChoice` và `Essay`.
+- Hỗ trợ sinh audio mock từ transcript ngay trong modal.
+
+### 13.2 Files đã tạo / cập nhật
+
+- `frontend/src/app/admin/listening/page.tsx`
+- `frontend/src/features/admin/listening/types/listening.ts`
+- `frontend/src/features/admin/listening/mock/mockListeningData.ts`
+- `frontend/src/features/admin/listening/services/listeningService.ts`
+- `frontend/src/features/admin/listening/hooks/useAdminListening.ts`
+- `frontend/src/features/admin/listening/components/ListeningPassageTable.tsx`
+- `frontend/src/features/admin/listening/components/ListeningPassageModal.tsx`
+- `frontend/src/features/admin/listening/components/ListeningHeader.tsx` — tiêu đề + CTA theo style mẫu `ChapterHeader.tsx`.
+- `frontend/src/features/admin/listening/components/ListeningFilterBar.tsx` — dropdown chọn Chapter theo style mẫu `ChapterFilterBar.tsx`.
+- `frontend/src/app/admin/layout.tsx` — thêm menu `Quản lý Listening` vào sidebar Admin.
+- `frontend/src/features/admin/sentence-exercises/types/sentence-exercise.ts` — thêm `ExerciseType.ListenChoose` và metadata dialogue.
+- `frontend/src/features/admin/sentence-exercises/services/sentenceExerciseService.ts` — mock data + validation + grouping metadata cho `ListenChoose`.
+- `frontend/src/features/admin/sentence-exercises/components/SentenceExerciseModal.tsx` — thêm UI nhập `DistractorSentence`, `DialogueGroupId`, `OrderInGroup`.
+- `frontend/src/features/admin/sentence-exercises/components/SentenceExerciseTable.tsx` — group hiển thị theo `DialogueGroupId` để đọc hội thoại A-B-A-B dễ hơn.
+
+### 13.3 Ghi chú triển khai
+
+- Listening dùng `USE_MOCK = true`, service đã có hàm sinh URL audio mock từ transcript.
+- Trang Listening đã được tách thành Header / FilterBar / Table / Modal đúng pattern admin chapters, trong đó FilterBar chọn theo Chapter.
+- Modal Listening có sub-form nhiều câu hỏi, tự re-index `OrderIndex` khi thêm/xoá câu.
+- Sentence Exercise đã có thêm một dạng `ListenChoose` để chuẩn bị cho dialogue nghe-chọn của backend ABP.
+
+## 14. Checkpoint Audit (cập nhật mới)
+
+### 14.1 Cập nhật UI mới nhất
+
+- Trang Checkpoint đã có toggle chọn 2 mode Listening:
+  - `Đoạn dài` -> render bằng `PassageListeningExercise`
+  - `Hội thoại` -> render bằng `DialogueListenExercise`
+- Vị trí triển khai: `frontend/src/app/(main)/lesson/checkpoint/[chapterId]/page.tsx`.
+
+### 14.2 Checkpoint hiện tại đang làm gì
+
+- `writing`:
+  - Gọi `GET /api/app/writing-topic/by-chapter?chapterId={id}`.
+  - Render 1 bài viết qua `CheckpointWritingExercise`.
+- `listening`:
+  - `Đoạn dài`: gọi `lessonService.getPassageByChapter(chapterId)` (mock-first), rồi chấm từng câu qua service submit mock.
+  - `Hội thoại`: đang dùng mảng hằng `checkpointDialogueQuestions` hardcode ngay trong page.
+- `pass rule`:
+  - Score tăng theo từng câu/listening + writing.
+  - Pass khi đạt >=80% và còn heart.
+  - Pass thì gọi `POST /api/app/chapter/{id}/unlock-checkpoint`.
+
+### 14.3 So với thiết kế "ôn lại kiến thức từ các lesson trong chapter"
+
+Hiện tại Checkpoint **chưa** ôn toàn bộ kiến thức chapter theo đúng nghĩa tổng hợp từ nhiều lesson, vì:
+
+- Chưa có bước lấy danh sách lesson của chapter rồi hợp nhất câu hỏi từ các lesson đó.
+- Mode `Hội thoại` đang là dữ liệu demo hardcode, chưa map theo `chapterId`.
+- Chưa có cơ chế sampling/phân tầng nội dung theo lesson (ví dụ: mỗi lesson lấy n câu grammar/listening/writing).
+- Chưa có theo dõi coverage kiểu "đã ôn phần nào của chapter".
+
+### 14.4 Kết luận ngắn
+
+- Đúng là hiện tại checkpoint đang thiên về "bài nghe + bài viết AI" (và có thêm hội thoại demo),
+  chưa phải là một "chapter review aggregator" đúng thiết kế ban đầu.

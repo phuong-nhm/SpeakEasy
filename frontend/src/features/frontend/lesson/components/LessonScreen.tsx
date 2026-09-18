@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 
 import { useLessonFlow } from "../hooks/useLessonFlow";
 import { ExerciseType } from "../types/lesson";
+import { DialogueListenExercise } from "./exercises/DialogueListenExercise";
 import { AnswerQuestionExercise } from "./exercises/AnswerQuestionExercise";
 import { FillInBlankExercise } from "./exercises/FillInBlankExercise";
 import { MatchingGameExercise } from "./exercises/MatchingGameExercise";
@@ -36,11 +37,14 @@ export function LessonScreen({ lessonId }: LessonScreenProps) {
     vocabulary,
     lessonParts,
     completedParts,
+    grammarQuestions,
     selectedPart,
     isPartUnlocked,
     openPart,
     handleSelectAnswer,
     handleCheckAnswer,
+    handleAdvanceQuestions,
+    recordAttemptResult,
     handleContinue,
     handleExit,
     confirmExit,
@@ -52,6 +56,31 @@ export function LessonScreen({ lessonId }: LessonScreenProps) {
 
   const renderExercise = () => {
     if (!currentQuestion) return null;
+
+    const currentDialogueGroup =
+      currentPart === "grammar" && currentQuestion.dialogueGroupId
+        ? grammarQuestions
+            .filter(
+              (question) =>
+                question.dialogueGroupId === currentQuestion.dialogueGroupId,
+            )
+            .sort((left, right) => {
+              const orderLeft = left.orderInGroup ?? Number.MAX_SAFE_INTEGER;
+              const orderRight = right.orderInGroup ?? Number.MAX_SAFE_INTEGER;
+
+              return orderLeft - orderRight;
+            })
+        : [];
+
+    if (currentDialogueGroup.length > 0) {
+      return (
+        <DialogueListenExercise
+          questions={currentDialogueGroup}
+          onQuestionResult={recordAttemptResult}
+          onComplete={() => handleAdvanceQuestions(currentDialogueGroup.length)}
+        />
+      );
+    }
 
     switch (currentQuestion.exerciseType) {
       case ExerciseType.WordOrder:
@@ -285,6 +314,18 @@ export function LessonScreen({ lessonId }: LessonScreenProps) {
 
   const renderFooter = () => {
     if (!selectedPart) {
+      return null;
+    }
+
+    const currentDialogueGroup =
+      currentPart === "grammar" && currentQuestion?.dialogueGroupId
+        ? grammarQuestions.filter(
+            (question) =>
+              question.dialogueGroupId === currentQuestion.dialogueGroupId,
+          )
+        : [];
+
+    if (currentDialogueGroup.length > 0) {
       return null;
     }
 

@@ -2,22 +2,10 @@
 
 import React from "react";
 
-interface GrammarError {
-  sentence: string;
-  issue: string;
-  suggestion: string;
-}
-
-interface AiFeedback {
-  band?: string;
-  score?: number;
-  errors?: GrammarError[];
-  suggestion?: string;
-  improvedText?: string;
-}
+import { AiFeedbackDto } from "../types/lesson";
 
 interface Props {
-  feedback: AiFeedback;
+  feedback: AiFeedbackDto;
 }
 
 export default function AiFeedbackCard({ feedback }: Props) {

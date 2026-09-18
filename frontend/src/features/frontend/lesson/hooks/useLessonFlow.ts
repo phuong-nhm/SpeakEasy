@@ -66,6 +66,15 @@ export function useLessonFlow(lessonId: string) {
     setResultType(null);
   };
 
+  const recordAttemptResult = (isCorrect: boolean) => {
+    if (isCorrect) {
+      setCorrectAnswers((prev) => prev + 1);
+      return;
+    }
+
+    setHearts((prev) => Math.max(0, prev - 1));
+  };
+
   const openPart = (part: LessonPart) => {
     if (!isPartUnlocked(part)) return;
 
@@ -195,12 +204,30 @@ export function useLessonFlow(lessonId: string) {
 
     setIsChecked(true);
     setResultType(isCorrect ? "correct" : "incorrect");
+    recordAttemptResult(isCorrect);
+  };
 
-    if (isCorrect) {
-      setCorrectAnswers((prev) => prev + 1);
-    } else {
-      setHearts((prev) => Math.max(0, prev - 1));
+  const handleAdvanceQuestions = (step = 1) => {
+    if (!lesson || !selectedPart) return;
+
+    const totalLength =
+      selectedPart === "grammar"
+        ? grammarQuestions.length
+        : selectedPart === "comprehensive"
+          ? comprehensiveQuestions.length
+          : 0;
+
+    if (totalLength === 0) return;
+
+    const nextIndex = currentIndex + step;
+
+    if (nextIndex >= totalLength) {
+      completeCurrentPart();
+      return;
     }
+
+    setCurrentIndex(nextIndex);
+    resetCurrentState();
   };
 
   const finalizeLesson = () => {
@@ -259,24 +286,17 @@ export function useLessonFlow(lessonId: string) {
     }
 
     if (selectedPart === "grammar") {
-      if (currentIndex >= grammarQuestions.length - 1) {
-        completeCurrentPart();
-        return;
-      }
-
-      setCurrentIndex((prev) => prev + 1);
-      resetCurrentState();
+      handleAdvanceQuestions(1);
       return;
     }
 
     if (selectedPart === "comprehensive") {
-      if (currentIndex >= comprehensiveQuestions.length - 1 || hearts === 0) {
+      if (hearts === 0) {
         completeCurrentPart();
         return;
       }
 
-      setCurrentIndex((prev) => prev + 1);
-      resetCurrentState();
+      handleAdvanceQuestions(1);
     }
   };
 
@@ -320,6 +340,8 @@ export function useLessonFlow(lessonId: string) {
     openPart,
     handleSelectAnswer,
     handleCheckAnswer,
+    handleAdvanceQuestions,
+    recordAttemptResult,
     handleContinue,
     handleExit,
     confirmExit,

@@ -3,6 +3,21 @@ export enum ExerciseType {
   FillInBlank = "FillInBlank",
   AnswerQuestion = "AnswerQuestion",
   TranslateFromVietnamese = "TranslateFromVietnamese",
+  ListenChoose = "ListenChoose",
+}
+
+export type ListeningOptionKey = "A" | "B" | "C" | "D";
+
+export interface AiFeedbackDto {
+  band?: string;
+  score?: number;
+  errors?: {
+    sentence: string;
+    issue: string;
+    suggestion: string;
+  }[];
+  suggestion?: string;
+  improvedText?: string;
 }
 
 export interface SentenceExerciseDto {
@@ -14,6 +29,46 @@ export interface SentenceExerciseDto {
   exerciseType: string;
   promptText?: string;
   vietnameseTranslation?: string;
+  dialogueGroupId?: string;
+  orderInGroup?: number;
+  listenOptions?: string[];
+  shuffledWords?: string[];
+}
+
+export interface ListeningPassageQuestionDto {
+  id: string;
+  questionType: "MultipleChoice" | "Essay";
+  questionText: string;
+  optionA?: string;
+  optionB?: string;
+  optionC?: string;
+  optionD?: string;
+  orderIndex: number;
+}
+
+export interface ListeningPassageClientDto {
+  title: string;
+  audioUrl: string;
+  questions: ListeningPassageQuestionDto[];
+}
+
+export interface SubmitListeningMultipleChoiceRequest {
+  questionId: string;
+  selectedOptionKey: ListeningOptionKey;
+}
+
+export interface SubmitListeningMultipleChoiceResponse {
+  isCorrect: boolean;
+  correctOptionKey: ListeningOptionKey;
+}
+
+export interface SubmitListeningEssayRequest {
+  questionId: string;
+  userContent: string;
+}
+
+export interface SubmitListeningEssayResponse {
+  aiFeedback: AiFeedbackDto;
 }
 
 export interface VocabularyDto {
