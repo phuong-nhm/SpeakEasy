@@ -103,10 +103,9 @@ export function DialogueListenExercise({
   const handleCheckListenChoose = () => {
     if (!currentQuestion || !selectedAnswer) return;
 
-    const correctAnswer =
-      currentQuestion.correctAnswer ?? currentQuestion.correctSentence;
     const isCorrect =
-      normalizeText(selectedAnswer) === normalizeText(correctAnswer);
+      normalizeText(selectedAnswer) ===
+      normalizeText(currentQuestion.correctSentence);
 
     setFeedback(
       isCorrect
@@ -136,9 +135,8 @@ export function DialogueListenExercise({
     if (!currentQuestion) return;
 
     const answer = selectedWords.join(" ");
-    const correctAnswer =
-      currentQuestion.correctAnswer ?? currentQuestion.correctSentence;
-    const isCorrect = normalizeText(answer) === normalizeText(correctAnswer);
+    const isCorrect =
+      normalizeText(answer) === normalizeText(currentQuestion.correctSentence);
 
     setFeedback(
       isCorrect
@@ -182,7 +180,7 @@ export function DialogueListenExercise({
             </div>
 
             <p className="mt-4 text-sm font-medium text-slate-600">
-              {currentQuestion.prompt ?? "Nghe và chọn câu đúng."}
+              {currentQuestion.promptText ?? "Nghe và chọn câu đúng."}
             </p>
           </div>
 

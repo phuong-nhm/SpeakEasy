@@ -51,7 +51,7 @@ export function ChapterCard({
         {chapter.description}
       </p>
 
-      <div className="mt-4 flex items-center gap-3">
+      <div className="mt-4 flex flex-wrap items-center gap-3">
         {chapter.lessons && chapter.lessons.length > 0 && (
           <Link
             href={`/lesson/${chapter.lessons[0].id}`}
@@ -60,6 +60,20 @@ export function ChapterCard({
             Mở Lesson
           </Link>
         )}
+
+        <Link
+          href={`/lesson/listening/${chapter.id}`}
+          className="rounded-full border border-indigo-200 bg-indigo-50 px-3 py-2 text-sm font-semibold text-indigo-700 hover:bg-indigo-100"
+        >
+          Listening
+        </Link>
+
+        <Link
+          href={`/lesson/writing/${chapter.id}`}
+          className="rounded-full border border-violet-200 bg-violet-50 px-3 py-2 text-sm font-semibold text-violet-700 hover:bg-violet-100"
+        >
+          Writing AI
+        </Link>
 
         <Link
           href={`/lesson/checkpoint/${chapter.id}`}

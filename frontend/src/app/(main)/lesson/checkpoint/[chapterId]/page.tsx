@@ -1,63 +1,22 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import CheckpointWritingExercise from "@/features/frontend/lesson/components/exercises/CheckpointWritingExercise";
-import { DialogueListenExercise } from "@/features/frontend/lesson/components/exercises/DialogueListenExercise";
-import { PassageListeningExercise } from "@/features/frontend/lesson/components/exercises/PassageListeningExercise";
-import { lessonService } from "@/features/frontend/lesson/services/lessonService";
-import {
-  AiFeedbackDto,
-  ExerciseType,
-  ListeningPassageClientDto,
-  SentenceExerciseDto,
-} from "@/features/frontend/lesson/types/lesson";
+import { roadmapService } from "@/features/frontend/dashboard/services/roadmapService";
+import { ChapterDto } from "@/features/frontend/dashboard/types/roadmap";
 
-interface WritingTopicDto {
-  id: string;
-  chapterId: string;
-  promptTitle: string;
-  promptText: string;
-}
+const statusLabelMap = {
+  completed: "Đã học",
+  unlocked: "Sẵn sàng ôn",
+  locked: "Chưa mở",
+} as const;
 
-interface ListeningDto {
-  passage: ListeningPassageClientDto;
-}
-
-type ListeningMode = "passage" | "dialogue";
-
-const checkpointDialogueQuestions: SentenceExerciseDto[] = [
-  {
-    id: "checkpoint-dialogue-1",
-    lessonId: "checkpoint-demo",
-    sectionType: 1,
-    exerciseType: ExerciseType.ListenChoose,
-    dialogueGroupId: "checkpoint-demo-dialogue",
-    orderInGroup: 1,
-    prompt: "Nghe và chọn câu đúng.",
-    questionText: "Choose the sentence you hear.",
-    audioUrl: "/audio/checkpoint-dialogue-1.mp3",
-    listenOptions: ["Let's meet after class.", "I am at the library."],
-    correctSentence: "Let's meet after class.",
-    correctAnswer: "Let's meet after class.",
-    explanation: "A short spoken reply fits the dialogue flow.",
-  },
-  {
-    id: "checkpoint-dialogue-2",
-    lessonId: "checkpoint-demo",
-    sectionType: 1,
-    exerciseType: ExerciseType.TranslateFromVietnamese,
-    dialogueGroupId: "checkpoint-demo-dialogue",
-    orderInGroup: 2,
-    prompt: "Dịch câu tiếng Việt.",
-    questionText: "Translate into English.",
-    vietnameseTranslation: "Chúng ta gặp nhau sau giờ học.",
-    correctSentence: "We will meet after class.",
-    correctAnswer: "We will meet after class.",
-    shuffledWords: ["We", "will", "meet", "after", "class."],
-    explanation: "This keeps the dialogue flow moving naturally.",
-  },
-];
+const statusStyleMap = {
+  completed: "bg-emerald-100 text-emerald-700",
+  unlocked: "bg-indigo-100 text-indigo-700",
+  locked: "bg-slate-100 text-slate-500",
+} as const;
 
 export default function Page({ params }: { params: any }) {
   const router = useRouter();
@@ -67,199 +26,212 @@ export default function Page({ params }: { params: any }) {
     : params;
   const chapterId: string =
     resolvedParams?.chapterId ?? params?.chapterId ?? "unknown";
-  const [writingTopic, setWritingTopic] = useState<WritingTopicDto | null>(
-    null,
-  );
-  const [listeningPassage, setListeningPassage] =
-    useState<ListeningPassageClientDto | null>(null);
-  const [listeningMode, setListeningMode] = useState<ListeningMode>("passage");
-  const [hearts, setHearts] = useState(3);
-  const [score, setScore] = useState(0);
-  const [passed, setPassed] = useState(false);
+
+  const [chapter, setChapter] = useState<ChapterDto | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     let mounted = true;
-    const load = async () => {
-      try {
-        const w = await fetch(
-          `/api/app/writing-topic/by-chapter?chapterId=${chapterId}`,
-        ).then((r) => r.json());
-        if (!mounted) return;
-        setWritingTopic(w[0] ?? null);
 
-        const passage = await lessonService.getPassageByChapter(chapterId);
+    const loadChapter = async () => {
+      try {
+        const levels = await roadmapService.getRoadmapLevels();
         if (!mounted) return;
-        setListeningPassage(passage);
-      } catch (e) {
-        // fallback mock
-        if (!mounted) return;
-        setWritingTopic({
-          id: "mock-1",
-          chapterId,
-          promptTitle: "Describe your last holiday",
-          promptText: "Write about where you went and what you did.",
-        });
-        setListeningPassage({
-          title: "Mock listening passage",
-          audioUrl: "/audio/mock-a.mp3",
-          questions: [
-            {
-              id: "mock-listen-1",
-              questionType: "MultipleChoice",
-              questionText: "What did the speaker mention?",
-              optionA: "A book.",
-              optionB: "A school.",
-              optionC: "A bus.",
-              optionD: "A friend.",
-              orderIndex: 1,
-            },
-          ],
-        });
+
+        const foundChapter = levels
+          .flatMap((level) => level.chapters)
+          .find((item) => item.id === chapterId);
+
+        setChapter(foundChapter ?? null);
+      } finally {
+        if (mounted) {
+          setIsLoading(false);
+        }
       }
     };
 
-    load();
+    void loadChapter();
+
     return () => {
       mounted = false;
     };
   }, [chapterId]);
 
-  const handleCorrect = () => setScore((s) => s + 1);
-  const handleIncorrect = () => {
-    setHearts((h) => Math.max(0, h - 1));
-  };
+  const lessons = chapter?.lessons ?? [];
 
-  const handleWritingSubmitted = async (feedback: AiFeedbackDto) => {
-    // simple scoring: writing passes if feedback.score >= 80
-    const fscore = feedback?.score ?? 0;
-    if (fscore >= 80) setScore((s) => s + 1);
-    else setHearts((h) => Math.max(0, h - 1));
-  };
-
-  const currentListeningTaskCount =
-    listeningMode === "passage"
-      ? (listeningPassage?.questions.length ?? 0)
-      : checkpointDialogueQuestions.length;
-
-  useEffect(() => {
-    const totalTasks = Math.max(
-      1,
-      currentListeningTaskCount + (writingTopic ? 1 : 0),
+  const chapterStats = useMemo(() => {
+    const completed = lessons.filter((lesson) => lesson.isCompleted).length;
+    const unlocked = lessons.filter(
+      (lesson) => !lesson.isCompleted && !lesson.isLocked,
+    ).length;
+    const locked = lessons.filter((lesson) => lesson.isLocked).length;
+    const totalQuestions = lessons.reduce(
+      (total, lesson) => total + lesson.totalQuestions,
+      0,
     );
 
-    if (score / totalTasks >= 0.8 && hearts > 0) {
-      setPassed(true);
-    }
-  }, [
-    score,
-    hearts,
-    listeningPassage,
-    writingTopic,
-    currentListeningTaskCount,
-  ]);
+    return {
+      completed,
+      unlocked,
+      locked,
+      totalQuestions,
+    };
+  }, [lessons]);
 
-  const unlockNext = async () => {
-    try {
-      await fetch(`/api/app/chapter/${chapterId}/unlock-checkpoint`, {
-        method: "POST",
-      });
-    } catch (e) {
-      // ignore
-    }
-    // navigate back to chapter or dashboard
-    router.push("/dashboard");
-  };
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-slate-50 py-8">
+        <main className="mx-auto max-w-4xl px-4">
+          <div className="rounded-2xl border bg-white p-6 shadow-sm">
+            <div className="h-5 w-56 animate-pulse rounded-full bg-slate-200" />
+          </div>
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-50 py-8">
-      <main className="mx-auto max-w-3xl space-y-6 px-4">
-        <div className="rounded-2xl border bg-white p-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-bold">
+      <main className="mx-auto max-w-4xl space-y-6 px-4">
+        <div className="rounded-2xl border bg-white p-5 shadow-sm">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <h2 className="text-xl font-black text-slate-900">
               Checkpoint — Chapter {chapterId}
             </h2>
-            <div>Hearts: {"❤️".repeat(hearts)}</div>
+            <button
+              type="button"
+              onClick={() => router.push("/dashboard")}
+              className="rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100"
+            >
+              Quay lại dashboard
+            </button>
+          </div>
+
+          {chapter ? (
+            <>
+              <p className="mt-2 text-sm text-slate-600">{chapter.title}</p>
+              <p className="mt-1 text-sm text-slate-500">
+                {chapter.description}
+              </p>
+            </>
+          ) : (
+            <p className="mt-2 text-sm text-rose-600">
+              Không tìm thấy chapter trong mock roadmap.
+            </p>
+          )}
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="rounded-2xl border bg-white p-4 shadow-sm">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+              Tổng lesson
+            </p>
+            <p className="mt-2 text-2xl font-black text-slate-900">
+              {lessons.length}
+            </p>
+          </div>
+          <div className="rounded-2xl border bg-white p-4 shadow-sm">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+              Đã học
+            </p>
+            <p className="mt-2 text-2xl font-black text-emerald-700">
+              {chapterStats.completed}
+            </p>
+          </div>
+          <div className="rounded-2xl border bg-white p-4 shadow-sm">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+              Sẵn sàng ôn
+            </p>
+            <p className="mt-2 text-2xl font-black text-indigo-700">
+              {chapterStats.unlocked}
+            </p>
+          </div>
+          <div className="rounded-2xl border bg-white p-4 shadow-sm">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+              Tổng câu hỏi
+            </p>
+            <p className="mt-2 text-2xl font-black text-slate-900">
+              {chapterStats.totalQuestions}
+            </p>
           </div>
         </div>
 
-        {listeningPassage && (
-          <div className="rounded-2xl border bg-white p-4">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <h3 className="font-semibold">Listening task</h3>
-              <div className="inline-flex rounded-full border border-slate-200 bg-slate-50 p-1 text-sm font-semibold text-slate-600">
-                <button
-                  type="button"
-                  onClick={() => setListeningMode("passage")}
-                  className={`rounded-full px-3 py-1.5 transition ${
-                    listeningMode === "passage"
-                      ? "bg-indigo-600 text-white shadow-sm"
-                      : "hover:bg-slate-100"
-                  }`}
-                >
-                  Đoạn dài
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setListeningMode("dialogue")}
-                  className={`rounded-full px-3 py-1.5 transition ${
-                    listeningMode === "dialogue"
-                      ? "bg-indigo-600 text-white shadow-sm"
-                      : "hover:bg-slate-100"
-                  }`}
-                >
-                  Hội thoại
-                </button>
-              </div>
-            </div>
+        <div className="rounded-2xl border border-dashed bg-white p-5 shadow-sm">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+            Blueprint
+          </p>
+          <h3 className="mt-2 text-xl font-black text-slate-900">
+            Skeleton ôn tập theo chapter (chưa bật logic checkpoint)
+          </h3>
+          <p className="mt-2 text-sm text-slate-600">
+            Màn này mới dựng khung coverage để bạn phát triển chapter-review
+            aggregator ở bước tiếp theo.
+          </p>
+        </div>
 
-            {listeningMode === "passage" ? (
-              <PassageListeningExercise
-                passage={listeningPassage}
-                onCorrect={handleCorrect}
-                onIncorrect={handleIncorrect}
-                onEssaySubmitted={handleWritingSubmitted}
-              />
-            ) : (
-              <DialogueListenExercise
-                questions={checkpointDialogueQuestions}
-                onQuestionResult={(isCorrect) =>
-                  isCorrect ? handleCorrect() : handleIncorrect()
-                }
-                onComplete={() => {
-                  // no-op: passage/demonstration mode already counts by per-question result
-                }}
-              />
-            )}
-          </div>
-        )}
+        <div className="space-y-3">
+          {lessons.map((lesson) => {
+            const status = lesson.isCompleted
+              ? "completed"
+              : lesson.isLocked
+                ? "locked"
+                : "unlocked";
 
-        {writingTopic && (
-          <div className="rounded-2xl border bg-white p-4">
-            <h3 className="font-semibold">Writing task</h3>
-            <CheckpointWritingExercise
-              topic={writingTopic}
-              onSubmitted={handleWritingSubmitted}
-            />
-          </div>
-        )}
-
-        <div className="rounded-2xl border bg-white p-4 text-center">
-          <div className="text-sm text-slate-600">Score: {score}</div>
-          {passed ? (
-            <div className="mt-3">
-              <div className="text-lg font-bold text-emerald-700">Passed!</div>
-              <button
-                onClick={unlockNext}
-                className="mt-3 rounded-2xl bg-emerald-600 px-4 py-2 text-white"
+            return (
+              <div
+                key={lesson.id}
+                className="rounded-2xl border bg-white p-4 shadow-sm"
               >
-                Mở khóa Chapter tiếp theo
-              </button>
-            </div>
-          ) : (
-            <div className="mt-3 text-sm text-slate-500">
-              Reach ≥80% to pass
-            </div>
-          )}
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+                      Lesson {lesson.order}
+                    </p>
+                    <h4 className="mt-1 text-lg font-bold text-slate-900">
+                      {lesson.title}
+                    </h4>
+                  </div>
+                  <span
+                    className={`rounded-full px-3 py-1 text-xs font-semibold ${statusStyleMap[status]}`}
+                  >
+                    {statusLabelMap[status]}
+                  </span>
+                </div>
+
+                <div className="mt-3 grid gap-2 text-sm text-slate-600 sm:grid-cols-3">
+                  <div className="rounded-xl bg-slate-50 px-3 py-2">
+                    Grammar/Quiz: TBD
+                  </div>
+                  <div className="rounded-xl bg-slate-50 px-3 py-2">
+                    Listening: TBD
+                  </div>
+                  <div className="rounded-xl bg-slate-50 px-3 py-2">
+                    Writing: TBD
+                  </div>
+                </div>
+
+                <p className="mt-3 text-xs text-slate-500">
+                  Gợi ý coverage: lấy một phần câu hỏi từ lesson này để đưa vào
+                  checkpoint chapter.
+                </p>
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Link
+            href={`/lesson/listening/${chapterId}`}
+            className="rounded-2xl border border-indigo-200 bg-indigo-50 px-4 py-3 text-sm font-semibold text-indigo-700 hover:bg-indigo-100"
+          >
+            Mở Listening riêng
+          </Link>
+          <Link
+            href={`/lesson/writing/${chapterId}`}
+            className="rounded-2xl border border-violet-200 bg-violet-50 px-4 py-3 text-sm font-semibold text-violet-700 hover:bg-violet-100"
+          >
+            Mở Writing AI riêng
+          </Link>
         </div>
       </main>
     </div>

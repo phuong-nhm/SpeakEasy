@@ -780,3 +780,62 @@ Hiện tại Checkpoint **chưa** ôn toàn bộ kiến thức chapter theo đú
 
 - Đúng là hiện tại checkpoint đang thiên về "bài nghe + bài viết AI" (và có thêm hội thoại demo),
   chưa phải là một "chapter review aggregator" đúng thiết kế ban đầu.
+
+## 15. Tách riêng Listening / Writing / Checkpoint (mới)
+
+### 15.1 Mục tiêu tách màn
+
+- Tách hoàn toàn phần học theo chapter thành 3 màn riêng:
+  - Listening riêng (vẫn có đủ 2 dạng).
+  - Writing AI riêng.
+  - Checkpoint riêng, tạm để trống để phát triển sau.
+
+### 15.2 Điều hướng từ Chapter
+
+- File cập nhật: `frontend/src/features/frontend/dashboard/components/ChapterCard.tsx`.
+- Nút action hiện tại theo chapter:
+  - `Mở Lesson` -> `/lesson/{lessonId}`
+  - `Listening` -> `/lesson/listening/{chapterId}`
+  - `Writing AI` -> `/lesson/writing/{chapterId}`
+  - `Checkpoint` -> `/lesson/checkpoint/{chapterId}`
+
+### 15.3 Route mới / route đã đổi vai trò
+
+- `frontend/src/app/(main)/lesson/listening/[chapterId]/page.tsx`
+  - Màn listening riêng.
+  - Có toggle 2 mode:
+    - `Đoạn dài` -> `PassageListeningExercise`.
+    - `Hội thoại` -> `DialogueListenExercise`.
+- `frontend/src/app/(main)/lesson/writing/[chapterId]/page.tsx`
+  - Màn writing AI riêng, dùng `CheckpointWritingExercise` để nộp và xem feedback.
+- `frontend/src/app/(main)/lesson/checkpoint/[chapterId]/page.tsx`
+  - Đã đổi thành placeholder tạm trống (không còn chứa listening/writing).
+
+### 15.4 Ghi chú trạng thái
+
+- Listening và Writing đã được bóc tách khỏi Checkpoint đúng theo yêu cầu hiện tại.
+- Checkpoint để trống để bạn tiếp tục implement chapter-review aggregator sau.
+
+## 16. Checkpoint Skeleton cho Chapter Review (mới)
+
+### 16.1 Mục tiêu
+
+- Dựng trước khung Checkpoint để bám đúng định hướng "ôn tập kiến thức toàn chapter".
+- Chưa bật logic chấm điểm cuối, chỉ hiển thị blueprint + coverage theo lesson.
+
+### 16.2 Triển khai
+
+- File cập nhật: `frontend/src/app/(main)/lesson/checkpoint/[chapterId]/page.tsx`.
+- Trang checkpoint hiện tại:
+  - Load chapter từ `roadmapService.getRoadmapLevels()` và tìm theo `chapterId`.
+  - Hiển thị thống kê nhanh: tổng lesson, đã học, sẵn sàng ôn, tổng số câu hỏi.
+  - Render danh sách lesson trong chapter với badge trạng thái (`Đã học` / `Sẵn sàng ôn` / `Chưa mở`).
+  - Mỗi lesson có block placeholder coverage `Grammar/Quiz`, `Listening`, `Writing` để gắn aggregator logic sau.
+  - Có link nhanh sang 2 màn đã tách riêng:
+    - `/lesson/listening/{chapterId}`
+    - `/lesson/writing/{chapterId}`
+
+### 16.3 Trạng thái hiện tại
+
+- Checkpoint vẫn chưa chấm pass/fail cuối chapter (đúng theo yêu cầu tạm để sau).
+- Nhưng đã có cấu trúc dữ liệu và UI để nối tiếp sang chapter-review aggregator ở bước kế tiếp.
