@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/features/frontend/auth/hooks/useAuth";
 
 const features = [
   {

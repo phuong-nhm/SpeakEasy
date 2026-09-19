@@ -16,5 +16,6 @@ namespace EnglishLearningApp.AppServices.Contents
         Task<SentenceExerciseDto> UpdateAsync(Guid id, CreateUpdateSentenceExerciseDto input);
         Task DeleteAsync(Guid id);
         Task<List<SentenceExerciseDto>> CreateManyAsync(List<CreateUpdateSentenceExerciseDto> inputs);
+        Task<List<SentenceExerciseDto>> GetForCheckpointAsync(Guid chapterId, int count);
     }
 }

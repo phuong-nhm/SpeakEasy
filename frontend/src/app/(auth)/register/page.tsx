@@ -1,6 +1,6 @@
 "use client";
 
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/features/frontend/auth/hooks/useAuth";
 import Link from "next/link";
 
 export default function RegisterPage() {

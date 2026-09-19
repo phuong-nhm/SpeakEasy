@@ -31,7 +31,7 @@ export default function QuizReviewClient() {
     if (index + 1 < items.length) setIndex(index + 1);
     else {
       try {
-        await completeReview(nextCompleted);
+        await completeReview({ ids: nextCompleted });
       } catch (e) {}
       setIndex(items.length);
     }

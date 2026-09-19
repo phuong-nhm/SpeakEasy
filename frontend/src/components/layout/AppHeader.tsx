@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { Home, BookOpenCheck, Gamepad2, Trophy, User } from "lucide-react";
 
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/features/frontend/auth/hooks/useAuth";
 
 const navItems = [
   { href: "/dashboard", label: "Lộ trình", icon: Home },

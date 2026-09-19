@@ -94,7 +94,7 @@ export default function MatchingGameClient() {
         string | number
       >;
       if (reviewedIds.length) {
-        completeReview(reviewedIds).catch(() => {});
+        completeReview({ ids: reviewedIds }).catch(() => {});
       }
     }
   }, [matched, pairs]);

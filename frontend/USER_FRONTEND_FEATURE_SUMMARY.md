@@ -839,3 +839,52 @@ Hiện tại Checkpoint **chưa** ôn toàn bộ kiến thức chapter theo đú
 
 - Checkpoint vẫn chưa chấm pass/fail cuối chapter (đúng theo yêu cầu tạm để sau).
 - Nhưng đã có cấu trúc dữ liệu và UI để nối tiếp sang chapter-review aggregator ở bước kế tiếp.
+
+## 17. Checkpoint - Ôn tập tổng hợp toàn Chapter
+
+### 17.1 Thay đổi chính
+
+- Checkpoint đã chuyển từ skeleton sang bài ôn tập thực sự theo chapter.
+- Không còn coverage placeholder theo lesson, không còn link điều hướng Listening/Writing trong checkpoint.
+- Checkpoint giờ chỉ tập trung vào ôn ngữ pháp tổng hợp (SectionType Grammar) từ toàn bộ lesson trong chapter.
+
+### 17.2 Dữ liệu & service
+
+- Cập nhật `frontend/src/features/frontend/lesson/services/lessonService.ts`:
+  - Thêm `getCheckpointExercises(chapterId)`.
+  - Giữ pattern `USE_MOCK`:
+    - Mock trả bộ 15-20 câu `SentenceExerciseDto` trộn nhiều `ExerciseType`.
+    - Có dữ liệu `ListenChoose` theo cặp `dialogueGroupId` để test hội thoại nhiều lượt.
+  - Sẵn nhánh API thật:
+    - `GET /api/app/sentence-exercise/for-checkpoint?chapterId={id}&count=20`.
+
+### 17.3 UI/logic checkpoint mới
+
+- Cập nhật `frontend/src/app/(main)/lesson/checkpoint/[chapterId]/page.tsx`:
+  - Load danh sách câu hỏi từ `getCheckpointExercises(chapterId)`.
+  - Gom nhóm câu hội thoại theo `dialogueGroupId` + `orderInGroup` (cùng logic Lesson flow).
+  - Render theo đúng component sẵn có:
+    - `WordOrderExercise`
+    - `FillInBlankExercise`
+    - `AnswerQuestionExercise`
+    - `TranslateExercise`
+    - `DialogueListenExercise`
+  - Có hearts (mặc định 3), progress bar, check/continue theo câu.
+  - Sai thì trừ heart; hết câu hoặc hết heart thì kết thúc.
+
+### 17.4 Kết quả pass/fail
+
+- Tính điểm cuối theo tỷ lệ đúng trên tổng số câu của bộ checkpoint.
+- Pass khi `>= 80%`:
+  - Gọi `POST /api/app/chapter/{id}/unlock-checkpoint`.
+  - Thành công thì điều hướng về dashboard.
+- Fail:
+  - Hiện màn thất bại.
+  - Cho phép "Làm lại với bộ câu mới" (reload qua `getCheckpointExercises`).
+
+### 17.5 Summary cuối bài
+
+- Màn tổng kết hiển thị:
+  - Số câu đúng / tổng câu.
+  - Tỷ lệ % đạt.
+  - Số heart còn lại.

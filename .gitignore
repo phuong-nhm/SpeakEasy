@@ -259,6 +259,15 @@ EnglishLearningApp/Logs/*
 *.db-shm
 *.db-wal
 
+# Environment files (secrets)
+.env
+.env.local
+.env.*.local
+.env.development
+.env.test
+.env.production
+!.env.example
+
 # Use abp install-libs to restore.
 **/wwwroot/libs/*
 # ==========================================

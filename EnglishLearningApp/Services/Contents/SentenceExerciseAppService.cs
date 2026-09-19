@@ -20,13 +20,16 @@ namespace EnglishLearningApp.AppServices.Contents
 
         private readonly IRepository<SentenceExercise, Guid> _sentenceRepo;
         private readonly IAudioGenerationService _audioService;
+        private readonly IRepository<Lesson, Guid> _lessonRepo;
 
         public SentenceExerciseAppService(
             IRepository<SentenceExercise, Guid> sentenceRepo,
-            IAudioGenerationService audioService)
+            IAudioGenerationService audioService,
+            IRepository<Lesson, Guid> lessonRepo)
         {
             _sentenceRepo = sentenceRepo;
             _audioService = audioService;
+            _lessonRepo = lessonRepo;
         }
 
         [AllowAnonymous]
@@ -231,6 +234,26 @@ namespace EnglishLearningApp.AppServices.Contents
             }
 
             return dto;
+        }
+        [AllowAnonymous]
+        public async Task<List<SentenceExerciseDto>> GetForCheckpointAsync(Guid chapterId, int count = 20)
+        {
+            // Lấy tất cả LessonId thuộc Chapter này
+            var lessonQueryable = await _lessonRepo.GetQueryableAsync();
+            var lessonIds = await AsyncExecuter.ToListAsync(
+                lessonQueryable.Where(x => x.ChapterId == chapterId).Select(x => x.Id));
+
+            var queryable = await _sentenceRepo.GetQueryableAsync();
+            var query = queryable
+                .Where(x => lessonIds.Contains(x.LessonId) && x.SectionType == SectionType.Grammar);
+
+            var all = await AsyncExecuter.ToListAsync(query);
+
+            // Random lấy count câu (15-20), không lấy hết toàn bộ ngân hàng câu của Chapter
+            var random = new Random();
+            var picked = all.OrderBy(_ => random.Next()).Take(count).ToList();
+
+            return picked.Select(BuildDto).ToList();
         }
     }
 }

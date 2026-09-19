@@ -3,16 +3,11 @@
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
-import {
-  clearStoredAuth,
-  mockLoginApi,
-  mockRegisterApi,
-  readStoredAuth,
-  writeStoredAuth,
-} from "@/mock/mockAuth";
-import { AuthResponse, FormError, User } from "@/types/auth";
-
+import { getToken } from "@/lib/apiClient";
+import { FormError, User } from "@/features/frontend/auth/types/auth";
+import { authService } from "@/features/frontend/auth/services/authService";
 const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+const AUTH_STATE_CHANGED_EVENT = "auth-state-changed";
 
 export function useAuth() {
   const router = useRouter();
@@ -27,35 +22,73 @@ export function useAuth() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [accessToken, setAccessToken] = useState<string | null>(null);
 
-  const persistAuthSession = useCallback((response: AuthResponse) => {
-    writeStoredAuth({
-      user: response.user,
-      accessToken: response.accessToken,
-    });
-
-    setCurrentUser(response.user);
-    setAccessToken(response.accessToken);
+  const notifyAuthChanged = useCallback(() => {
+    if (typeof window === "undefined") return;
+    window.dispatchEvent(new Event(AUTH_STATE_CHANGED_EVENT));
   }, []);
 
-  const initializeAuth = useCallback(() => {
-    const stored = readStoredAuth();
-    if (!stored) return;
+  const persistAuthSession = useCallback(
+    (user: User) => {
+      setCurrentUser(user);
+      setAccessToken(getToken()); // đọc lại token vừa được authService lưu
+      notifyAuthChanged();
+    },
+    [notifyAuthChanged],
+  );
 
-    setCurrentUser(stored.user);
-    setAccessToken(stored.accessToken);
+  const syncAuthState = useCallback(async () => {
+    const token = getToken();
+
+    if (!token) {
+      setCurrentUser(null);
+      setAccessToken(null);
+      return;
+    }
+
+    try {
+      const user = await authService.getCurrentUser();
+      setCurrentUser(user);
+      setAccessToken(token);
+    } catch {
+      setCurrentUser(null);
+      setAccessToken(getToken());
+    }
   }, []);
 
   useEffect(() => {
-    initializeAuth();
-  }, [initializeAuth]);
+    let isMounted = true;
 
+    const initializeAuth = async () => {
+      if (!isMounted) return;
+
+      await syncAuthState();
+    };
+
+    const handleAuthStateChanged = () => {
+      void initializeAuth();
+    };
+
+    void initializeAuth();
+
+    if (typeof window !== "undefined") {
+      window.addEventListener(AUTH_STATE_CHANGED_EVENT, handleAuthStateChanged);
+    }
+
+    return () => {
+      isMounted = false;
+      if (typeof window !== "undefined") {
+        window.removeEventListener(
+          AUTH_STATE_CHANGED_EVENT,
+          handleAuthStateChanged,
+        );
+      }
+    };
+  }, [syncAuthState]);
   const validateLoginForm = useCallback((): boolean => {
     const newErrors: FormError = {};
 
     if (!email.trim()) {
       newErrors.email = "Email không được để trống";
-    } else if (!emailRegex.test(email)) {
-      newErrors.email = "Email không hợp lệ";
     }
 
     if (!password) {
@@ -118,7 +151,7 @@ export function useAuth() {
       setErrors({});
 
       try {
-        const response = await mockLoginApi(email, password);
+        const response = await authService.login(email, password);
         persistAuthSession(response);
         clearForm();
         router.push("/dashboard");
@@ -146,7 +179,8 @@ export function useAuth() {
       setErrors({});
 
       try {
-        const response = await mockRegisterApi(surname, name, email, password);
+        await authService.register({ surname, name, email, password });
+        const response = await authService.login(email, password);
         persistAuthSession(response);
         clearForm();
         router.push("/dashboard");
@@ -174,12 +208,13 @@ export function useAuth() {
   );
 
   const logout = useCallback(() => {
-    clearStoredAuth();
+    authService.logout();
     setCurrentUser(null);
     setAccessToken(null);
     setErrors({});
+    notifyAuthChanged();
     router.push("/");
-  }, [router]);
+  }, [notifyAuthChanged, router]);
 
   return {
     surname,

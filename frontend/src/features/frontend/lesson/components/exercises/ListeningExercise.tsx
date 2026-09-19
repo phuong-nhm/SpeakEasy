@@ -94,5 +94,3 @@ export function ListeningExercise({ question, onCorrect, onIncorrect }: Props) {
     </div>
   );
 }
-
-export default ListeningExercise;

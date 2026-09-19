@@ -1,4 +1,8 @@
-import { AuthResponse, AuthSession, User } from "@/types/auth";
+import {
+  AuthResponse,
+  AuthSession,
+  User,
+} from "@/features/frontend/auth/types/auth";
 
 export const AUTH_STORAGE_KEY = "english-journey-auth";
 

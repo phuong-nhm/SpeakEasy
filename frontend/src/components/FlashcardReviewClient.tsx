@@ -29,7 +29,7 @@ export default function FlashcardReviewClient() {
       setShowBack(false);
     } else {
       try {
-        await completeReview(nextCompleted);
+        await completeReview({ ids: nextCompleted });
       } catch (e) {}
       setIndex(items.length);
     }

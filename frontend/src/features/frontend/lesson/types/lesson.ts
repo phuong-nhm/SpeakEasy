@@ -28,6 +28,10 @@ export interface SentenceExerciseDto {
   audioUrl?: string;
   exerciseType: string;
   promptText?: string;
+  questionText?: string;
+  options?: string[];
+  correctAnswer?: string;
+  wordBank?: string[];
   vietnameseTranslation?: string;
   dialogueGroupId?: string;
   orderInGroup?: number;
