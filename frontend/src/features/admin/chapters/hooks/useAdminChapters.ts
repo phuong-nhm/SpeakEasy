@@ -11,6 +11,9 @@ export function useAdminChapters() {
   const [selectedLevelId, setSelectedLevelId] = useState<string>("");
 
   const [chapters, setChapters] = useState<ChapterDto[]>([]);
+  const [totalCount, setTotalCount] = useState<number>(0);
+  const [pageIndex, setPageIndex] = useState<number>(1);
+  const [pageSize] = useState<number>(10);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const [editingChapter, setEditingChapter] = useState<ChapterDto | null>(null);
@@ -58,9 +61,15 @@ export function useAdminChapters() {
     const loadChapters = async () => {
       try {
         setIsLoading(true);
-        const data = await chapterService.getByLevelId(selectedLevelId);
+        const skipCount = (pageIndex - 1) * pageSize;
+        const data = await chapterService.getByLevelIdPaged(selectedLevelId, {
+          skipCount,
+          maxResultCount: pageSize,
+        });
+
         if (isMounted) {
-          setChapters(data);
+          setChapters(data.items);
+          setTotalCount(data.totalCount);
         }
       } catch (err) {
         console.error("Lỗi khi tải danh sách chapter:", err);
@@ -74,19 +83,20 @@ export function useAdminChapters() {
     return () => {
       isMounted = false;
     };
-  }, [selectedLevelId, refreshKey]);
+  }, [selectedLevelId, refreshKey, pageIndex, pageSize]);
 
   // Handlers
   const handleLevelChange = useCallback((levelId: string) => {
     setSelectedLevelId(levelId);
+    setPageIndex(1);
   }, []);
 
   const openCreateModal = useCallback(() => {
     setEditingChapter(null);
     setTitle("");
-    setOrderIndex(chapters.length + 1);
+    setOrderIndex((pageIndex - 1) * pageSize + chapters.length + 1);
     setIsModalOpen(true);
-  }, [chapters.length]);
+  }, [chapters.length, pageIndex, pageSize]);
 
   const openEditModal = useCallback((chap: ChapterDto) => {
     setEditingChapter(chap);
@@ -143,10 +153,17 @@ export function useAdminChapters() {
     }
   }, []);
 
+  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize) || 1);
+
   return {
     levels,
     selectedLevelId,
     chapters,
+    totalCount,
+    pageIndex,
+    pageSize,
+    totalPages,
+    setPageIndex,
     isLoading,
     isModalOpen,
     editingChapter,

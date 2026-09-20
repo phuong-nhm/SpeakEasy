@@ -12,6 +12,7 @@ import { TranslateExercise } from "./exercises/TranslateExercise";
 import { WordOrderExercise } from "./exercises/WordOrderExercise";
 import { CompleteScreen } from "./CompleteScreen";
 import { FooterAction } from "./FooterAction";
+import { GrammarReferenceCard } from "./GrammarReferenceCard";
 import { HeaderBar } from "./HeaderBar";
 import { VocabIntroCard } from "./VocabIntroCard";
 
@@ -291,6 +292,11 @@ export function LessonScreen({ lessonId }: LessonScreenProps) {
             </h3>
           </div>
         )}
+
+        {currentPart === "grammar" && (
+          <GrammarReferenceCard grammarNote={lesson.grammarNote ?? null} />
+        )}
+
         <div className="mb-6 flex items-center justify-between text-sm text-slate-500">
           <span>
             Câu {currentQuestion ? currentIndex + 1 : 0}/{totalQuestions}

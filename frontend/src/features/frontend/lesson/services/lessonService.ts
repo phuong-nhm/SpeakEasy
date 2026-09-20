@@ -2,6 +2,8 @@ import { mockLessonMap } from "../mock/mockLessonData";
 import {
   AiFeedbackDto,
   ExerciseType,
+  GrammarFormType,
+  GrammarNoteDto,
   SentenceExerciseDto,
   ListeningOptionKey,
   ListeningPassageClientDto,
@@ -298,6 +300,40 @@ const shuffleItems = <T>(items: T[]): T[] => {
   return cloned;
 };
 
+const mockGrammarNoteMap: Record<string, GrammarNoteDto | null> = {
+  "lesson-1": {
+    id: "gn-lesson-1",
+    lessonId: "lesson-1",
+    title: "To be - Câu khẳng định, phủ định, nghi vấn",
+    usageNote:
+      "Dùng để giới thiệu bản thân, mô tả nghề nghiệp, địa điểm và trạng thái hiện tại.",
+    structures: [
+      {
+        id: "gn-lesson-1-a",
+        formType: GrammarFormType.Affirmative,
+        formula: "I am / You are / He is ...",
+        example: "I am a student.",
+        orderIndex: 1,
+      },
+      {
+        id: "gn-lesson-1-b",
+        formType: GrammarFormType.Negative,
+        formula: "Subject + am not / is not / are not",
+        example: "She is not at home.",
+        orderIndex: 2,
+      },
+      {
+        id: "gn-lesson-1-c",
+        formType: GrammarFormType.Question,
+        formula: "Am / Is / Are + subject + ... ?",
+        example: "Are you ready?",
+        orderIndex: 3,
+      },
+    ],
+  },
+  "lesson-2": null,
+};
+
 export const lessonService = {
   getLessonById: async (lessonId: string): Promise<LessonDto> => {
     if (!USE_MOCK) {
@@ -412,5 +448,35 @@ export const lessonService = {
     }
 
     return response.json();
+  },
+
+  getGrammarNoteByLesson: async (
+    lessonId: string,
+  ): Promise<GrammarNoteDto | null> => {
+    if (!USE_MOCK) {
+      const response = await fetch(
+        `/api/app/grammar-note/get-by-lesson?lessonId=${encodeURIComponent(lessonId)}`,
+        {
+          method: "GET",
+        },
+      );
+
+      if (response.status === 204 || response.status === 404) {
+        return null;
+      }
+
+      if (!response.ok) {
+        throw new Error("Failed to load grammar note.");
+      }
+
+      const data = await response.json();
+      return data ?? null;
+    }
+
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        resolve(mockGrammarNoteMap[lessonId] ?? null);
+      }, 200);
+    });
   },
 };

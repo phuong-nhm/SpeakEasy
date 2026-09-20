@@ -21,6 +21,7 @@
         "ChapterAlreadyHasListeningPassage": "This chapter already has a listening passage. Each chapter can only have one.",
         "ChapterHasNoListeningPassage": "This chapter does not have a listening passage yet.",
         "CorrectOptionKeyRequiredForMultipleChoice": "Correct option key is required for multiple choice questions.",
+        "GrammarNoteNotFound": "Grammar note not found.",
         "ImportBatchTooLarge": "The number of items to import exceeds the allowed limit per batch (max 200).",
         "NoFilesUploaded": "No files have been uploaded.",
         "TooManyFilesInBatch": "The number of files exceeds the allowed limit per batch (maximum 50).",

@@ -32,7 +32,8 @@ public class EnglishLearningAppDbContext : AbpDbContext<EnglishLearningAppDbCont
     // Nhóm Progress
     public DbSet<UserProgress> UserProgresses { get; set; }
     public DbSet<UserLessonReview> UserLessonReviews { get; set; }
-
+    public DbSet<GrammarNote> GrammarNotes { get; set; }
+    public DbSet<GrammarStructureItem> GrammarStructureItems { get; set; }
     public EnglishLearningAppDbContext(DbContextOptions<EnglishLearningAppDbContext> options)
         : base(options)
     {
@@ -98,7 +99,27 @@ public class EnglishLearningAppDbContext : AbpDbContext<EnglishLearningAppDbCont
                 .HasForeignKey(x => x.LessonId)
                 .IsRequired();
         });
+        builder.Entity<GrammarNote>(b =>
+        {
+            b.ToTable("AppGrammarNotes");
+            b.Property(x => x.Title).HasMaxLength(128).IsRequired();
+            b.HasIndex(x => x.LessonId).IsUnique(); // Mỗi Lesson chỉ 1 GrammarNote
 
+            b.HasOne(x => x.Lesson)
+                .WithOne()
+                .HasForeignKey<GrammarNote>(x => x.LessonId);
+
+            b.HasMany(x => x.Structures)
+                .WithOne(x => x.GrammarNote)
+                .HasForeignKey(x => x.GrammarNoteId)
+                .IsRequired();
+        });
+
+        builder.Entity<GrammarStructureItem>(b =>
+        {
+            b.ToTable("AppGrammarStructureItems");
+            b.Property(x => x.Formula).HasMaxLength(256).IsRequired();
+        });
         builder.Entity<Vocabulary>(b =>
         {
             b.ToTable("AppVocabularies");

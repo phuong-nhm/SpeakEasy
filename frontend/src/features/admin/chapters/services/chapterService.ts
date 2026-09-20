@@ -1,44 +1,56 @@
-// @/mock/mockContentService.ts
+// @/features/admin/chapters/services/chapterService.ts
 
+import { apiClient } from "@/lib/apiClient";
 import {
   ChapterDto,
   CreateUpdateChapterDto,
 } from "@/features/admin/chapters/types/chapter";
 
-// Mock Data Chapters ban đầu
-let mockChapters: ChapterDto[] = [
-  {
-    id: "chap-001",
-    title: "Chapter 1: Chào hỏi & Giới thiệu bản thân",
-    orderIndex: 1,
-    levelId: "a1b2c3d4-0001-0000-0000-000000000001", // Thuộc Level A1
-  },
-  {
-    id: "chap-002",
-    title: "Chapter 2: Mua sắm & Hỏi giá",
-    orderIndex: 2,
-    levelId: "a1b2c3d4-0001-0000-0000-000000000001", // Thuộc Level A1
-  },
-];
+interface PagedResultDto<T> {
+  items: T[];
+  totalCount: number;
+}
+
+interface GetChaptersParams {
+  skipCount?: number;
+  maxResultCount?: number;
+}
 
 export const chapterService = {
-  // GET /api/app/chapter?levelId=...
-  getByLevelId: async (levelId: string): Promise<ChapterDto[]> => {
-    await new Promise((res) => setTimeout(res, 300));
-    return mockChapters
-      .filter((chap) => chap.levelId === levelId)
-      .sort((a, b) => a.orderIndex - b.orderIndex); // Sắp xếp theo orderIndex
+  // getByLevelId: async (levelId: string): Promise<ChapterDto[]> => {
+  //   const result = await apiClient<PagedResultDto<ChapterDto>>(
+  //     `/api/app/chapter/by-level-paged/${levelId}?skipCount=0&maxResultCount=1000`,
+  //   );
+  //   return (result.items ?? []).sort((a, b) => a.orderIndex - b.orderIndex);
+  // },
+
+  getByLevelIdPaged: async (
+    levelId: string,
+    params: GetChaptersParams = {},
+  ): Promise<{ items: ChapterDto[]; totalCount: number }> => {
+    const skipCount = params.skipCount ?? 0;
+    const maxResultCount = params.maxResultCount ?? 10;
+
+    const result = await apiClient<PagedResultDto<ChapterDto>>(
+      `/api/app/chapter/by-level-paged/${levelId}?skipCount=${skipCount}&maxResultCount=${maxResultCount}`,
+    );
+
+    const items = (result.items ?? []).sort(
+      (a, b) => a.orderIndex - b.orderIndex,
+    );
+
+    return {
+      items,
+      totalCount: result.totalCount ?? items.length,
+    };
   },
 
   // POST /api/app/chapter
   create: async (input: CreateUpdateChapterDto): Promise<ChapterDto> => {
-    await new Promise((res) => setTimeout(res, 300));
-    const newChap: ChapterDto = {
-      id: crypto.randomUUID(),
-      ...input,
-    };
-    mockChapters.push(newChap);
-    return newChap;
+    return apiClient<ChapterDto>("/api/app/chapter", {
+      method: "POST",
+      body: JSON.stringify(input),
+    });
   },
 
   // PUT /api/app/chapter/{id}
@@ -46,17 +58,18 @@ export const chapterService = {
     id: string,
     input: CreateUpdateChapterDto,
   ): Promise<ChapterDto> => {
-    await new Promise((res) => setTimeout(res, 300));
-    const index = mockChapters.findIndex((item) => item.id === id);
-    if (index !== -1) {
-      mockChapters[index] = { id, ...input };
-    }
-    return { id, ...input };
+    return apiClient<ChapterDto>(`/api/app/chapter/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(input),
+    });
   },
 
   // DELETE /api/app/chapter/{id}
   delete: async (id: string): Promise<void> => {
-    await new Promise((res) => setTimeout(res, 300));
-    mockChapters = mockChapters.filter((item) => item.id !== id);
+    await apiClient<void>(`/api/app/chapter/${id}`, {
+      method: "DELETE",
+    });
   },
 };
+
+export default chapterService;

@@ -88,10 +88,18 @@ export function useLessonFlow(lessonId: string) {
 
     const load = async () => {
       try {
-        const data = await lessonService.getLessonById(lessonId);
+        const [lessonData, grammarNote] = await Promise.all([
+          lessonService.getLessonById(lessonId),
+          lessonService.getGrammarNoteByLesson(lessonId),
+        ]);
+
         if (!isMounted) return;
-        setLesson(data);
-        setHearts(data.totalHearts);
+
+        setLesson({
+          ...lessonData,
+          grammarNote,
+        });
+        setHearts(lessonData.totalHearts);
         setSelectedPart(null);
         setCompletedParts(defaultCompletedParts);
         setCurrentIndex(0);

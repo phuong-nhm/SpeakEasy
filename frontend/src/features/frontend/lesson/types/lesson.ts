@@ -6,6 +6,28 @@ export enum ExerciseType {
   ListenChoose = "ListenChoose",
 }
 
+export enum GrammarFormType {
+  Affirmative = 0,
+  Negative = 1,
+  Question = 2,
+}
+
+export interface GrammarStructureItemDto {
+  id: string;
+  formType: GrammarFormType;
+  formula: string;
+  example: string;
+  orderIndex: number;
+}
+
+export interface GrammarNoteDto {
+  id: string;
+  lessonId: string;
+  title: string;
+  usageNote?: string;
+  structures: GrammarStructureItemDto[];
+}
+
 export type ListeningOptionKey = "A" | "B" | "C" | "D";
 
 export interface AiFeedbackDto {
@@ -113,6 +135,7 @@ export interface LessonDto {
   questions: LessonQuestion[];
   vocabulary: VocabularyDto[];
   grammarTopic?: string; // Chủ điểm ngữ pháp, hiển thị đầu Part 2
+  grammarNote?: GrammarNoteDto | null;
 }
 
 export interface LessonSubmitRequest {

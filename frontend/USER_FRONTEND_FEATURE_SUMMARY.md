@@ -250,6 +250,28 @@
   - `vocabulary` dùng cho bộ từ vựng và ôn ngầm
   - `matching-game` dùng cho game ghép từ ở cuối lesson
 
+### 3.7 Grammar reference card và CMS grammar note
+
+- Client-side: `GrammarReferenceCard` được chèn trực tiếp vào Part 2 Grammar bên trong `LessonScreen.tsx`, ngay dưới banner `Hôm nay học`.
+- Luồng dữ liệu:
+  - `useLessonFlow()` gọi `Promise.all([getLessonById(), getGrammarNoteByLesson()])`
+  - `lessonService.getGrammarNoteByLesson(lessonId)` theo pattern `USE_MOCK` có sẵn, mock trả về `GrammarNoteDto | null` với đúng shape backend chuẩn:
+    - `id`, `lessonId`, `title`, `usageNote?`, `structures[]`
+    - `structures[].formType` dùng enum `GrammarFormType` với `0 = Affirmative`, `1 = Negative`, `2 = Question`
+  - Với `lesson-1`: trả về mock grammar note có đủ 3 formType; với `lesson-2`: trả về `null` để test trường hợp chưa soạn Grammar Note.
+- UI behavior:
+  - nếu `grammarNote` là `null` => không render gì cả
+  - nếu có dữ liệu => hiển thị card rút gọn và expand vào 3 khối Khẳng định / Phủ định / Nghi vấn theo `orderIndex`
+  - trạng thái mở/đóng nằm trong component, không global state
+- Backend contract chuẩn:
+  - `GET /api/app/grammar-note/get-by-lesson?lessonId=`
+  - response shape: `{ id, lessonId, title, usageNote?, structures: [{ id, formType, formula, example, orderIndex }] }`
+  - `null` có nghĩa lesson chưa có Grammar Note
+- Admin CMS side:
+  - đã tạo module quản lý Grammar Note với route `/admin/grammar-notes`
+  - gồm route, type, mock, service, hook, 4 components tách riêng, và sidebar entry `Quản lý Grammar Note`
+  - mock-first theo đúng pattern `lessons/chapters` và không đụng module khác
+
 ---
 
 ## 4. Mock service mapping gợi ý cho tương lai

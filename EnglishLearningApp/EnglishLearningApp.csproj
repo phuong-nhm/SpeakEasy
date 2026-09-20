@@ -104,7 +104,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Dtos\Contents\" />
     <Folder Include="Dtos\Progresses\" />
     <Folder Include="Dtos\Writings\" />
     <Folder Include="Services\Writings\" />

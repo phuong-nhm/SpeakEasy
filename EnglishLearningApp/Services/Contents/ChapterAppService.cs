@@ -8,6 +8,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Volo.Abp.Application.Dtos;
 using Volo.Abp.Domain.Repositories;
 
 namespace EnglishLearningApp.AppServices.Contents
@@ -30,6 +31,24 @@ namespace EnglishLearningApp.AppServices.Contents
 
             var chapters = await AsyncExecuter.ToListAsync(query);
             return ObjectMapper.Map<List<Chapter>, List<ChapterDto>>(chapters);
+        }
+        [AllowAnonymous]
+        public async Task<PagedResultDto<ChapterDto>> GetListByLevelPagedAsync(Guid levelId, PagedAndSortedResultRequestDto input)
+        {
+            var queryable = await _chapterRepo.GetQueryableAsync();
+            var query = queryable
+                .Where(x => x.LevelId == levelId)
+                .OrderBy(x => x.OrderIndex);
+
+            var totalCount = await AsyncExecuter.CountAsync(query);
+
+            var chapters = await AsyncExecuter.ToListAsync(
+                query.Skip(input.SkipCount).Take(input.MaxResultCount)
+            );
+
+            var items = ObjectMapper.Map<List<Chapter>, List<ChapterDto>>(chapters);
+
+            return new PagedResultDto<ChapterDto>(totalCount, items);
         }
         [AllowAnonymous]
         public async Task<ChapterDto> GetAsync(Guid id)

@@ -37,6 +37,18 @@ public class EnglishLearningAppAutoMapperProfile : Profile
                         .ForMember(dest => dest.ListenOptions, opt => opt.Ignore());
         CreateMap<CreateUpdateSentenceExerciseDto, SentenceExercise>();
 
+        // ===== NHÓM: NGỮ PHÁP (Grammar Note) =====
+
+        // GrammarNote: Structures được query + gán tay trong AppService (BuildDtoAsync),
+        // nên bỏ qua khi map tự động để không lỡ ghi đè
+        CreateMap<GrammarNote, GrammarNoteDto>()
+            .ForMember(dest => dest.Structures, opt => opt.Ignore());
+        CreateMap<CreateUpdateGrammarNoteDto, GrammarNote>();
+
+        // GrammarStructureItem
+        CreateMap<GrammarStructureItem, GrammarStructureItemDto>();
+        CreateMap<CreateUpdateGrammarStructureItemDto, GrammarStructureItem>();
+
         // ===== NHÓM 2: VIẾT AI CHẤM ĐIỂM (Writing) =====
 
         CreateMap<WritingTopic, WritingTopicDto>();

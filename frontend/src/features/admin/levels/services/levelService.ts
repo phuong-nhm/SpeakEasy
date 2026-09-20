@@ -1,56 +1,58 @@
+import { apiClient } from "@/lib/apiClient";
 import {
   LevelDto,
   CreateUpdateLevelDto,
 } from "@/features/admin/levels/types/level";
 
-let mockLevels: LevelDto[] = [
-  {
-    id: "a1b2c3d4-0001-0000-0000-000000000001",
-    name: "Level A1 - Sơ cấp",
-    description:
-      "Dành cho người mới bắt đầu, làm quen với từ vựng và câu cơ bản.",
-  },
-  {
-    id: "a1b2c3d4-0001-0000-0000-000000000002",
-    name: "Level B1 - Trung cấp",
-    description:
-      "Nâng cao khả năng giao tiếp, ngữ pháp phức hợp và viết đoạn văn AI.",
-  },
-];
+interface PagedResultDto<T> {
+  items?: T[];
+  totalCount?: number;
+}
+
+const normalizeListResult = <T>(
+  response: PagedResultDto<T> | T[] | null | undefined,
+): T[] => {
+  if (Array.isArray(response)) {
+    return response;
+  }
+
+  if (!response) {
+    return [];
+  }
+
+  return Array.isArray(response.items) ? response.items : [];
+};
 
 export const levelService = {
   getList: async (): Promise<LevelDto[]> => {
-    await new Promise((res) => setTimeout(res, 400));
-    return [...mockLevels];
+    // CrudAppService mặc định phân trang, truyền maxResultCount lớn để lấy hết
+    const result = await apiClient<PagedResultDto<LevelDto> | LevelDto[]>(
+      "/api/app/level?maxResultCount=1000",
+    );
+    return normalizeListResult(result);
   },
 
   create: async (input: CreateUpdateLevelDto): Promise<LevelDto> => {
-    await new Promise((res) => setTimeout(res, 400));
-    const newLevel: LevelDto = {
-      id:
-        typeof crypto !== "undefined" && crypto.randomUUID
-          ? crypto.randomUUID()
-          : `mock-guid-${Date.now()}`,
-      ...input,
-    };
-    mockLevels.unshift(newLevel);
-    return newLevel;
+    return apiClient<LevelDto>("/api/app/level", {
+      method: "POST",
+      body: JSON.stringify(input),
+    });
   },
 
   update: async (
     id: string,
     input: CreateUpdateLevelDto,
   ): Promise<LevelDto> => {
-    await new Promise((res) => setTimeout(res, 400));
-    mockLevels = mockLevels.map((item) =>
-      item.id === id ? { ...item, ...input } : item,
-    );
-    return { id, ...input };
+    return apiClient<LevelDto>(`/api/app/level/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(input),
+    });
   },
 
   delete: async (id: string): Promise<void> => {
-    await new Promise((res) => setTimeout(res, 400));
-    mockLevels = mockLevels.filter((item) => item.id !== id);
+    await apiClient<void>(`/api/app/level/${id}`, {
+      method: "DELETE",
+    });
   },
 };
 
