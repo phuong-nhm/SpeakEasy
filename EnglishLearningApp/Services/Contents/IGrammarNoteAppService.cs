@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using EnglishLearningApp.Dtos.Contents;
+using Volo.Abp.Application.Dtos;
 using Volo.Abp.Application.Services;
 
 namespace EnglishLearningApp.Services.Contents
@@ -12,5 +13,7 @@ namespace EnglishLearningApp.Services.Contents
         Task<GrammarNoteDto> UpdateAsync(Guid id, CreateUpdateGrammarNoteDto input);
         Task<GrammarNoteDto> GetByLessonAsync(Guid lessonId);
         Task DeleteAsync(Guid id);
+        Task<List<GrammarNoteDto>> CreateManyAsync(List<CreateUpdateGrammarNoteDto> inputs);
+        Task<PagedResultDto<GrammarNoteDto>> GetListAsync(PagedAndSortedResultRequestDto input);
     }
 }

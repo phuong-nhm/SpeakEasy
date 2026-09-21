@@ -28,7 +28,8 @@
         "FileTooLarge": "File vượt quá dung lượng cho phép (5MB).",
         "UnsupportedFileExtension": "Định dạng file '{0}' không được hỗ trợ.",
         "ImportListCannotBeEmpty": "Danh sách import không được để trống.",
-        "Permission:StudentWritings": "Bài viết học viên",
-        "Permission:View": "Xem"
+        "DuplicateLessonIdInGrammarNote": "Danh sách chứa LessonId trùng nhau, mỗi Lesson chỉ được 1 GrammarNote.",
+        "GrammarNoteAlreadyExistsForLesson": "Lesson '{0}' đã có GrammarNote trong hệ thống.",
+        "MissingFormulaForGrammarFormType": "GrammarNote Lesson '{0}' thiếu Formula cho FormType '{1}'."
     }
 }

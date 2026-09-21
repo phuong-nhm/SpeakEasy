@@ -28,6 +28,9 @@
         "FileTooLarge": "The file exceeds the allowed size limit (5MB).",
         "UnsupportedFileExtension": "The file format '{0}' is not supported.",
         "ImportListCannotBeEmpty": "The import list cannot be empty.",
+        "DuplicateLessonIdInGrammarNote": "The list contains duplicate LessonIds. Each Lesson can only have one GrammarNote.",
+        "GrammarNoteAlreadyExistsForLesson": "Lesson '{0}' already has a GrammarNote in the system.",
+        "MissingFormulaForGrammarFormType": "GrammarNote for Lesson '{0}' is missing Formula for FormType '{1}'.",
         "Permission:StudentWritings": "Student Writings",
         "Permission:View": "View"
     }

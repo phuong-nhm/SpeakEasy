@@ -1,0 +1,33 @@
+﻿# IDE & System
+**/.vs
+**/.vscode
+**/.classpath
+**/.project
+**/.settings
+**/.toolstarget
+**/*.*proj.user
+
+# Git & Docker
+**/.git
+**/.gitignore
+**/.dockerignore
+**/Dockerfile*
+**/docker-compose*
+
+# Binaries & Logs
+**/bin
+**/obj
+**/node_modules
+**/npm-debug.log
+**/charts
+
+# Environment & Secrets (Bảo mật)
+**/.env
+**/Secrets
+**/appsettings.Development.json
+
+# Exclude Frontend khỏi build context của Backend
+frontend/
+
+# Docs
+*.md
