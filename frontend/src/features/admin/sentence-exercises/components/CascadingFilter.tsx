@@ -14,6 +14,8 @@ interface CascadingFilterProps {
   lessons: FilterOption[];
   selectedLessonId: string;
   onLessonChange: (lessonId: string) => void;
+  disableChapterSelect?: boolean;
+  disableLessonSelect?: boolean;
 }
 
 export function CascadingFilter({
@@ -26,6 +28,8 @@ export function CascadingFilter({
   lessons,
   selectedLessonId,
   onLessonChange,
+  disableChapterSelect = false,
+  disableLessonSelect = false,
 }: CascadingFilterProps) {
   return (
     <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
@@ -56,7 +60,7 @@ export function CascadingFilter({
           <select
             value={selectedChapterId}
             onChange={(e) => onChapterChange(e.target.value)}
-            disabled={chapters.length === 0}
+            disabled={chapters.length === 0 || disableChapterSelect}
             className="w-full rounded-lg border border-slate-300 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-700 focus:border-indigo-500 focus:bg-white focus:outline-none disabled:opacity-50"
           >
             {chapters.map((ch) => (
@@ -75,7 +79,7 @@ export function CascadingFilter({
           <select
             value={selectedLessonId}
             onChange={(e) => onLessonChange(e.target.value)}
-            disabled={lessons.length === 0}
+            disabled={lessons.length === 0 || disableLessonSelect}
             className="w-full rounded-lg border border-slate-300 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-700 focus:border-indigo-500 focus:bg-white focus:outline-none disabled:opacity-50"
           >
             {lessons.map((les) => (

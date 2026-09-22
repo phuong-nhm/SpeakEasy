@@ -2,126 +2,118 @@ import {
   CreateUpdateGrammarNoteDto,
   GrammarNoteDto,
 } from "@/features/admin/grammar-notes/types/grammar-note";
-import { mockGrammarNotes } from "@/features/admin/grammar-notes/mock/mockGrammarNoteData";
+import { apiClient } from "@/lib/apiClient";
 
-const USE_MOCK = true;
-
-let mockData: GrammarNoteDto[] = [...mockGrammarNotes];
+interface PagedResultDto<T> {
+  items: T[];
+  totalCount: number;
+}
 
 export const grammarNoteService = {
-  getByLessonId: async (lessonId: string): Promise<GrammarNoteDto[]> => {
-    await new Promise((resolve) => setTimeout(resolve, 300));
-
-    if (!USE_MOCK) {
-      return [];
+  getByChapterId: async (chapterId: string): Promise<GrammarNoteDto[]> => {
+    try {
+      return await apiClient<GrammarNoteDto[]>(
+        `/api/app/grammar-note/by-chapter/${chapterId}`,
+      );
+    } catch {
+      return apiClient<GrammarNoteDto[]>(
+        `/api/app/grammar-note/get-list-by-chapter?chapterId=${encodeURIComponent(chapterId)}`,
+      );
     }
-
-    return mockData
-      .filter((note) => note.lessonId === lessonId)
-      .sort((a, b) => a.title.localeCompare(b.title));
   },
 
-  getList: async (): Promise<GrammarNoteDto[]> => {
-    await new Promise((resolve) => setTimeout(resolve, 300));
+  getByLevelIdPaged: async (
+    levelId: string,
+    skipCount = 0,
+    maxResultCount = 10,
+    sorting?: string,
+  ): Promise<PagedResultDto<GrammarNoteDto>> => {
+    const params = new URLSearchParams({
+      SkipCount: String(skipCount),
+      MaxResultCount: String(maxResultCount),
+    });
 
-    if (!USE_MOCK) {
-      return [];
+    if (sorting?.trim()) {
+      params.set("Sorting", sorting.trim());
     }
 
-    return [...mockData].sort((a, b) => a.title.localeCompare(b.title));
+    try {
+      return await apiClient<PagedResultDto<GrammarNoteDto>>(
+        `/api/app/grammar-note/by-level-paged/${levelId}?${params.toString()}`,
+      );
+    } catch {
+      return apiClient<PagedResultDto<GrammarNoteDto>>(
+        `/api/app/grammar-note/get-list-by-level-paged?levelId=${encodeURIComponent(levelId)}&${params.toString()}`,
+      );
+    }
+  },
+
+  getByLessonId: async (lessonId: string): Promise<GrammarNoteDto | null> => {
+    try {
+      return await apiClient<GrammarNoteDto>(
+        `/api/app/grammar-note/by-lesson/${lessonId}`,
+      );
+    } catch {
+      try {
+        return await apiClient<GrammarNoteDto>(
+          `/api/app/grammar-note/by-lesson/${lessonId}`,
+        );
+      } catch {
+        return null;
+      }
+    }
+  },
+
+  getList: async (
+    skipCount = 0,
+    maxResultCount = 10,
+    sorting?: string,
+  ): Promise<PagedResultDto<GrammarNoteDto>> => {
+    const params = new URLSearchParams({
+      SkipCount: String(skipCount),
+      MaxResultCount: String(maxResultCount),
+    });
+
+    if (sorting?.trim()) {
+      params.set("Sorting", sorting.trim());
+    }
+
+    return apiClient<PagedResultDto<GrammarNoteDto>>(
+      `/api/app/grammar-note?${params.toString()}`,
+    );
   },
 
   create: async (
     input: CreateUpdateGrammarNoteDto,
   ): Promise<GrammarNoteDto> => {
-    await new Promise((resolve) => setTimeout(resolve, 300));
-
-    if (!USE_MOCK) {
-      throw new Error("Mock mode is disabled for grammar note service.");
-    }
-
-    const normalizedStructures = (input.structures ?? []).map(
-      (item, index) => ({
-        ...item,
-        id:
-          item.id ??
-          (typeof crypto !== "undefined" && crypto.randomUUID
-            ? crypto.randomUUID()
-            : `gs-${Date.now()}-${index}`),
-        orderIndex: index + 1,
-      }),
-    );
-
-    const duplicate = mockData.find((note) => note.lessonId === input.lessonId);
-    if (duplicate) {
-      const updated = {
-        ...duplicate,
-        title: input.title,
-        usageNote: input.usageNote?.trim() || undefined,
-        structures: normalizedStructures,
-      };
-      mockData = mockData.map((note) =>
-        note.id === duplicate.id ? updated : note,
-      );
-      return updated;
-    }
-
-    const newItem: GrammarNoteDto = {
-      id:
-        typeof crypto !== "undefined" && crypto.randomUUID
-          ? crypto.randomUUID()
-          : `gn-${Date.now()}`,
-      lessonId: input.lessonId,
-      title: input.title,
-      usageNote: input.usageNote?.trim() || undefined,
-      structures: normalizedStructures,
-    };
-
-    mockData.push(newItem);
-    return newItem;
+    return apiClient<GrammarNoteDto>("/api/app/grammar-note", {
+      method: "POST",
+      body: JSON.stringify(input),
+    });
   },
 
   update: async (
     id: string,
     input: CreateUpdateGrammarNoteDto,
   ): Promise<GrammarNoteDto> => {
-    await new Promise((resolve) => setTimeout(resolve, 300));
+    return apiClient<GrammarNoteDto>(`/api/app/grammar-note/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(input),
+    });
+  },
 
-    if (!USE_MOCK) {
-      throw new Error("Mock mode is disabled for grammar note service.");
-    }
-
-    const normalizedStructures = (input.structures ?? []).map(
-      (item, index) => ({
-        ...item,
-        id:
-          item.id ??
-          (typeof crypto !== "undefined" && crypto.randomUUID
-            ? crypto.randomUUID()
-            : `gs-${Date.now()}-${index}`),
-        orderIndex: index + 1,
-      }),
-    );
-
-    const updated: GrammarNoteDto = {
-      id,
-      lessonId: input.lessonId,
-      title: input.title,
-      usageNote: input.usageNote?.trim() || undefined,
-      structures: normalizedStructures,
-    };
-
-    mockData = mockData.map((note) => (note.id === id ? updated : note));
-    return updated;
+  createMany: async (
+    inputs: CreateUpdateGrammarNoteDto[],
+  ): Promise<GrammarNoteDto[]> => {
+    return apiClient<GrammarNoteDto[]>("/api/app/grammar-note/many", {
+      method: "POST",
+      body: JSON.stringify(inputs),
+    });
   },
 
   delete: async (id: string): Promise<void> => {
-    await new Promise((resolve) => setTimeout(resolve, 300));
-
-    if (!USE_MOCK) {
-      return;
-    }
-
-    mockData = mockData.filter((note) => note.id !== id);
+    await apiClient<void>(`/api/app/grammar-note/${id}`, {
+      method: "DELETE",
+    });
   },
 };

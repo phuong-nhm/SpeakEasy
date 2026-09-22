@@ -54,6 +54,7 @@ export function LessonModal({
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
+              autoFocus
               className="w-full rounded-lg border border-slate-300 bg-slate-50 px-3 py-2 text-sm text-slate-700 transition-colors placeholder:text-slate-400 focus:border-indigo-500 focus:bg-white focus:outline-none"
               required
             />

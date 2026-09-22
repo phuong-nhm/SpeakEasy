@@ -26,9 +26,9 @@ export function VocabularyHeader({
         <button
           onClick={onOpenImportModal}
           disabled={!selectedLessonId}
-          className="px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700 disabled:opacity-50 transition-colors"
+          className="inline-flex items-center justify-center rounded-lg border border-emerald-600 bg-emerald-50 px-4 py-2 text-sm font-medium text-emerald-700 shadow-sm hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-50"
         >
-          📥 Import Hàng Loạt
+          Import Hàng Loạt
         </button>
         <button
           onClick={onOpenCreateModal}

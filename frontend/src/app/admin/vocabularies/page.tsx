@@ -3,13 +3,19 @@
 import { useState } from "react";
 import { useAdminVocabularies } from "@/features/admin/vocabularies/hooks/useAdminVocabularies";
 import { VocabularyHeader } from "@/features/admin/vocabularies/components/VocabularyHeader";
-import { LessonFilter } from "@/features/admin/vocabularies/components/LessonFilter";
 import { VocabularyTable } from "@/features/admin/vocabularies/components/VocabularyTable";
 import { VocabularyFormModal } from "@/features/admin/vocabularies/components/VocabularyFormModal";
 import { VocabularyImportModal } from "@/features/admin/vocabularies/components/VocabularyImportModal";
+import { CascadingFilter } from "@/features/admin/sentence-exercises/components/CascadingFilter";
 
 export default function AdminVocabularyPage() {
   const {
+    levels,
+    selectedLevelId,
+    handleLevelChange,
+    chapters,
+    selectedChapterId,
+    handleChapterChange,
     lessons,
     selectedLessonId,
     vocabularies,
@@ -73,7 +79,13 @@ export default function AdminVocabularyPage() {
       />
 
       {/* Dropdown Lọc theo Lesson */}
-      <LessonFilter
+      <CascadingFilter
+        levels={levels}
+        selectedLevelId={selectedLevelId}
+        onLevelChange={handleLevelChange}
+        chapters={chapters}
+        selectedChapterId={selectedChapterId}
+        onChapterChange={handleChapterChange}
         lessons={lessons}
         selectedLessonId={selectedLessonId}
         onLessonChange={handleLessonChange}

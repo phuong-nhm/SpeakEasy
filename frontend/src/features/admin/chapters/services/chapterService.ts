@@ -17,12 +17,12 @@ interface GetChaptersParams {
 }
 
 export const chapterService = {
-  // getByLevelId: async (levelId: string): Promise<ChapterDto[]> => {
-  //   const result = await apiClient<PagedResultDto<ChapterDto>>(
-  //     `/api/app/chapter/by-level-paged/${levelId}?skipCount=0&maxResultCount=1000`,
-  //   );
-  //   return (result.items ?? []).sort((a, b) => a.orderIndex - b.orderIndex);
-  // },
+  getByLevelId: async (levelId: string): Promise<ChapterDto[]> => {
+    const result = await apiClient<ChapterDto[]>(
+      `/api/app/chapter/by-level/${levelId}`,
+    );
+    return [...result].sort((a, b) => a.orderIndex - b.orderIndex);
+  },
 
   getByLevelIdPaged: async (
     levelId: string,

@@ -25,7 +25,7 @@
 **/.env
 **/Secrets
 **/appsettings.Development.json
-
+**/appsettings.secrets.json
 # Exclude Frontend khỏi build context của Backend
 frontend/
 

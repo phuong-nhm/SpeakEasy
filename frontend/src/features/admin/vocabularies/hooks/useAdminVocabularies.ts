@@ -6,26 +6,31 @@ import {
   CreateUpdateVocabularyDto,
   WordType,
 } from "@/features/admin/vocabularies/types/vocabulary";
-import { LessonDto } from "@/features/admin/lessons/types/lesson";
+import { levelService } from "@/features/admin/levels/services/levelService";
+import { chapterService } from "@/features/admin/chapters/services/chapterService";
 import { lessonService } from "@/features/admin/lessons/services/lessonService";
 import { vocabularyService } from "@/features/admin/vocabularies/services/vocabularyService";
+import { FilterOption } from "@/features/admin/sentence-exercises/types/sentence-exercise";
 
 export function useAdminVocabularies() {
-  const [lessons, setLessons] = useState<LessonDto[]>([]);
+  const [levels, setLevels] = useState<FilterOption[]>([]);
+  const [selectedLevelId, setSelectedLevelId] = useState<string>("");
+
+  const [chapters, setChapters] = useState<FilterOption[]>([]);
+  const [selectedChapterId, setSelectedChapterId] = useState<string>("");
+
+  const [lessons, setLessons] = useState<FilterOption[]>([]);
   const [selectedLessonId, setSelectedLessonId] = useState<string>("");
 
   const [vocabularies, setVocabularies] = useState<VocabularyDto[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
-  // Modal Thêm / Sửa đơn lẻ
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const [editingVocabulary, setEditingVocabulary] =
     useState<VocabularyDto | null>(null);
 
-  // Modal Import Hàng Loạt
   const [isImportModalOpen, setIsImportModalOpen] = useState<boolean>(false);
 
-  // States chuẩn theo CreateUpdateVocabularyDto
   const [word, setWord] = useState<string>("");
   const [meaning, setMeaning] = useState<string>("");
   const [imageUrl, setImageUrl] = useState<string>("");
@@ -34,73 +39,137 @@ export function useAdminVocabularies() {
   const [wordType, setWordType] = useState<WordType>(WordType.Noun);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
-  // 1. Fetch danh sách Lessons khi mount và tự chọn lesson đầu tiên
-  useEffect(() => {
-    let isMounted = true;
+  const loadVocabularies = useCallback(async (lessonId: string) => {
+    if (!lessonId) {
+      setVocabularies([]);
+      return;
+    }
 
-    const fetchLessons = async () => {
+    try {
+      setIsLoading(true);
+      const data = await vocabularyService.getByLessonId(lessonId);
+      setVocabularies(data);
+    } catch (err) {
+      console.error("Lỗi khi tải danh sách vocabulary:", err);
+      setVocabularies([]);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  const loadLessons = useCallback(
+    async (chapterId: string) => {
+      if (!chapterId) {
+        setLessons([]);
+        setSelectedLessonId("");
+        setVocabularies([]);
+        return;
+      }
+
       try {
-        setIsLoading(true);
-        const data = await lessonService.getList();
+        const data = await lessonService.getByChapterId(chapterId);
+        const options = data.map((item) => ({
+          id: item.id,
+          title: item.title,
+        }));
 
-        if (isMounted) {
-          setLessons(data);
-          if (data.length > 0) {
-            setSelectedLessonId(data[0].id);
-          }
-        }
+        setLessons(options);
+
+        const firstLessonId = options[0]?.id || "";
+        setSelectedLessonId(firstLessonId);
+        await loadVocabularies(firstLessonId);
       } catch (err) {
         console.error("Lỗi khi tải danh sách lesson:", err);
-      } finally {
-        if (isMounted) {
-          setIsLoading(false);
-        }
       }
-    };
+    },
+    [loadVocabularies],
+  );
 
-    fetchLessons();
+  const loadChapters = useCallback(
+    async (levelId: string) => {
+      if (!levelId) {
+        setChapters([]);
+        setSelectedChapterId("");
+        setLessons([]);
+        setSelectedLessonId("");
+        setVocabularies([]);
+        return;
+      }
 
-    return () => {
-      isMounted = false;
-    };
-  }, []);
+      try {
+        const data = await chapterService.getByLevelId(levelId);
+        const options = data.map((item) => ({
+          id: item.id,
+          title: item.title,
+        }));
 
-  // 2. Fetch Vocabularies mỗi khi selectedLessonId thay đổi
+        setChapters(options);
+
+        const firstChapterId = options[0]?.id || "";
+        setSelectedChapterId(firstChapterId);
+        await loadLessons(firstChapterId);
+      } catch (err) {
+        console.error("Lỗi khi tải danh sách chapter:", err);
+      }
+    },
+    [loadLessons],
+  );
+
   useEffect(() => {
     let isMounted = true;
 
-    const fetchVocabularies = async () => {
-      if (!selectedLessonId) return;
-
+    const initData = async () => {
       try {
-        setIsLoading(true);
-        const data = await vocabularyService.getByLessonId(selectedLessonId);
+        const data = await levelService.getList();
+        const options = data.map((item) => ({ id: item.id, title: item.name }));
 
-        if (isMounted) {
-          setVocabularies(data);
+        if (!isMounted) {
+          return;
+        }
+
+        setLevels(options);
+
+        if (options.length > 0) {
+          const firstLevelId = options[0].id;
+          setSelectedLevelId(firstLevelId);
+          await loadChapters(firstLevelId);
         }
       } catch (err) {
-        console.error("Lỗi khi tải danh sách vocabulary:", err);
-      } finally {
-        if (isMounted) {
-          setIsLoading(false);
-        }
+        console.error("Lỗi khi tải danh sách level:", err);
       }
     };
 
-    fetchVocabularies();
+    initData();
 
     return () => {
       isMounted = false;
     };
-  }, [selectedLessonId]);
+  }, [loadChapters]);
 
-  // Handle thay đổi Lesson được chọn
-  const handleLessonChange = useCallback((lessonId: string) => {
-    setSelectedLessonId(lessonId);
-  }, []);
+  const handleLevelChange = useCallback(
+    async (levelId: string) => {
+      setSelectedLevelId(levelId);
+      await loadChapters(levelId);
+    },
+    [loadChapters],
+  );
 
-  // Single Modal Handlers
+  const handleChapterChange = useCallback(
+    async (chapterId: string) => {
+      setSelectedChapterId(chapterId);
+      await loadLessons(chapterId);
+    },
+    [loadLessons],
+  );
+
+  const handleLessonChange = useCallback(
+    async (lessonId: string) => {
+      setSelectedLessonId(lessonId);
+      await loadVocabularies(lessonId);
+    },
+    [loadVocabularies],
+  );
+
   const openCreateModal = useCallback(() => {
     setEditingVocabulary(null);
     setWord("");
@@ -108,7 +177,7 @@ export function useAdminVocabularies() {
     setImageUrl("");
     setAudioUrl("");
     setDistractor("");
-    setWordType(WordType.Noun); // Mặc định là Danh từ
+    setWordType(WordType.Noun);
     setIsModalOpen(true);
   }, []);
 
@@ -128,7 +197,6 @@ export function useAdminVocabularies() {
     setEditingVocabulary(null);
   }, []);
 
-  // Import Modal Handlers
   const openImportModal = useCallback(() => {
     setIsImportModalOpen(true);
   }, []);
@@ -137,7 +205,6 @@ export function useAdminVocabularies() {
     setIsImportModalOpen(false);
   }, []);
 
-  // Single Submit Handler (Create / Update)
   const handleSubmit = useCallback(
     async (e: React.FormEvent) => {
       e.preventDefault();
@@ -165,11 +232,7 @@ export function useAdminVocabularies() {
         }
 
         setIsModalOpen(false);
-
-        // Refetch lại danh sách
-        const updatedVocabs =
-          await vocabularyService.getByLessonId(selectedLessonId);
-        setVocabularies(updatedVocabs);
+        await loadVocabularies(selectedLessonId);
       } catch (err) {
         console.error("Lỗi khi lưu từ vựng:", err);
       } finally {
@@ -177,18 +240,18 @@ export function useAdminVocabularies() {
       }
     },
     [
-      word,
-      meaning,
-      imageUrl,
       audioUrl,
       distractor,
-      wordType,
-      selectedLessonId,
       editingVocabulary,
+      imageUrl,
+      loadVocabularies,
+      meaning,
+      selectedLessonId,
+      word,
+      wordType,
     ],
   );
 
-  // Bulk Create Handler (Import Hàng Loạt)
   const handleImportMany = useCallback(
     async (
       rawItems: Omit<CreateUpdateVocabularyDto, "lessonId">[],
@@ -204,22 +267,31 @@ export function useAdminVocabularies() {
       setIsSubmitting(true);
 
       try {
-        // Tự động map lessonId và gán wordType mặc định nếu item thiếu
+        const invalidIndex = rawItems.findIndex(
+          (item) =>
+            !item ||
+            !item.word?.trim() ||
+            !item.meaning?.trim() ||
+            !item.distractor?.trim() ||
+            item.wordType == null,
+        );
+
+        if (invalidIndex >= 0) {
+          throw new Error(
+            `Phần tử thứ ${invalidIndex + 1} không hợp lệ: cần word, meaning, distractor, wordType.`,
+          );
+        }
+
         const payload: CreateUpdateVocabularyDto[] = rawItems.map((item) => ({
           ...item,
           wordType: item.wordType ?? WordType.Noun,
           lessonId: targetLessonId,
         }));
 
-        // Gọi service createMany
         await vocabularyService.createMany(payload);
 
         setIsImportModalOpen(false);
-
-        // Fetch lại danh sách từ vựng thuộc lesson đang chọn
-        const updatedVocabs =
-          await vocabularyService.getByLessonId(selectedLessonId);
-        setVocabularies(updatedVocabs);
+        await loadVocabularies(targetLessonId);
       } catch (err) {
         console.error("Lỗi khi import danh sách từ vựng:", err);
         throw err;
@@ -227,10 +299,9 @@ export function useAdminVocabularies() {
         setIsSubmitting(false);
       }
     },
-    [selectedLessonId],
+    [loadVocabularies, selectedLessonId],
   );
 
-  // Delete Handler
   const handleDelete = useCallback(
     async (id: string) => {
       if (!confirm("Bạn có chắc muốn xóa từ vựng này?")) return;
@@ -239,20 +310,25 @@ export function useAdminVocabularies() {
         await vocabularyService.delete(id);
 
         if (selectedLessonId) {
-          const updatedVocabs =
-            await vocabularyService.getByLessonId(selectedLessonId);
-          setVocabularies(updatedVocabs);
+          await loadVocabularies(selectedLessonId);
         }
       } catch (err) {
         console.error("Lỗi khi xóa từ vựng:", err);
       }
     },
-    [selectedLessonId],
+    [loadVocabularies, selectedLessonId],
   );
 
   return {
+    levels,
+    selectedLevelId,
+    handleLevelChange,
+    chapters,
+    selectedChapterId,
+    handleChapterChange,
     lessons,
     selectedLessonId,
+    handleLessonChange,
     vocabularies,
     isLoading,
     isModalOpen,
@@ -271,7 +347,6 @@ export function useAdminVocabularies() {
     wordType,
     setWordType,
     isSubmitting,
-    handleLessonChange,
     openCreateModal,
     openEditModal,
     closeModal,

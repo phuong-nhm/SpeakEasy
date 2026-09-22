@@ -3,64 +3,58 @@ import {
   CreateUpdateLessonDto,
   LessonType,
 } from "@/features/admin/lessons/types/lesson";
+import { VocabularyDto } from "@/features/admin/vocabularies/types/vocabulary";
+import { SentenceExerciseDto } from "@/features/admin/sentence-exercises/types/sentence-exercise";
+import { apiClient } from "@/lib/apiClient"; // đường dẫn tới apiClient của bạn
 
-let mockLessons: LessonDto[] = [
-  {
-    id: "les-001",
-    title: "Bài 1: Từ vựng đại từ xưng hô",
-    lessonType: LessonType.Vocabulary,
-    orderIndex: 1,
-    chapterId: "chap-001",
-  },
-  {
-    id: "les-002",
-    title: "Bài 2: Ngữ pháp động từ To Be",
-    lessonType: LessonType.Grammar,
-    orderIndex: 2,
-    chapterId: "chap-001",
-    grammarTopic: "To Be (am/is/are)",
-  },
-];
+// Nếu cần thêm interface cho LessonContentDto thì định nghĩa ở đây hoặc file types
+export interface LessonContentDto {
+  lesson: LessonDto;
+  vocabularies: VocabularyDto[]; // Thay bằng VocabularyDto chuẩn nếu có
+  sentences: SentenceExerciseDto[]; // Thay bằng SentenceExerciseDto chuẩn nếu có
+}
 
 export const lessonService = {
+  // Lấy danh sách bài học theo ChapterId
   getByChapterId: async (chapterId: string): Promise<LessonDto[]> => {
-    await new Promise((res) => setTimeout(res, 300));
-    return mockLessons
-      .filter((les) => les.chapterId === chapterId)
-      .sort((a, b) => a.orderIndex - b.orderIndex);
+    return apiClient<LessonDto[]>(`/api/app/lesson/by-chapter/${chapterId}`);
   },
 
-  getList: async (): Promise<LessonDto[]> => {
-    await new Promise((res) => setTimeout(res, 300));
-    return [...mockLessons].sort((a, b) => a.orderIndex - b.orderIndex);
+  // Lấy chi tiết một bài học kèm nội dung (Vocab, Sentences)
+  getLessonContent: async (lessonId: string): Promise<LessonContentDto> => {
+    return apiClient<LessonContentDto>(
+      `/api/app/lesson/lesson-content/${lessonId}`,
+    );
   },
 
+  // Lấy chi tiết một bài học theo ID
+  getById: async (id: string): Promise<LessonDto> => {
+    return apiClient<LessonDto>(`/api/app/lesson/${id}`);
+  },
+
+  // Tạo mới bài học
   create: async (input: CreateUpdateLessonDto): Promise<LessonDto> => {
-    await new Promise((res) => setTimeout(res, 300));
-    const newLes: LessonDto = {
-      id:
-        typeof crypto !== "undefined" && crypto.randomUUID
-          ? crypto.randomUUID()
-          : `les-${Date.now()}`,
-      ...input,
-    };
-    mockLessons.push(newLes);
-    return newLes;
+    return apiClient<LessonDto>("/api/app/lesson", {
+      method: "POST",
+      body: JSON.stringify(input),
+    });
   },
 
+  // Cập nhật bài học
   update: async (
     id: string,
     input: CreateUpdateLessonDto,
   ): Promise<LessonDto> => {
-    await new Promise((res) => setTimeout(res, 300));
-    mockLessons = mockLessons.map((item) =>
-      item.id === id ? { ...item, ...input } : item,
-    );
-    return { id, ...input };
+    return apiClient<LessonDto>(`/api/app/lesson/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(input),
+    });
   },
 
+  // Xoá bài học
   delete: async (id: string): Promise<void> => {
-    await new Promise((res) => setTimeout(res, 300));
-    mockLessons = mockLessons.filter((item) => item.id !== id);
+    return apiClient<void>(`/api/app/lesson/${id}`, {
+      method: "DELETE",
+    });
   },
 };

@@ -19,13 +19,19 @@ namespace EnglishLearningApp.Services.Contents
 
         private readonly IRepository<GrammarNote, Guid> _grammarNoteRepo;
         private readonly IRepository<GrammarStructureItem, Guid> _structureRepo;
+        private readonly IRepository<Lesson, Guid> _lessonRepo;
+        private readonly IRepository<Chapter, Guid> _chapterRepo;
 
         public GrammarNoteAppService(
             IRepository<GrammarNote, Guid> grammarNoteRepo,
-            IRepository<GrammarStructureItem, Guid> structureRepo)
+            IRepository<GrammarStructureItem, Guid> structureRepo,
+            IRepository<Lesson, Guid> lessonRepo,
+            IRepository<Chapter, Guid> chapterRepo)
         {
             _grammarNoteRepo = grammarNoteRepo;
             _structureRepo = structureRepo;
+            _lessonRepo = lessonRepo;
+            _chapterRepo = chapterRepo;
         }
 
         [Authorize(EnglishLearningAppPermissions.ContentManagement.Create)]
@@ -85,6 +91,110 @@ namespace EnglishLearningApp.Services.Contents
             return await BuildDtoAsync(grammarNote);
         }
 
+        [AllowAnonymous]
+        public async Task<List<GrammarNoteDto>> GetListByChapterAsync(Guid chapterId)
+        {
+            var lessonQueryable = await _lessonRepo.GetQueryableAsync();
+            var lessonIds = await AsyncExecuter.ToListAsync(
+                lessonQueryable
+                    .Where(x => x.ChapterId == chapterId)
+                    .Select(x => x.Id));
+
+            if (!lessonIds.Any())
+            {
+                return new List<GrammarNoteDto>();
+            }
+
+            var grammarNoteQueryable = await _grammarNoteRepo.GetQueryableAsync();
+            var grammarNotes = await AsyncExecuter.ToListAsync(
+                grammarNoteQueryable
+                    .Where(x => lessonIds.Contains(x.LessonId))
+                    .OrderBy(x => x.LessonId));
+
+            if (!grammarNotes.Any())
+            {
+                return new List<GrammarNoteDto>();
+            }
+
+            // 1. Query 1 LẦN duy nhất lấy tất cả Structure của các Note này
+            var noteIds = grammarNotes.Select(x => x.Id).ToList();
+            var structureQueryable = await _structureRepo.GetQueryableAsync();
+            var allStructures = await AsyncExecuter.ToListAsync(
+                structureQueryable.Where(x => noteIds.Contains(x.GrammarNoteId))
+            );
+
+            // 2. Map sang DTO và gán Structures trên RAM
+            var itemDtos = ObjectMapper.Map<List<GrammarNote>, List<GrammarNoteDto>>(grammarNotes);
+
+            foreach (var dto in itemDtos)
+            {
+                dto.Structures = allStructures
+                    .Where(s => s.GrammarNoteId == dto.Id)
+                    .Select(s => ObjectMapper.Map<GrammarStructureItem, GrammarStructureItemDto>(s))
+                    .ToList();
+            }
+
+            return itemDtos;
+        }
+        [AllowAnonymous]
+        public async Task<PagedResultDto<GrammarNoteDto>> GetListByLevelPagedAsync(Guid levelId, PagedAndSortedResultRequestDto input)
+        {
+            var chapterQueryable = await _chapterRepo.GetQueryableAsync();
+            var chapterIds = await AsyncExecuter.ToListAsync(
+                chapterQueryable
+                    .Where(x => x.LevelId == levelId)
+                    .Select(x => x.Id));
+
+            if (!chapterIds.Any())
+            {
+                return new PagedResultDto<GrammarNoteDto>(0, new List<GrammarNoteDto>());
+            }
+
+            var lessonQueryable = await _lessonRepo.GetQueryableAsync();
+            var lessonIds = await AsyncExecuter.ToListAsync(
+                lessonQueryable
+                    .Where(x => chapterIds.Contains(x.ChapterId))
+                    .Select(x => x.Id));
+
+            if (!lessonIds.Any())
+            {
+                return new PagedResultDto<GrammarNoteDto>(0, new List<GrammarNoteDto>());
+            }
+
+            var grammarNoteQueryable = await _grammarNoteRepo.GetQueryableAsync();
+            var filteredQuery = grammarNoteQueryable
+                .Where(x => lessonIds.Contains(x.LessonId))
+                .OrderBy(x => x.LessonId);
+
+            var totalCount = await AsyncExecuter.CountAsync(filteredQuery);
+            var items = await AsyncExecuter.ToListAsync(
+                filteredQuery.Skip(input.SkipCount).Take(input.MaxResultCount));
+
+            if (!items.Any())
+            {
+                return new PagedResultDto<GrammarNoteDto>(totalCount, new List<GrammarNoteDto>());
+            }
+
+            // 1. Lấy tất cả Structure của danh sách items phân trang chỉ bằng 1 câu Query
+            var itemIds = items.Select(x => x.Id).ToList();
+            var structureQueryable = await _structureRepo.GetQueryableAsync();
+            var allStructures = await AsyncExecuter.ToListAsync(
+                structureQueryable.Where(x => itemIds.Contains(x.GrammarNoteId))
+            );
+
+            // 2. Map sang DTO và gom nhóm Structures trên bộ nhớ RAM
+            var itemDtos = ObjectMapper.Map<List<GrammarNote>, List<GrammarNoteDto>>(items);
+
+            foreach (var dto in itemDtos)
+            {
+                dto.Structures = allStructures
+                    .Where(s => s.GrammarNoteId == dto.Id)
+                    .Select(s => ObjectMapper.Map<GrammarStructureItem, GrammarStructureItemDto>(s))
+                    .ToList();
+            }
+
+            return new PagedResultDto<GrammarNoteDto>(totalCount, itemDtos);
+        }
         // Nhập hàng loạt - validate đủ field bắt buộc trước, rồi insert
         [Authorize(EnglishLearningAppPermissions.ContentManagement.Create)]
         public async Task<List<GrammarNoteDto>> CreateManyAsync(List<CreateUpdateGrammarNoteDto> inputs)
@@ -119,10 +229,10 @@ namespace EnglishLearningApp.Services.Contents
             }
 
             // Validate: mỗi GrammarNote phải có đủ Formula cho từng FormType (Affirmative, Negative, Question)
-            foreach (var input in inputs)
-            {
-                ValidateStructures(input, input.LessonId.ToString());
-            }
+            // foreach (var input in inputs)
+            // {
+            //     ValidateStructures(input, input.LessonId.ToString());
+            // }
 
             // Tất cả validation pass -> insert
             var grammarNotes = new List<GrammarNote>();
@@ -145,8 +255,19 @@ namespace EnglishLearningApp.Services.Contents
             await _grammarNoteRepo.InsertManyAsync(grammarNotes);
             await _structureRepo.InsertManyAsync(allStructures);
 
-            // Build DTO trả về
-            return (await Task.WhenAll(grammarNotes.Select(BuildDtoAsync))).ToList();
+            // 1. Map danh sách GrammarNote sang GrammarNoteDto (Structures lúc này sẽ rỗng/null do Profile Ignored)
+            var resultDtos = ObjectMapper.Map<List<GrammarNote>, List<GrammarNoteDto>>(grammarNotes);
+
+            // 2. Tự gán Structures đã map vào từng DTO tương ứng
+            foreach (var dto in resultDtos)
+            {
+                dto.Structures = allStructures
+                    .Where(s => s.GrammarNoteId == dto.Id)
+                    .Select(s => ObjectMapper.Map<GrammarStructureItem, GrammarStructureItemDto>(s))
+                    .ToList();
+            }
+
+            return resultDtos;
         }
 
         // Danh sách phân trang - dùng cho màn CMS Admin
@@ -209,16 +330,16 @@ namespace EnglishLearningApp.Services.Contents
             }
 
             // Kiểm tra mỗi FormType (Affirmative=0, Negative=1, Question=2) đều có Formula không rỗng
-            var formTypes = new[] 
-            { 
-                GrammarFormType.Affirmative, 
-                GrammarFormType.Negative, 
-                GrammarFormType.Question 
+            var formTypes = new[]
+            {
+                GrammarFormType.Affirmative,
+                GrammarFormType.Negative,
+                GrammarFormType.Question
             };
 
             foreach (var formType in formTypes)
             {
-                var hasFormula = input.Structures.Any(x => 
+                var hasFormula = input.Structures.Any(x =>
                     x.FormType == formType && !string.IsNullOrWhiteSpace(x.Formula));
 
                 if (!hasFormula)

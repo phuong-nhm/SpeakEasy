@@ -2,6 +2,12 @@ import { GrammarNoteDto } from "@/features/admin/grammar-notes/types/grammar-not
 
 interface GrammarNoteTableProps {
   notes: GrammarNoteDto[];
+  totalCount?: number;
+  currentPage?: number;
+  totalPages?: number;
+  pageSize?: number;
+  showPagination?: boolean;
+  onPageChange?: (page: number) => void;
   isLoading: boolean;
   onOpenEditModal: (note: GrammarNoteDto) => void;
   onDelete: (id: string) => void;
@@ -9,6 +15,12 @@ interface GrammarNoteTableProps {
 
 export function GrammarNoteTable({
   notes,
+  totalCount = 0,
+  currentPage = 1,
+  totalPages = 1,
+  pageSize = 10,
+  showPagination = false,
+  onPageChange,
   isLoading,
   onOpenEditModal,
   onDelete,
@@ -38,7 +50,7 @@ export function GrammarNoteTable({
             {notes.map((note, index) => (
               <tr key={note.id} className="hover:bg-slate-50">
                 <td className="px-6 py-4 font-medium text-slate-500">
-                  {index + 1}
+                  {(currentPage - 1) * pageSize + index + 1}
                 </td>
                 <td className="px-6 py-4 font-medium text-slate-800">
                   {note.title}
@@ -71,6 +83,54 @@ export function GrammarNoteTable({
             ))}
           </tbody>
         </table>
+      )}
+
+      {showPagination && !isLoading && totalCount > 0 && onPageChange && (
+        <div className="flex items-center justify-between border-t border-slate-200 bg-slate-50 px-4 py-3">
+          <span className="text-sm text-slate-600">
+            Hiển thị {notes.length} / {totalCount} grammar note
+          </span>
+
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => onPageChange(1)}
+              disabled={currentPage <= 1}
+              className="rounded border border-slate-200 px-3 py-1 text-sm text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              &lt;&lt;
+            </button>
+            <button
+              type="button"
+              onClick={() => onPageChange(currentPage - 1)}
+              disabled={currentPage <= 1}
+              className="rounded border border-slate-200 px-3 py-1 text-sm text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              &lt;
+            </button>
+
+            <span className="min-w-24 text-center text-sm font-medium text-slate-700">
+              Trang {currentPage}/{totalPages}
+            </span>
+
+            <button
+              type="button"
+              onClick={() => onPageChange(currentPage + 1)}
+              disabled={currentPage >= totalPages}
+              className="rounded border border-slate-200 px-3 py-1 text-sm text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              &gt;
+            </button>
+            <button
+              type="button"
+              onClick={() => onPageChange(totalPages)}
+              disabled={currentPage >= totalPages}
+              className="rounded border border-slate-200 px-3 py-1 text-sm text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              &gt;&gt;
+            </button>
+          </div>
+        </div>
       )}
     </div>
   );

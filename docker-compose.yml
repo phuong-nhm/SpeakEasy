@@ -1,0 +1,48 @@
+services:
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2025-latest
+    container_name: abp-sqlserver
+    restart: always
+    environment:
+      - MSSQL_SA_PASSWORD=${SA_PASSWORD}
+      - ACCEPT_EULA=Y
+    ports:
+      - "1434:1433"
+    volumes:
+      - sqlserver_data:/var/opt/mssql
+    networks:
+      - abp-network
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: abp-backend
+    restart: always
+    environment:
+      - ConnectionStrings__Default=${CONNECTION_STRING}
+      - ASPNETCORE_ENVIRONMENT=Development
+    ports:
+      - "5000:80"
+    depends_on:
+      - sqlserver
+    networks:
+      - abp-network
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: nextjs-frontend
+    restart: always
+    environment:
+      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_BASE_URL}
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    networks:
+      - abp-network
+volumes:
+  sqlserver_data:
+networks:
+  abp-network:
+    driver: bridge

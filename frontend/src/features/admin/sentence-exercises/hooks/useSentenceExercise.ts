@@ -188,7 +188,9 @@ export function useSentenceExercise() {
 
   const handleImportMany = useCallback(
     async (
-      rawItems: Omit<CreateUpdateSentenceExerciseDto, "lessonId">[],
+      rawItems: (Omit<CreateUpdateSentenceExerciseDto, "lessonId"> & {
+        lessonId?: string;
+      })[],
       customLessonId?: string,
     ) => {
       const targetLessonId = customLessonId || selectedLessonId;
@@ -201,12 +203,48 @@ export function useSentenceExercise() {
       setIsSubmitting(true);
 
       try {
+        const invalidBaseIndex = rawItems.findIndex(
+          (item) =>
+            item == null ||
+            item.sectionType == null ||
+            item.exerciseType == null ||
+            !item.correctSentence?.trim(),
+        );
+
+        if (invalidBaseIndex >= 0) {
+          throw new Error(
+            `Phần tử thứ ${invalidBaseIndex + 1} không hợp lệ: bắt buộc sectionType, exerciseType, correctSentence.`,
+          );
+        }
+
+        const invalidConditionalIndex = rawItems.findIndex((item) => {
+          if (item.exerciseType === ExerciseType.AnswerQuestion) {
+            return !item.promptText?.trim();
+          }
+
+          if (item.exerciseType === ExerciseType.TranslateFromVietnamese) {
+            return !item.vietnameseTranslation?.trim();
+          }
+
+          if (item.exerciseType === ExerciseType.ListenChoose) {
+            return !item.distractorSentence?.trim();
+          }
+
+          return false;
+        });
+
+        if (invalidConditionalIndex >= 0) {
+          throw new Error(
+            `Phần tử thứ ${invalidConditionalIndex + 1} thiếu trường theo exerciseType (promptText / vietnameseTranslation / distractorSentence).`,
+          );
+        }
+
         const payload: CreateUpdateSentenceExerciseDto[] = rawItems.map(
           (item) => ({
             ...item,
             sectionType: item.sectionType ?? SectionType.Grammar,
             exerciseType: item.exerciseType ?? ExerciseType.WordOrder,
-            lessonId: targetLessonId,
+            lessonId: item.lessonId || targetLessonId,
           }),
         );
 

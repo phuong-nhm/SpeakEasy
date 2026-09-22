@@ -28,9 +28,7 @@ export function useAdminLessons() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingLesson, setEditingLesson] = useState<LessonDto | null>(null);
   const [title, setTitle] = useState("");
-  const [lessonType, setLessonType] = useState<LessonType>(
-    LessonType.Vocabulary,
-  );
+  const [lessonType, setLessonType] = useState<LessonType>(LessonType.Combined);
   const [orderIndex, setOrderIndex] = useState(1);
   const [grammarTopic, setGrammarTopic] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -122,7 +120,7 @@ export function useAdminLessons() {
   const openCreateModal = useCallback(() => {
     setEditingLesson(null);
     setTitle("");
-    setLessonType(LessonType.Vocabulary);
+    setLessonType(LessonType.Combined);
     setOrderIndex(lessons.length + 1);
     setGrammarTopic("");
     setIsModalOpen(true);

@@ -1,69 +1,53 @@
 import {
   VocabularyDto,
   CreateUpdateVocabularyDto,
-  WordType,
 } from "@/features/admin/vocabularies/types/vocabulary";
-
-let mockVocabularies: (VocabularyDto & { distractor: string })[] = [
-  {
-    id: "vocab-1",
-    lessonId: "les-001",
-    word: "Hello",
-    meaning: "Xin chào",
-    distractor: "Tạm biệt",
-    imageUrl: "https://placehold.co/150",
-    audioUrl: "https://www.w3schools.com/html/horse.mp3",
-    wordType: WordType.Other, // Thán từ / Khác
-  },
-  {
-    id: "vocab-2",
-    lessonId: "les-001",
-    word: "Apple",
-    meaning: "Quả táo",
-    distractor: "Quả cam",
-    imageUrl: "https://placehold.co/150",
-    audioUrl: "",
-    wordType: WordType.Noun, // Danh từ
-  },
-];
+import { apiClient } from "@/lib/apiClient";
 
 export const vocabularyService = {
-  getByLessonId: async (
-    lessonId: string,
-  ): Promise<(VocabularyDto & { distractor: string })[]> => {
-    await new Promise((res) => setTimeout(res, 300));
-    return mockVocabularies.filter((v) => v.lessonId === lessonId);
+  getByLessonId: async (lessonId: string): Promise<VocabularyDto[]> => {
+    try {
+      return await apiClient<VocabularyDto[]>(
+        `/api/app/vocabulary/by-lesson/${lessonId}`,
+      );
+    } catch {
+      // Fallback for environments exposing the conventional ABP query route.
+      return apiClient<VocabularyDto[]>(
+        `/api/app/vocabulary/get-list-by-lesson?lessonId=${encodeURIComponent(lessonId)}`,
+      );
+    }
   },
 
-  create: async (data: CreateUpdateVocabularyDto) => {
-    await new Promise((res) => setTimeout(res, 300));
-    const newItem = { id: `vocab-${Date.now()}`, ...data };
-    mockVocabularies.push(newItem);
-    return newItem;
+  create: async (data: CreateUpdateVocabularyDto): Promise<VocabularyDto> => {
+    return apiClient<VocabularyDto>("/api/app/vocabulary", {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
   },
 
-  update: async (id: string, data: CreateUpdateVocabularyDto) => {
-    await new Promise((res) => setTimeout(res, 300));
-    mockVocabularies = mockVocabularies.map((v) =>
-      v.id === id ? { ...v, ...data } : v,
-    );
-    return { id, ...data };
+  update: async (
+    id: string,
+    data: CreateUpdateVocabularyDto,
+  ): Promise<VocabularyDto> => {
+    return apiClient<VocabularyDto>(`/api/app/vocabulary/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(data),
+    });
   },
 
-  delete: async (id: string) => {
-    await new Promise((res) => setTimeout(res, 300));
-    mockVocabularies = mockVocabularies.filter((v) => v.id !== id);
-    return true;
+  delete: async (id: string): Promise<void> => {
+    await apiClient<void>(`/api/app/vocabulary/${id}`, {
+      method: "DELETE",
+    });
   },
 
-  createMany: async (items: CreateUpdateVocabularyDto[]) => {
-    await new Promise((res) => setTimeout(res, 500));
-    const createdItems = items.map((item, index) => ({
-      id: `vocab-batch-${Date.now()}-${index}`,
-      ...item,
-    }));
-    mockVocabularies.push(...createdItems);
-    return createdItems;
+  createMany: async (
+    items: CreateUpdateVocabularyDto[],
+  ): Promise<VocabularyDto[]> => {
+    return apiClient<VocabularyDto[]>("/api/app/vocabulary/create-many", {
+      method: "POST",
+      body: JSON.stringify(items),
+    });
   },
 };
 
