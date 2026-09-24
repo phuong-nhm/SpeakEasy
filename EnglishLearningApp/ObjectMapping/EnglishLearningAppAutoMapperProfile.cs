@@ -25,8 +25,6 @@ public class EnglishLearningAppAutoMapperProfile : Profile
         CreateMap<Lesson, LessonDto>();
         CreateMap<CreateUpdateLessonDto, Lesson>();
 
-        // Vocabulary: DTO đọc thường KHÔNG có Distractor -> map bỏ qua field đó tự động
-        // (AutoMapper chỉ map field trùng tên, Distractor không có trong VocabularyDto nên tự bỏ)
         CreateMap<Vocabulary, VocabularyDto>();
         CreateMap<CreateUpdateVocabularyDto, Vocabulary>();
 

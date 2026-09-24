@@ -10,6 +10,7 @@ namespace EnglishLearningApp.Dtos.Contents
         public Guid LessonId { get; set; }
         public string Word { get; set; }
         public string Meaning { get; set; }
+        public string Distractor { get; set; }
         public string ImageUrl { get; set; }
         public string AudioUrl { get; set; }
         public WordType WordType { get; set; }

@@ -16,6 +16,7 @@ export const mockLessonMap: Record<string, LessonDto> = {
         lessonId: "lesson-1",
         word: "hello",
         meaning: "xin chào",
+        imageUrl: "https://picsum.photos/seed/hello/400/300",
         audioUrl: "/audio/hello.mp3",
       },
       {
@@ -23,6 +24,7 @@ export const mockLessonMap: Record<string, LessonDto> = {
         lessonId: "lesson-1",
         word: "happy",
         meaning: "vui",
+        imageUrl: "https://picsum.photos/seed/happy/400/300",
         audioUrl: "/audio/happy.mp3",
       },
       {
@@ -30,6 +32,7 @@ export const mockLessonMap: Record<string, LessonDto> = {
         lessonId: "lesson-1",
         word: "school",
         meaning: "trường học",
+        imageUrl: "https://picsum.photos/seed/school/400/300",
         audioUrl: "/audio/school.mp3",
       },
       {
@@ -37,6 +40,7 @@ export const mockLessonMap: Record<string, LessonDto> = {
         lessonId: "lesson-1",
         word: "friend",
         meaning: "bạn bè",
+        imageUrl: "https://picsum.photos/seed/friend/400/300",
         audioUrl: "/audio/friend.mp3",
       },
       {
@@ -44,6 +48,7 @@ export const mockLessonMap: Record<string, LessonDto> = {
         lessonId: "lesson-1",
         word: "morning",
         meaning: "buổi sáng",
+        imageUrl: "https://picsum.photos/seed/morning/400/300",
         audioUrl: "/audio/morning.mp3",
       },
       {
@@ -51,6 +56,7 @@ export const mockLessonMap: Record<string, LessonDto> = {
         lessonId: "lesson-1",
         word: "English",
         meaning: "tiếng Anh",
+        imageUrl: "https://picsum.photos/seed/english/400/300",
         audioUrl: "/audio/english.mp3",
       },
       {
@@ -58,6 +64,7 @@ export const mockLessonMap: Record<string, LessonDto> = {
         lessonId: "lesson-1",
         word: "smile",
         meaning: "nụ cười",
+        imageUrl: "https://picsum.photos/seed/smile/400/300",
         audioUrl: "/audio/smile.mp3",
       },
     ],
@@ -206,6 +213,7 @@ export const mockLessonMap: Record<string, LessonDto> = {
         lessonId: "lesson-2",
         word: "wake up",
         meaning: "thức dậy",
+        imageUrl: "https://picsum.photos/seed/wake-up/400/300",
         audioUrl: "/audio/wakeup.mp3",
       },
       {
@@ -213,6 +221,7 @@ export const mockLessonMap: Record<string, LessonDto> = {
         lessonId: "lesson-2",
         word: "breakfast",
         meaning: "bữa sáng",
+        imageUrl: "https://picsum.photos/seed/breakfast/400/300",
         audioUrl: "/audio/breakfast.mp3",
       },
       {
@@ -220,6 +229,7 @@ export const mockLessonMap: Record<string, LessonDto> = {
         lessonId: "lesson-2",
         word: "commute",
         meaning: "đi làm / đi học",
+        imageUrl: "https://picsum.photos/seed/commute/400/300",
         audioUrl: "/audio/commute.mp3",
       },
       {
@@ -227,6 +237,7 @@ export const mockLessonMap: Record<string, LessonDto> = {
         lessonId: "lesson-2",
         word: "study",
         meaning: "học",
+        imageUrl: "https://picsum.photos/seed/study/400/300",
         audioUrl: "/audio/study.mp3",
       },
       {
@@ -234,6 +245,7 @@ export const mockLessonMap: Record<string, LessonDto> = {
         lessonId: "lesson-2",
         word: "sleep",
         meaning: "ngủ",
+        imageUrl: "https://picsum.photos/seed/sleep/400/300",
         audioUrl: "/audio/sleep.mp3",
       },
       {
@@ -241,6 +253,7 @@ export const mockLessonMap: Record<string, LessonDto> = {
         lessonId: "lesson-2",
         word: "lunch",
         meaning: "bữa trưa",
+        imageUrl: "https://picsum.photos/seed/lunch/400/300",
         audioUrl: "/audio/lunch.mp3",
       },
       {
@@ -248,6 +261,7 @@ export const mockLessonMap: Record<string, LessonDto> = {
         lessonId: "lesson-2",
         word: "evening",
         meaning: "buổi tối",
+        imageUrl: "https://picsum.photos/seed/evening/400/300",
         audioUrl: "/audio/evening.mp3",
       },
     ],

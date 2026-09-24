@@ -14,7 +14,9 @@ import { CompleteScreen } from "./CompleteScreen";
 import { FooterAction } from "./FooterAction";
 import { GrammarReferenceCard } from "./GrammarReferenceCard";
 import { HeaderBar } from "./HeaderBar";
+import { VocabFlashcardQuiz } from "./VocabFlashcardQuiz";
 import { VocabIntroCard } from "./VocabIntroCard";
+import { VocabMatchingGame } from "./VocabMatchingGame";
 
 interface LessonScreenProps {
   lessonId: string;
@@ -35,6 +37,8 @@ export function LessonScreen({ lessonId }: LessonScreenProps) {
     progressPercent,
     canCheck,
     showExitConfirm,
+    vocabSubStep,
+    canStartGrammarFromVocabulary,
     vocabulary,
     lessonParts,
     completedParts,
@@ -46,6 +50,9 @@ export function LessonScreen({ lessonId }: LessonScreenProps) {
     handleCheckAnswer,
     handleAdvanceQuestions,
     recordAttemptResult,
+    handleVocabularyContinueToFlashcard,
+    handleVocabularyFlashcardComplete,
+    handleVocabularyMatchingComplete,
     handleContinue,
     handleExit,
     confirmExit,
@@ -277,7 +284,30 @@ export function LessonScreen({ lessonId }: LessonScreenProps) {
     }
 
     if (selectedPart === "vocabulary") {
-      return <VocabIntroCard vocabulary={vocabulary} />;
+      if (vocabSubStep === "intro") {
+        return (
+          <VocabIntroCard
+            vocabulary={vocabulary}
+            onContinue={handleVocabularyContinueToFlashcard}
+          />
+        );
+      }
+
+      if (vocabSubStep === "flashcard") {
+        return (
+          <VocabFlashcardQuiz
+            vocabulary={vocabulary}
+            onComplete={handleVocabularyFlashcardComplete}
+          />
+        );
+      }
+
+      return (
+        <VocabMatchingGame
+          vocabulary={vocabulary}
+          onComplete={handleVocabularyMatchingComplete}
+        />
+      );
     }
 
     return (
@@ -336,6 +366,10 @@ export function LessonScreen({ lessonId }: LessonScreenProps) {
     }
 
     if (selectedPart === "vocabulary") {
+      if (!canStartGrammarFromVocabulary) {
+        return null;
+      }
+
       return (
         <footer className="border-t border-slate-200 bg-white px-4 py-4 sm:px-6">
           <div className="mx-auto max-w-5xl">

@@ -21,6 +21,7 @@ const shuffleItems = <T>(items: T[]) => {
 
 type LessonPart = "vocabulary" | "grammar" | "comprehensive";
 type CompletedParts = Record<LessonPart, boolean>;
+type VocabSubStep = "intro" | "flashcard" | "matching";
 
 const defaultCompletedParts: CompletedParts = {
   vocabulary: false,
@@ -45,6 +46,9 @@ export function useLessonFlow(lessonId: string) {
   const [correctAnswers, setCorrectAnswers] = useState(0);
   const [isCompleted, setIsCompleted] = useState(false);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
+  const [vocabSubStep, setVocabSubStep] = useState<VocabSubStep>("intro");
+  const [isVocabularyMatchingCompleted, setIsVocabularyMatchingCompleted] =
+    useState(false);
   const startedAtRef = useRef(Date.now());
   const [summary, setSummary] = useState<{
     xpEarned: number;
@@ -79,6 +83,10 @@ export function useLessonFlow(lessonId: string) {
     if (!isPartUnlocked(part)) return;
 
     setSelectedPart(part);
+    if (part === "vocabulary") {
+      setVocabSubStep("intro");
+      setIsVocabularyMatchingCompleted(false);
+    }
     setCurrentIndex(0);
     resetCurrentState();
   };
@@ -109,6 +117,8 @@ export function useLessonFlow(lessonId: string) {
         setCorrectAnswers(0);
         setIsCompleted(false);
         setSummary(null);
+        setVocabSubStep("intro");
+        setIsVocabularyMatchingCompleted(false);
         startedAtRef.current = Date.now();
       } catch {
         if (isMounted) {
@@ -280,15 +290,41 @@ export function useLessonFlow(lessonId: string) {
       return;
     }
 
+    if (selectedPart === "vocabulary") {
+      setVocabSubStep("intro");
+      setIsVocabularyMatchingCompleted(false);
+    }
+
     setSelectedPart(null);
     setCurrentIndex(0);
     resetCurrentState();
   };
 
+  const handleVocabularyContinueToFlashcard = () => {
+    if (!selectedPart || selectedPart !== "vocabulary") return;
+    setVocabSubStep("flashcard");
+  };
+
+  const handleVocabularyFlashcardComplete = () => {
+    if (!selectedPart || selectedPart !== "vocabulary") return;
+    setVocabSubStep("matching");
+  };
+
+  const handleVocabularyMatchingComplete = () => {
+    if (!selectedPart || selectedPart !== "vocabulary") return;
+    setIsVocabularyMatchingCompleted(true);
+  };
+
+  const canStartGrammarFromVocabulary =
+    selectedPart === "vocabulary" &&
+    vocabSubStep === "matching" &&
+    isVocabularyMatchingCompleted;
+
   const handleContinue = () => {
     if (!lesson || !selectedPart) return;
 
     if (selectedPart === "vocabulary") {
+      if (!canStartGrammarFromVocabulary) return;
       completeCurrentPart();
       return;
     }
@@ -338,6 +374,9 @@ export function useLessonFlow(lessonId: string) {
     progressPercent,
     canCheck,
     showExitConfirm,
+    vocabSubStep,
+    isVocabularyMatchingCompleted,
+    canStartGrammarFromVocabulary,
     lessonParts,
     vocabulary: lesson?.vocabulary ?? [],
     grammarQuestions,
@@ -350,6 +389,9 @@ export function useLessonFlow(lessonId: string) {
     handleCheckAnswer,
     handleAdvanceQuestions,
     recordAttemptResult,
+    handleVocabularyContinueToFlashcard,
+    handleVocabularyFlashcardComplete,
+    handleVocabularyMatchingComplete,
     handleContinue,
     handleExit,
     confirmExit,
