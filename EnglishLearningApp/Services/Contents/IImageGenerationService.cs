@@ -4,6 +4,6 @@ namespace EnglishLearningApp.Services.Contents
 {
     public interface IImageGenerationService
     {
-        Task<string> GenerateImageUrlAsync(string word, string meaning, WordType wordType);
+        Task<string> GenerateImageUrlAsync(string word, string meaning, WordType wordType, string? imageHint = null);
     }
 }

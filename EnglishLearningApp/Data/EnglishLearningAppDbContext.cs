@@ -125,6 +125,9 @@ public class EnglishLearningAppDbContext : AbpDbContext<EnglishLearningAppDbCont
             b.ToTable("AppVocabularies");
             b.Property(x => x.Word).HasMaxLength(128).IsRequired();
             b.Property(x => x.Meaning).HasMaxLength(256).IsRequired();
+            b.Property(x => x.ImageUrl).IsRequired(false);
+            b.Property(x => x.AudioUrl).IsRequired(false);
+            b.Property(x => x.ImageHint).HasMaxLength(500);
         });
 
         builder.Entity<SentenceExercise>(b =>

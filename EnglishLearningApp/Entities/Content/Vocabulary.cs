@@ -8,10 +8,10 @@ namespace EnglishLearningApp.Entities.Content
         public Guid LessonId { get; set; }
         public string Word { get; set; }
         public string Meaning { get; set; }
-        public string ImageUrl { get; set; }
-        public string AudioUrl { get; set; }
+        public string? ImageUrl { get; set; }
+        public string? AudioUrl { get; set; }
         public string Distractor { get; set; }
-
+        public string? ImageHint { get; set; }
         // Navigation: trỏ ngược về Lesson cha
         public Lesson Lesson { get; set; }
         public WordType WordType { get; set; }

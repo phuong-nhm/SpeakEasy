@@ -13,6 +13,7 @@ namespace EnglishLearningApp.Dtos.Contents
         public string Distractor { get; set; }
         public string ImageUrl { get; set; }
         public string AudioUrl { get; set; }
+        public string? ImageHint { get; set; }
         public WordType WordType { get; set; }
     }
 
@@ -22,10 +23,11 @@ namespace EnglishLearningApp.Dtos.Contents
         public Guid LessonId { get; set; }
         public string Word { get; set; }
         public string Meaning { get; set; }
-        public string ImageUrl { get; set; }
-        public string AudioUrl { get; set; }
+        public string? ImageUrl { get; set; }
+        public string? AudioUrl { get; set; }
         public string Distractor { get; set; }
         public WordType WordType { get; set; }
+        public string? ImageHint { get; set; }
     }
 
     // Dùng riêng cho màn quiz trắc nghiệm 2 lựa chọn - đã trộn sẵn vị trí đúng/sai
