@@ -1,6 +1,5 @@
 ﻿using EnglishLearningApp.Data;
 using EnglishLearningApp.Localization;
-using EnglishLearningApp.Middlewares;
 using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Extensions.DependencyInjection;
@@ -141,7 +140,7 @@ public class EnglishLearningAppModule : AbpModule
                 serverBuilder.AddProductionEncryptionAndSigningCertificate("openiddict.pfx", "ceba0031-571f-4a0a-a181-58c30632a9ce");
             });
         }
-        
+
         EnglishLearningAppGlobalFeatureConfigurator.Configure();
         EnglishLearningAppModuleExtensionConfigurator.Configure();
         EnglishLearningAppEfCoreEntityExtensionMappings.Configure();
@@ -168,7 +167,7 @@ public class EnglishLearningAppModule : AbpModule
         ConfigureCors(context, configuration);
         ConfigureDataProtection(context);
         ConfigureEfCore(context);
-        ConfigureFusionCache(context, configuration);
+        // ConfigureFusionCache(context, configuration);
 
     }
     private void ConfigureFusionCache(ServiceConfigurationContext context, IConfiguration configuration)
