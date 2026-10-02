@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 
 import { lessonService } from "@/features/frontend/lesson/services/lessonService";
@@ -14,6 +14,7 @@ import { DialogueListenExercise } from "@/features/frontend/lesson/components/ex
 import { FillInBlankExercise } from "@/features/frontend/lesson/components/exercises/FillInBlankExercise";
 import { TranslateExercise } from "@/features/frontend/lesson/components/exercises/TranslateExercise";
 import { WordOrderExercise } from "@/features/frontend/lesson/components/exercises/WordOrderExercise";
+import { useSafeAsyncEffect } from "@/hooks/useSafeAsyncEffect";
 
 const PASS_PERCENT = 80;
 const DEFAULT_HEARTS = 3;
@@ -96,55 +97,62 @@ export default function CheckpointChapterPage() {
   const [correctCount, setCorrectCount] = useState(0);
   const [answeredCount, setAnsweredCount] = useState(0);
 
-  const [isFinished, setIsFinished] = useState(false);
   const [isUnlocking, setIsUnlocking] = useState(false);
+  const [hasUnlocked, setHasUnlocked] = useState(false);
   const [unlockError, setUnlockError] = useState<string | null>(null);
 
-  const loadCheckpoint = async () => {
-    setIsLoading(true);
-    setLoadError(null);
-    setUnlockError(null);
+  // Bọc loadCheckpoint bằng useCallback để dùng an toàn trong useEffect
+  const loadCheckpoint = useCallback(
+    async (isMounted: () => boolean = () => true) => {
+      setIsLoading(true);
+      setLoadError(null);
+      setUnlockError(null);
 
-    try {
-      const rawQuestions =
-        await lessonService.getCheckpointExercises(chapterId);
-      const normalizedQuestions = normalizeCheckpointList(rawQuestions);
+      try {
+        const rawQuestions =
+          await lessonService.getCheckpointExercises(chapterId);
+        if (!isMounted()) return;
+        const normalizedQuestions = normalizeCheckpointList(rawQuestions);
 
-      setQuestions(normalizedQuestions);
-      setCurrentIndex(0);
-      setSelectedAnswer(null);
-      setIsChecked(false);
-      setResultType(null);
-      setHearts(DEFAULT_HEARTS);
-      setCorrectCount(0);
-      setAnsweredCount(0);
-      setIsFinished(false);
-    } catch {
-      setLoadError("Không thể tải bộ câu hỏi checkpoint.");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    void loadCheckpoint();
-  }, [chapterId]);
+        setQuestions(normalizedQuestions);
+        setCurrentIndex(0);
+        setSelectedAnswer(null);
+        setIsChecked(false);
+        setResultType(null);
+        setHearts(DEFAULT_HEARTS);
+        setCorrectCount(0);
+        setAnsweredCount(0);
+        setHasUnlocked(false);
+      } catch {
+        if (isMounted()) setLoadError("Không thể tải bộ câu hỏi checkpoint.");
+      } finally {
+        if (isMounted()) setIsLoading(false);
+      }
+    },
+    [chapterId],
+  );
+  useSafeAsyncEffect(
+    (isMounted) => loadCheckpoint(isMounted),
+    [loadCheckpoint],
+  );
 
   const totalQuestions = questions.length;
   const currentQuestion = questions[currentIndex] ?? null;
-  const currentDialogueGroup = currentQuestion?.dialogueGroupId
-    ? questions
-        .filter(
-          (question) =>
-            question.dialogueGroupId === currentQuestion.dialogueGroupId,
-        )
-        .sort((left, right) => {
-          const orderLeft = left.orderInGroup ?? Number.MAX_SAFE_INTEGER;
-          const orderRight = right.orderInGroup ?? Number.MAX_SAFE_INTEGER;
 
-          return orderLeft - orderRight;
-        })
-    : [];
+  // Dùng useMemo tối ưu tính toán nhóm hội thoại
+  const currentDialogueGroup = useMemo(() => {
+    if (!currentQuestion?.dialogueGroupId) return [];
+    return questions
+      .filter(
+        (question) =>
+          question.dialogueGroupId === currentQuestion.dialogueGroupId,
+      )
+      .sort((left, right) => {
+        const orderLeft = left.orderInGroup ?? Number.MAX_SAFE_INTEGER;
+        const orderRight = right.orderInGroup ?? Number.MAX_SAFE_INTEGER;
+        return orderLeft - orderRight;
+      });
+  }, [currentQuestion, questions]);
 
   const currentQuestionForRender =
     currentQuestion && currentDialogueGroup.length === 0
@@ -161,23 +169,13 @@ export default function CheckpointChapterPage() {
 
   const isPassed = accuracyPercent >= PASS_PERCENT;
 
-  const finishCheckpoint = () => {
-    if (isFinished) return;
-    setIsFinished(true);
-  };
+  // TÍNH TOÁN TRỰC TIẾP (Derived State) - Không dùng useState cho isFinished nữa!
+  const isFinished =
+    totalQuestions > 0 && (hearts <= 0 || answeredCount >= totalQuestions);
 
+  // Effect unlock Chapter khi hoàn thành
   useEffect(() => {
-    if (isFinished || totalQuestions === 0) {
-      return;
-    }
-
-    if (hearts <= 0 || answeredCount >= totalQuestions) {
-      finishCheckpoint();
-    }
-  }, [answeredCount, hearts, isFinished, totalQuestions]);
-
-  useEffect(() => {
-    if (!isFinished || !isPassed || isUnlocking) {
+    if (!isFinished || !isPassed || isUnlocking || hasUnlocked) {
       return;
     }
 
@@ -200,6 +198,7 @@ export default function CheckpointChapterPage() {
           throw new Error("Unlock failed");
         }
 
+        setHasUnlocked(true);
         router.push("/dashboard");
       } catch {
         setUnlockError("Mở khóa chapter chưa thành công. Bạn có thể thử lại.");
@@ -209,7 +208,7 @@ export default function CheckpointChapterPage() {
     };
 
     void unlockChapter();
-  }, [chapterId, isFinished, isPassed, isUnlocking, router]);
+  }, [chapterId, isFinished, isPassed, isUnlocking, hasUnlocked, router]);
 
   const applyQuestionResult = (isCorrect: boolean) => {
     setAnsweredCount((count) => count + 1);
@@ -245,11 +244,9 @@ export default function CheckpointChapterPage() {
   };
 
   const handleContinue = () => {
-    if (answeredCount >= totalQuestions || hearts <= 0) {
-      finishCheckpoint();
+    if (isFinished) {
       return;
     }
-
     moveNext();
   };
 

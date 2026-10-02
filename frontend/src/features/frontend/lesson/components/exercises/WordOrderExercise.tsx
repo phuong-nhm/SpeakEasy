@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 
 import { LessonQuestion } from "../../types/lesson";
 
@@ -21,16 +21,11 @@ export function WordOrderExercise({
     () => question.wordBank ?? question.correctAnswer.split(" "),
     [question.correctAnswer, question.wordBank],
   );
-  const [selectedWords, setSelectedWords] = useState<string[]>([]);
 
-  useEffect(() => {
-    if (!selectedAnswer || !selectedAnswer.trim()) {
-      setSelectedWords([]);
-      return;
-    }
-
-    setSelectedWords(selectedAnswer.split(" ").filter(Boolean));
-  }, [selectedAnswer]);
+  const selectedWords = useMemo(
+    () => (selectedAnswer ? selectedAnswer.split(" ").filter(Boolean) : []),
+    [selectedAnswer],
+  );
 
   const availableWords = wordBank.filter(
     (word) => !selectedWords.includes(word),
@@ -38,21 +33,18 @@ export function WordOrderExercise({
 
   const appendWord = (word: string) => {
     if (isChecked) return;
-    const next = [...selectedWords, word];
-    setSelectedWords(next);
-    onAnswerChange(next.join(" "));
+    onAnswerChange([...selectedWords, word].join(" "));
   };
 
   const removeWordAt = (index: number) => {
     if (isChecked) return;
-    const next = selectedWords.filter((_, itemIndex) => itemIndex !== index);
-    setSelectedWords(next);
-    onAnswerChange(next.join(" "));
+    onAnswerChange(
+      selectedWords.filter((_, itemIndex) => itemIndex !== index).join(" "),
+    );
   };
 
   const resetWords = () => {
     if (isChecked) return;
-    setSelectedWords([]);
     onAnswerChange("");
   };
 

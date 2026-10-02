@@ -12,15 +12,17 @@ interface WritingTopicDto {
   promptTitle: string;
   promptText: string;
 }
-
-export default function WritingChapterPage({ params }: { params: any }) {
+interface WritingChapterPageProps {
+  params: Promise<{
+    chapterId?: string;
+  }>;
+}
+export default function WritingChapterPage({
+  params,
+}: WritingChapterPageProps) {
   const router = useRouter();
-
-  const resolvedParams = (React as any).use
-    ? (React as any).use(params)
-    : params;
-  const chapterId: string =
-    resolvedParams?.chapterId ?? params?.chapterId ?? "unknown";
+  const resolvedParams = React.use(params);
+  const chapterId: string = resolvedParams?.chapterId ?? "unknown";
 
   const [topic, setTopic] = useState<WritingTopicDto | null>(null);
   const [hearts, setHearts] = useState(3);

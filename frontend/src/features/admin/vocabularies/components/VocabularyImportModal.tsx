@@ -40,12 +40,11 @@ export function VocabularyImportModal({
             {`[
   {
     "lessonId": "00000000-0000-0000-0000-000000000001",
-    "word": "Hello",
-    "meaning": "Xin chào",
-    "distractor": "Tạm biệt",
-    "imageUrl": "https://example.com/images/hello.jpg",
-    "audioUrl": "https://example.com/audio/hello.mp3",
-    "wordType": 6
+    "word": "beat",
+    "meaning": "đánh bại",
+    "distractor": "chiến thắng",
+    "wordType": 1,
+    "imageHint": "two cartoon characters in a sports match, one raising a trophy in victory while the other looks defeated"
   },
   {
     "lessonId": "00000000-0000-0000-0000-000000000002",
@@ -58,12 +57,13 @@ export function VocabularyImportModal({
           </pre>
           <p className="mt-3 text-xs text-slate-500">
             Bắt buộc theo DTO backend: lessonId, word, meaning, distractor,
-            wordType. imageUrl/audioUrl là tùy chọn.
+            wordType. imageUrl/audioUrl/imageHint là tùy chọn.
           </p>
           <p className="text-xs text-slate-500">
             Không cần điền imageUrl/audioUrl — hệ thống sẽ tự sinh ảnh và audio
-            cho từ nào còn thiếu. Nếu đã có sẵn link ảnh/audio thì điền vào để
-            bỏ qua bước tự sinh.
+            cho từ nào còn thiếu. imageHint chỉ nên điền cho từ đa nghĩa/trừu
+            tượng (ví dụ động từ tương tác như `beat`, `support`), giúp AI vẽ
+            đúng ngữ cảnh thay vì tự đoán.
           </p>
         </details>
 

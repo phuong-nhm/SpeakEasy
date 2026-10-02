@@ -36,7 +36,9 @@ export function useAdminVocabularies() {
   const [imageUrl, setImageUrl] = useState<string>("");
   const [audioUrl, setAudioUrl] = useState<string>("");
   const [distractor, setDistractor] = useState<string>("");
+  const [imageHint, setImageHint] = useState<string>("");
   const [wordType, setWordType] = useState<WordType>(WordType.Noun);
+  const [modalLessonId, setModalLessonId] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
   const loadVocabularies = useCallback(async (lessonId: string) => {
@@ -172,25 +174,32 @@ export function useAdminVocabularies() {
 
   const openCreateModal = useCallback(() => {
     setEditingVocabulary(null);
+    setModalLessonId(selectedLessonId);
     setWord("");
     setMeaning("");
     setImageUrl("");
     setAudioUrl("");
     setDistractor("");
+    setImageHint("");
     setWordType(WordType.Noun);
     setIsModalOpen(true);
-  }, []);
+  }, [selectedLessonId]);
 
-  const openEditModal = useCallback((vocab: VocabularyDto) => {
-    setEditingVocabulary(vocab);
-    setWord(vocab.word || "");
-    setMeaning(vocab.meaning || "");
-    setImageUrl(vocab.imageUrl || "");
-    setAudioUrl(vocab.audioUrl || "");
-    setDistractor("");
-    setWordType(vocab.wordType ?? WordType.Noun);
-    setIsModalOpen(true);
-  }, []);
+  const openEditModal = useCallback(
+    (vocab: VocabularyDto) => {
+      setEditingVocabulary(vocab);
+      setWord(vocab.word || "");
+      setMeaning(vocab.meaning || "");
+      setImageUrl(vocab.imageUrl || "");
+      setAudioUrl(vocab.audioUrl || "");
+      setModalLessonId(vocab.lessonId || selectedLessonId);
+      setDistractor(vocab.distractor || "");
+      setImageHint(vocab.imageHint || "");
+      setWordType(vocab.wordType ?? WordType.Noun);
+      setIsModalOpen(true);
+    },
+    [selectedLessonId],
+  );
 
   const closeModal = useCallback(() => {
     setIsModalOpen(false);
@@ -208,19 +217,20 @@ export function useAdminVocabularies() {
   const handleSubmit = useCallback(
     async (e: React.FormEvent) => {
       e.preventDefault();
-      if (!word.trim() || !meaning.trim() || !selectedLessonId) {
+      if (!word.trim() || !meaning.trim() || !modalLessonId) {
         return;
       }
 
       setIsSubmitting(true);
 
       const payload: CreateUpdateVocabularyDto = {
-        lessonId: selectedLessonId,
+        lessonId: modalLessonId,
         word,
         meaning,
         imageUrl,
         audioUrl,
         distractor,
+        imageHint,
         wordType,
       };
 
@@ -244,17 +254,21 @@ export function useAdminVocabularies() {
       distractor,
       editingVocabulary,
       imageUrl,
+      imageHint,
       loadVocabularies,
       meaning,
       selectedLessonId,
       word,
       wordType,
+      modalLessonId,
     ],
   );
 
   const handleImportMany = useCallback(
     async (
-      rawItems: Omit<CreateUpdateVocabularyDto, "lessonId">[],
+      rawItems: (Omit<CreateUpdateVocabularyDto, "lessonId"> & {
+        lessonId?: string;
+      })[],
       customLessonId?: string,
     ) => {
       const targetLessonId = customLessonId || selectedLessonId;
@@ -285,7 +299,7 @@ export function useAdminVocabularies() {
         const payload: CreateUpdateVocabularyDto[] = rawItems.map((item) => ({
           ...item,
           wordType: item.wordType ?? WordType.Noun,
-          lessonId: targetLessonId,
+          lessonId: item.lessonId || targetLessonId,
         }));
 
         await vocabularyService.createMany(payload);
@@ -328,6 +342,8 @@ export function useAdminVocabularies() {
     handleChapterChange,
     lessons,
     selectedLessonId,
+    modalLessonId,
+    setModalLessonId,
     handleLessonChange,
     vocabularies,
     isLoading,
@@ -344,6 +360,8 @@ export function useAdminVocabularies() {
     setAudioUrl,
     distractor,
     setDistractor,
+    imageHint,
+    setImageHint,
     wordType,
     setWordType,
     isSubmitting,

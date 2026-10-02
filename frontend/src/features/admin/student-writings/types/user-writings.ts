@@ -7,6 +7,7 @@ export interface WritingErrorDto {
 export interface AiFeedbackDto {
   isCorrect: boolean;
   score: number;
+  band?: string;
   errors: WritingErrorDto[];
   explanation: string;
   suggestedCorrection: string;

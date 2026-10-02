@@ -30,16 +30,19 @@ export interface GrammarNoteDto {
 
 export type ListeningOptionKey = "A" | "B" | "C" | "D";
 
+export interface WritingErrorDto {
+  errorType: string;
+  originalText: string;
+  suggestion: string;
+}
+
 export interface AiFeedbackDto {
+  isCorrect: boolean;
+  score: number;
   band?: string;
-  score?: number;
-  errors?: {
-    sentence: string;
-    issue: string;
-    suggestion: string;
-  }[];
-  suggestion?: string;
-  improvedText?: string;
+  errors: WritingErrorDto[];
+  explanation: string;
+  suggestedCorrection: string;
 }
 
 export interface SentenceExerciseDto {

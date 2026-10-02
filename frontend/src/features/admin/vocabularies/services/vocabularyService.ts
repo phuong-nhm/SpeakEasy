@@ -44,7 +44,7 @@ export const vocabularyService = {
   createMany: async (
     items: CreateUpdateVocabularyDto[],
   ): Promise<VocabularyDto[]> => {
-    return apiClient<VocabularyDto[]>("/api/app/vocabulary/create-many", {
+    return apiClient<VocabularyDto[]>("/api/app/vocabulary/many", {
       method: "POST",
       body: JSON.stringify(items),
     });

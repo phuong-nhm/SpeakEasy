@@ -21,7 +21,7 @@ namespace EnglishLearningApp.AppServices.Contents
         private readonly IRepository<Vocabulary, Guid> _vocabRepo;
         private readonly IAudioGenerationService _audioService;
         private readonly IImageGenerationService _imageService;
-
+        private const int MaxConcurrentGeneration = 5;
         public VocabularyAppService(
             IRepository<Vocabulary, Guid> vocabRepo,
             IAudioGenerationService audioService,
@@ -89,14 +89,34 @@ namespace EnglishLearningApp.AppServices.Contents
                 throw new UserFriendlyException(L["ImportBatchTooLarge"]);
             }
 
-            await Task.WhenAll(
-                Task.WhenAll(inputs
-                    .Where(x => string.IsNullOrWhiteSpace(x.AudioUrl))
-                    .Select(async x => x.AudioUrl = await _audioService.GenerateAudioUrlAsync(x.Word))),
-                Task.WhenAll(inputs
-                    .Where(x => string.IsNullOrWhiteSpace(x.ImageUrl))
-                    .Select(async x => x.ImageUrl = await _imageService.GenerateImageUrlAsync(x.Word, x.Meaning, x.WordType)))
-            );
+            using var semaphore = new SemaphoreSlim(MaxConcurrentGeneration);
+
+            async Task GenerateWithLimitAsync(CreateUpdateVocabularyDto x)
+            {
+                await semaphore.WaitAsync();
+                try
+                {
+                    if (string.IsNullOrWhiteSpace(x.AudioUrl))
+                    {
+                        x.AudioUrl = await _audioService.GenerateAudioUrlAsync(x.Word);
+                    }
+                    if (string.IsNullOrWhiteSpace(x.ImageUrl))
+                    {
+                        x.ImageUrl = await _imageService.GenerateImageUrlAsync(x.Word, x.Meaning, x.WordType, x.ImageHint);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    // 1 từ lỗi sinh media không làm sập cả batch - log lại, để URL rỗng, vẫn tạo Vocabulary bình thường
+                    Logger.LogWarning(ex, "Không sinh được audio/ảnh cho từ '{Word}'", x.Word);
+                }
+                finally
+                {
+                    semaphore.Release();
+                }
+            }
+
+            await Task.WhenAll(inputs.Select(GenerateWithLimitAsync));
 
             var vocabs = inputs
                 .Select(x => ObjectMapper.Map<CreateUpdateVocabularyDto, Vocabulary>(x))

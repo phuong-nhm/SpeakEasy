@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import AiFeedbackCard from "../AiFeedbackCard";
+import { AiFeedbackDto } from "../../types/lesson";
 
 export interface WritingTopicDto {
   id: string;
@@ -12,13 +13,13 @@ export interface WritingTopicDto {
 
 interface Props {
   topic: WritingTopicDto;
-  onSubmitted?: (feedback: any) => void;
+  onSubmitted?: (feedback: AiFeedbackDto) => void;
 }
 
 export function CheckpointWritingExercise({ topic, onSubmitted }: Props) {
   const [text, setText] = useState("");
   const [loading, setLoading] = useState(false);
-  const [feedback, setFeedback] = useState<any | null>(null);
+  const [feedback, setFeedback] = useState<AiFeedbackDto | null>(null);
 
   const handleSubmit = async () => {
     setLoading(true);
@@ -74,7 +75,7 @@ export function CheckpointWritingExercise({ topic, onSubmitted }: Props) {
         </div>
       )}
 
-      {feedback && <AiFeedbackCard feedback={feedback} />}
+      {feedback && <AiFeedbackCard feedback={feedback} showBand={true} />}
     </div>
   );
 }

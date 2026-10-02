@@ -32,47 +32,113 @@ const buildWordBank = (question: SentenceExerciseDto) => {
   return shuffleWords(question.correctSentence.split(/\s+/).filter(Boolean));
 };
 
+// Component ngoài: chỉ lo tiến trình cả đoạn hội thoại (đang ở câu mấy, đã xong chưa).
 export function DialogueListenExercise({
   questions,
   onQuestionResult,
   onComplete,
 }: DialogueListenExerciseProps) {
-  const audioRef = useRef<HTMLAudioElement | null>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [isCompleted, setIsCompleted] = useState(false);
+
+  const currentQuestion = questions[currentIndex] ?? null;
+
+  const handleAdvance = () => {
+    const isLastQuestion = currentIndex >= questions.length - 1;
+
+    if (isLastQuestion) {
+      setIsCompleted(true);
+      return;
+    }
+
+    setCurrentIndex((index) => index + 1);
+  };
+
+  if (isCompleted) {
+    return (
+      <div className="rounded-3xl border border-emerald-200 bg-emerald-50 p-5 shadow-sm">
+        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-emerald-600">
+          Đoạn hội thoại hoàn thành
+        </p>
+        <h3 className="mt-2 text-2xl font-black text-slate-900">
+          Bạn đã hoàn thành toàn bộ lượt trong đoạn hội thoại này.
+        </h3>
+        <button
+          type="button"
+          onClick={onComplete}
+          className="mt-4 rounded-2xl bg-emerald-600 px-4 py-3 text-sm font-bold text-white transition hover:bg-emerald-700"
+        >
+          TIẾP TỤC
+        </button>
+      </div>
+    );
+  }
+
+  if (!currentQuestion) return null;
+
+  return (
+    <DialogueQuestionCard
+      // Đổi câu hỏi (đổi id, hoặc đổi index nếu DTO không có id) -> React
+      // tự dựng lại component con từ đầu, khỏi cần effect reset state.
+      key={currentQuestion.id ?? currentIndex}
+      question={currentQuestion}
+      index={currentIndex}
+      total={questions.length}
+      onQuestionResult={onQuestionResult}
+      onAdvance={handleAdvance}
+    />
+  );
+}
+
+interface DialogueQuestionCardProps {
+  question: SentenceExerciseDto;
+  index: number;
+  total: number;
+  onQuestionResult: (isCorrect: boolean) => void;
+  onAdvance: () => void;
+}
+
+// Component trong: chỉ lo trạng thái của RIÊNG 1 câu hỏi đang hiển thị.
+function DialogueQuestionCard({
+  question,
+  index,
+  total,
+  onQuestionResult,
+  onAdvance,
+}: DialogueQuestionCardProps) {
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const advanceTimerRef = useRef<number | null>(null);
+
   const [selectedAnswer, setSelectedAnswer] = useState<string>("");
   const [selectedWords, setSelectedWords] = useState<string[]>([]);
   const [feedback, setFeedback] = useState<{
     type: "correct" | "incorrect";
     message: string;
   } | null>(null);
-  const [isCompleted, setIsCompleted] = useState(false);
   const [isAdvancing, setIsAdvancing] = useState(false);
 
-  const currentQuestion = questions[currentIndex] ?? null;
-
+  // Chỉ dọn timer/audio khi component này bị huỷ (đổi sang câu khác hoặc unmount),
+  // không setState trong effect nên không bị rule bắt.
   useEffect(() => {
-    setSelectedAnswer("");
-    setSelectedWords([]);
-    setFeedback(null);
-    setIsCompleted(false);
-    setIsAdvancing(false);
-  }, [currentIndex, questions]);
+    return () => {
+      if (advanceTimerRef.current) window.clearTimeout(advanceTimerRef.current);
+      audioRef.current?.pause();
+    };
+  }, []);
 
   const wordBank = useMemo(() => {
-    if (!currentQuestion) return [];
-
-    return currentQuestion.exerciseType === ExerciseType.TranslateFromVietnamese
-      ? buildWordBank(currentQuestion)
+    return question.exerciseType === ExerciseType.TranslateFromVietnamese
+      ? buildWordBank(question)
       : [];
-  }, [currentQuestion]);
+  }, [question]);
 
   const playAudio = () => {
-    if (!currentQuestion?.audioUrl) return;
+    if (!question.audioUrl) return;
 
     if (!audioRef.current) {
-      audioRef.current = new Audio(currentQuestion.audioUrl);
+      audioRef.current = new Audio(question.audioUrl);
     } else {
-      audioRef.current.src = currentQuestion.audioUrl;
+      audioRef.current.src = question.audioUrl;
     }
 
     audioRef.current.currentTime = 0;
@@ -82,30 +148,19 @@ export function DialogueListenExercise({
   const finishQuestion = (isCorrect: boolean) => {
     onQuestionResult(isCorrect);
 
-    if (!isCorrect) {
-      return;
-    }
+    if (!isCorrect) return;
 
     setIsAdvancing(true);
-
-    const isLastQuestion = currentIndex >= questions.length - 1;
-
-    window.setTimeout(() => {
-      if (isLastQuestion) {
-        setIsCompleted(true);
-        return;
-      }
-
-      setCurrentIndex((index) => index + 1);
+    advanceTimerRef.current = window.setTimeout(() => {
+      onAdvance();
     }, 450);
   };
 
   const handleCheckListenChoose = () => {
-    if (!currentQuestion || !selectedAnswer) return;
+    if (!selectedAnswer) return;
 
     const isCorrect =
-      normalizeText(selectedAnswer) ===
-      normalizeText(currentQuestion.correctSentence);
+      normalizeText(selectedAnswer) === normalizeText(question.correctSentence);
 
     setFeedback(
       isCorrect
@@ -122,21 +177,17 @@ export function DialogueListenExercise({
   };
 
   const handleToggleWord = (word: string) => {
-    setSelectedWords((previous) => {
-      if (previous.includes(word)) {
-        return previous.filter((item) => item !== word);
-      }
-
-      return [...previous, word];
-    });
+    setSelectedWords((previous) =>
+      previous.includes(word)
+        ? previous.filter((item) => item !== word)
+        : [...previous, word],
+    );
   };
 
   const handleCheckTranslate = () => {
-    if (!currentQuestion) return;
-
     const answer = selectedWords.join(" ");
     const isCorrect =
-      normalizeText(answer) === normalizeText(currentQuestion.correctSentence);
+      normalizeText(answer) === normalizeText(question.correctSentence);
 
     setFeedback(
       isCorrect
@@ -153,10 +204,8 @@ export function DialogueListenExercise({
   };
 
   const renderContent = () => {
-    if (!currentQuestion) return null;
-
-    if (currentQuestion.exerciseType === ExerciseType.ListenChoose) {
-      const options = currentQuestion.listenOptions ?? [];
+    if (question.exerciseType === ExerciseType.ListenChoose) {
+      const options = question.listenOptions ?? [];
 
       return (
         <div className="space-y-5">
@@ -167,7 +216,7 @@ export function DialogueListenExercise({
                   Dialogue listening
                 </p>
                 <h3 className="mt-2 text-2xl font-black text-slate-900">
-                  Lượt {currentIndex + 1}/{questions.length}
+                  Lượt {index + 1}/{total}
                 </h3>
               </div>
               <button
@@ -180,7 +229,7 @@ export function DialogueListenExercise({
             </div>
 
             <p className="mt-4 text-sm font-medium text-slate-600">
-              {currentQuestion.promptText ?? "Nghe và chọn câu đúng."}
+              {question.promptText ?? "Nghe và chọn câu đúng."}
             </p>
           </div>
 
@@ -218,7 +267,7 @@ export function DialogueListenExercise({
       );
     }
 
-    if (currentQuestion.exerciseType === ExerciseType.TranslateFromVietnamese) {
+    if (question.exerciseType === ExerciseType.TranslateFromVietnamese) {
       return (
         <div className="space-y-5">
           <div className="rounded-3xl border border-violet-200 bg-violet-50 p-5 shadow-sm">
@@ -226,11 +275,10 @@ export function DialogueListenExercise({
               Dialogue translation
             </p>
             <h3 className="mt-2 text-2xl font-black text-slate-900">
-              Lượt {currentIndex + 1}/{questions.length}
+              Lượt {index + 1}/{total}
             </h3>
             <p className="mt-4 text-base font-medium text-slate-700">
-              {currentQuestion.vietnameseTranslation ??
-                currentQuestion.promptText}
+              {question.vietnameseTranslation ?? question.promptText}
             </p>
           </div>
 
@@ -316,24 +364,6 @@ export function DialogueListenExercise({
           }`}
         >
           {feedback.message}
-        </div>
-      )}
-
-      {isCompleted && (
-        <div className="rounded-3xl border border-emerald-200 bg-emerald-50 p-5 shadow-sm">
-          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-emerald-600">
-            Đoạn hội thoại hoàn thành
-          </p>
-          <h3 className="mt-2 text-2xl font-black text-slate-900">
-            Bạn đã hoàn thành toàn bộ lượt trong đoạn hội thoại này.
-          </h3>
-          <button
-            type="button"
-            onClick={onComplete}
-            className="mt-4 rounded-2xl bg-emerald-600 px-4 py-3 text-sm font-bold text-white transition hover:bg-emerald-700"
-          >
-            TIẾP TỤC
-          </button>
         </div>
       )}
     </div>

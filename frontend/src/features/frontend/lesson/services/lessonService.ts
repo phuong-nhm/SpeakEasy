@@ -63,20 +63,21 @@ const createMockFeedback = (content: string): AiFeedbackDto => {
   const score = Math.min(95, Math.max(65, trimmedContent.length * 2));
 
   return {
-    band: score >= 90 ? "8.0" : score >= 80 ? "7.0" : "6.0",
+    isCorrect: score >= 70,
     score,
+    band: score >= 90 ? "8.0" : score >= 80 ? "7.0" : "6.0",
     errors:
       trimmedContent.length < 20
         ? [
             {
-              sentence: trimmedContent,
-              issue: "Câu trả lời còn quá ngắn",
+              errorType: "Structure",
+              originalText: trimmedContent,
               suggestion: "Hãy thêm chi tiết hơn về nội dung bạn nghe được.",
             },
           ]
         : [],
-    suggestion: "Tập trung nhắc lại ý chính và dùng câu hoàn chỉnh.",
-    improvedText: `${trimmedContent} (improved mock version)`,
+    explanation: "Tập trung nhắc lại ý chính và dùng câu hoàn chỉnh.",
+    suggestedCorrection: `${trimmedContent} (improved mock version)`,
   };
 };
 

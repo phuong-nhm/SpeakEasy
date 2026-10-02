@@ -1,6 +1,6 @@
 import React from "react";
 import { BottomNav } from "@/components/layout/BottomNav";
-
+import { ChatWidget } from "@/features/frontend/chat/components/ChatWidget";
 export default function MainLayout({
   children,
 }: {
@@ -12,6 +12,7 @@ export default function MainLayout({
         {children}
       </main>
       <BottomNav />
+      <ChatWidget />
     </div>
   );
 }
