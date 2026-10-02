@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 
 import { LessonQuestion } from "../../types/lesson";
 
@@ -13,7 +13,6 @@ interface MatchingGameExerciseProps {
 
 export function MatchingGameExercise({
   question,
-  selectedAnswer,
   onAnswerChange,
   isChecked,
 }: MatchingGameExerciseProps) {
@@ -24,10 +23,6 @@ export function MatchingGameExercise({
   const [selectedLeft, setSelectedLeft] = useState<string | null>(null);
   const [matched, setMatched] = useState<Record<string, boolean>>({});
   const [feedback, setFeedback] = useState<string | null>(null);
-
-  useEffect(() => {
-    setSelectedLeft(null);
-  }, [selectedAnswer]);
 
   const leftWords = pairs.map((pair) => pair.left);
   const rightWords = pairs.map((pair) => pair.right);
@@ -40,12 +35,12 @@ export function MatchingGameExercise({
     );
 
     if (isCorrect) {
-      setMatched((previous) => ({ ...previous, [left]: true }));
+      const nextMatched = { ...matched, [left]: true };
+      setMatched(nextMatched);
       setFeedback("✅ Đúng!");
       setSelectedLeft(null);
-      const allMatched = leftWords.every(
-        (word) => !!matched[word] || word === left,
-      );
+
+      const allMatched = leftWords.every((word) => !!nextMatched[word]);
       if (allMatched) {
         onAnswerChange("complete");
       }

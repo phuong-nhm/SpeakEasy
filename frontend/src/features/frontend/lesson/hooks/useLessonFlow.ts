@@ -49,7 +49,12 @@ export function useLessonFlow(lessonId: string) {
   const [vocabSubStep, setVocabSubStep] = useState<VocabSubStep>("intro");
   const [isVocabularyMatchingCompleted, setIsVocabularyMatchingCompleted] =
     useState(false);
-  const startedAtRef = useRef(Date.now());
+  const startedAtRef = useRef<number>(0);
+
+  // 2. Gán Date.now() trong useEffect (chỉ chạy đúng 1 lần khi mount)
+  useEffect(() => {
+    startedAtRef.current = Date.now();
+  }, []);
   const [summary, setSummary] = useState<{
     xpEarned: number;
     accuracyPercent: number;

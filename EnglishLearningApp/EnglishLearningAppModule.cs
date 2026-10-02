@@ -1,13 +1,15 @@
-﻿using Microsoft.AspNetCore.Cors;
+﻿using EnglishLearningApp.Data;
+using EnglishLearningApp.Localization;
+using EnglishLearningApp.Middlewares;
+using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Extensions.DependencyInjection;
+using Microsoft.Extensions.Caching.StackExchangeRedis;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.OpenApi.Models;
-using EnglishLearningApp.Data;
-using EnglishLearningApp.Localization;
 using OpenIddict.Validation.AspNetCore;
+using StackExchange.Redis;
 using Volo.Abp;
-using Volo.Abp.Uow;
 using Volo.Abp.Account;
 using Volo.Abp.Account.Web;
 using Volo.Abp.AspNetCore.MultiTenancy;
@@ -32,23 +34,25 @@ using Volo.Abp.Localization;
 using Volo.Abp.Localization.ExceptionHandling;
 using Volo.Abp.Modularity;
 using Volo.Abp.MultiTenancy;
+using Volo.Abp.OpenIddict;
 using Volo.Abp.OpenIddict.EntityFrameworkCore;
 using Volo.Abp.PermissionManagement;
 using Volo.Abp.PermissionManagement.EntityFrameworkCore;
 using Volo.Abp.PermissionManagement.HttpApi;
 using Volo.Abp.PermissionManagement.Identity;
 using Volo.Abp.PermissionManagement.OpenIddict;
+using Volo.Abp.Security.Claims;
 using Volo.Abp.SettingManagement;
 using Volo.Abp.SettingManagement.EntityFrameworkCore;
 using Volo.Abp.Swashbuckle;
 using Volo.Abp.TenantManagement;
 using Volo.Abp.TenantManagement.EntityFrameworkCore;
-using Volo.Abp.OpenIddict;
-using Volo.Abp.Security.Claims;
 using Volo.Abp.UI.Navigation.Urls;
+using Volo.Abp.Uow;
 using Volo.Abp.Validation.Localization;
 using Volo.Abp.VirtualFileSystem;
-
+using ZiggyCreatures.Caching.Fusion;
+using ZiggyCreatures.Caching.Fusion.Serialization.NewtonsoftJson;
 namespace EnglishLearningApp;
 
 [DependsOn(
@@ -164,8 +168,27 @@ public class EnglishLearningAppModule : AbpModule
         ConfigureCors(context, configuration);
         ConfigureDataProtection(context);
         ConfigureEfCore(context);
-    }
+        ConfigureFusionCache(context, configuration);
 
+    }
+    private void ConfigureFusionCache(ServiceConfigurationContext context, IConfiguration configuration)
+    {
+        string redisConnectionString = configuration.GetConnectionString("Redis") ?? "localhost:6379";
+
+        // 1. Đăng ký Redis Connection
+        context.Services.AddSingleton<IConnectionMultiplexer>(ConnectionMultiplexer.Connect(redisConnectionString));
+
+        // 2. Đăng ký FusionCache (L1 Memory + L2 Redis)
+        context.Services.AddFusionCache()
+            .WithDefaultEntryOptions(options =>
+            {
+                options.Duration = TimeSpan.FromMinutes(10); // Cache mặc định 10 phút
+            })
+            .WithSerializer(new ZiggyCreatures.Caching.Fusion.Serialization.NewtonsoftJson.FusionCacheNewtonsoftJsonSerializer())
+            .WithDistributedCache(
+                new RedisCache(new RedisCacheOptions { Configuration = redisConnectionString })
+            );
+    }
     private void ConfigureAuthentication(ServiceConfigurationContext context)
     {
         context.Services.ForwardIdentityAuthenticationForBearer(OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme);
@@ -365,6 +388,7 @@ public class EnglishLearningAppModule : AbpModule
         app.UseRouting();
         app.UseCors();
         app.UseAuthentication();
+
         app.UseAbpOpenIddictValidation();
 
         if (IsMultiTenant)

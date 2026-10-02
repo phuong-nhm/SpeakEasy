@@ -67,28 +67,24 @@ Bài làm của học viên:
 
             return new
             {
-                // Tách role thành System Instruction chuẩn Gemini
                 systemInstruction = new
                 {
                     parts = new object[]
                     {
-                        new { text = "Bạn là giáo viên tiếng Anh, chấm bài viết theo chuẩn B1/B2, chấm nương tay và khích lệ người học. Hãy tìm ra các lỗi về Grammar, Vocabulary, Structure và đưa ra bản sửa hoàn chỉnh." }
+                new { text = "Bạn là giáo viên tiếng Anh, chấm bài viết theo chuẩn B1/B2, chấm nương tay và khích lệ người học. Hãy tìm ra các lỗi về Grammar, Vocabulary, Structure và đưa ra bản sửa hoàn chỉnh." }
                     }
                 },
                 contents = new object[]
                 {
-                    new
-                    {
-                        parts = new object[] { new { text = prompt } }
-                    }
+            new
+            {
+                parts = new object[] { new { text = prompt } }
+            }
                 },
                 generationConfig = new
                 {
-                    // Tăng độ chính xác cho chấm điểm
                     temperature = 0.2,
-                    // Ép Gemini trả về JSON thuần túy (không dính markdown ```json)
                     responseMimeType = "application/json",
-                    // Khai báo Schema bắt buộc cho Output
                     responseSchema = new
                     {
                         type = "OBJECT",
@@ -96,6 +92,7 @@ Bài làm của học viên:
                         {
                             isCorrect = new { type = "BOOLEAN" },
                             score = new { type = "NUMBER", description = "Thang điểm từ 0 đến 10" },
+                            band = new { type = "STRING", description = "Ước lượng band điểm IELTS tương ứng với bài viết, dạng chuỗi ví dụ '5.5', '6.0', '6.5'" },
                             explanation = new { type = "STRING", description = "Giải thích ngắn gọn bằng tiếng Việt" },
                             suggestedCorrection = new { type = "STRING", description = "Bản sửa lại hoàn chỉnh của cả bài viết" },
                             errors = new
@@ -114,7 +111,7 @@ Bài làm của học viên:
                                 }
                             }
                         },
-                        required = new[] { "isCorrect", "score", "errors", "explanation", "suggestedCorrection" }
+                        required = new[] { "isCorrect", "score", "band", "errors", "explanation", "suggestedCorrection" }
                     }
                 }
             };

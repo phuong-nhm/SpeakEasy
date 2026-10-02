@@ -23,9 +23,11 @@ export interface VocabularyDto {
   lessonId: string; // Guid
   word: string;
   meaning: string;
+  distractor: string;
   imageUrl?: string;
   audioUrl?: string;
   wordType: WordType;
+  imageHint?: string;
 }
 
 export interface CreateUpdateVocabularyDto {
@@ -36,6 +38,7 @@ export interface CreateUpdateVocabularyDto {
   imageUrl?: string;
   audioUrl?: string;
   wordType: WordType;
+  imageHint?: string;
 }
 
 // Dùng cho Admin paste JSON Import hàng loạt
@@ -47,4 +50,5 @@ export interface BatchImportVocabularyItem {
   imageUrl?: string;
   audioUrl?: string;
   wordType: WordType;
+  imageHint?: string;
 }

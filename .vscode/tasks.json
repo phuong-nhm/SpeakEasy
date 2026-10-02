@@ -10,7 +10,7 @@
     {
       "label": "🔥 Dev: Backend (.NET Watch)",
       "type": "shell",
-      "command": "dotnet watch run --project EnglishLearningApp/EnglishLearningApp.csproj",
+"command": "dotnet watch run --project EnglishLearningApp/EnglishLearningApp.csproj --no-hot-reload",
       "dependsOn": ["start-sql-docker"],
       "isBackground": true,
       "problemMatcher": "$msCompile"

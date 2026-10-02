@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 
 import { LessonQuestion } from "../../types/lesson";
 
@@ -18,21 +18,13 @@ export function FillInBlankExercise({
   isChecked,
 }: FillInBlankExerciseProps) {
   const choices = useMemo(() => question.options ?? [], [question.options]);
-  const [selectedValue, setSelectedValue] = useState<string | null>(
-    selectedAnswer,
-  );
-
-  useEffect(() => {
-    setSelectedValue(selectedAnswer ?? null);
-  }, [selectedAnswer]);
 
   const displayText = question.questionText.includes("___")
-    ? question.questionText.replace("___", selectedValue ?? "____")
+    ? question.questionText.replace("___", selectedAnswer ?? "____")
     : question.questionText;
 
   const handleSelect = (option: string) => {
     if (isChecked) return;
-    setSelectedValue(option);
     onAnswerChange(option);
   };
 
@@ -47,7 +39,7 @@ export function FillInBlankExercise({
 
       <div className="grid gap-3 sm:grid-cols-2">
         {choices.map((option) => {
-          const isSelected = selectedValue === option;
+          const isSelected = selectedAnswer === option;
           const isCorrect = isChecked && option === question.correctAnswer;
           const isWrongSelected =
             isChecked && isSelected && option !== question.correctAnswer;

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 
 import { VocabularyDto } from "../types/lesson";
 
@@ -26,7 +26,23 @@ const shuffle = <T,>(items: T[]) => {
   return next;
 };
 
+// Bọc ngoài: khi bộ từ vựng đổi (đổi bài học...) thì key đổi theo,
+// React tự huỷ và tạo lại toàn bộ state bên trong, khỏi cần effect reset.
 export function VocabMatchingGame({
+  vocabulary,
+  onComplete,
+}: VocabMatchingGameProps) {
+  const gameKey = vocabulary.map((item) => item.id).join("|");
+  return (
+    <VocabMatchingGameInner
+      key={gameKey}
+      vocabulary={vocabulary}
+      onComplete={onComplete}
+    />
+  );
+}
+
+function VocabMatchingGameInner({
   vocabulary,
   onComplete,
 }: VocabMatchingGameProps) {
@@ -40,8 +56,13 @@ export function VocabMatchingGame({
     [vocabulary],
   );
 
-  const [leftOrder, setLeftOrder] = useState<string[]>([]);
-  const [rightOrder, setRightOrder] = useState<string[]>([]);
+  const ids = useMemo(() => pairs.map((item) => item.id), [pairs]);
+
+  // Thứ tự xáo trộn chỉ cần tính 1 lần lúc mount (nhờ key ở component cha,
+  // mount lại là coi như "reset")
+  const [leftOrder] = useState<string[]>(() => shuffle(ids));
+  const [rightOrder] = useState<string[]>(() => shuffle(ids));
+
   const [selectedLeftId, setSelectedLeftId] = useState<string | null>(null);
   const [selectedRightId, setSelectedRightId] = useState<string | null>(null);
   const [matchedIds, setMatchedIds] = useState<Record<string, boolean>>({});
@@ -49,55 +70,8 @@ export function VocabMatchingGame({
     leftId: string;
     rightId: string;
   } | null>(null);
-  const [isFinished, setIsFinished] = useState(false);
 
-  useEffect(() => {
-    const ids = pairs.map((item) => item.id);
-    setLeftOrder(shuffle(ids));
-    setRightOrder(shuffle(ids));
-    setSelectedLeftId(null);
-    setSelectedRightId(null);
-    setMatchedIds({});
-    setWrongPair(null);
-    setIsFinished(false);
-  }, [pairs]);
-
-  useEffect(() => {
-    if (pairs.length === 0 || isFinished) return;
-
-    const matchedCount = Object.values(matchedIds).filter(Boolean).length;
-
-    if (matchedCount === pairs.length) {
-      setIsFinished(true);
-      onComplete();
-    }
-  }, [isFinished, matchedIds, onComplete, pairs.length]);
-
-  useEffect(() => {
-    if (!selectedLeftId || !selectedRightId) return;
-
-    const isCorrect = selectedLeftId === selectedRightId;
-
-    if (isCorrect) {
-      setMatchedIds((previous) => ({ ...previous, [selectedLeftId]: true }));
-      setSelectedLeftId(null);
-      setSelectedRightId(null);
-      setWrongPair(null);
-      return;
-    }
-
-    setWrongPair({ leftId: selectedLeftId, rightId: selectedRightId });
-
-    const timer = window.setTimeout(() => {
-      setWrongPair(null);
-      setSelectedLeftId(null);
-      setSelectedRightId(null);
-    }, 450);
-
-    return () => {
-      window.clearTimeout(timer);
-    };
-  }, [selectedLeftId, selectedRightId]);
+  const wrongTimerRef = useRef<number | null>(null);
 
   const pairById = useMemo(() => {
     return pairs.reduce<Record<string, PairItem>>((result, pair) => {
@@ -107,6 +81,48 @@ export function VocabMatchingGame({
   }, [pairs]);
 
   const matchedCount = Object.values(matchedIds).filter(Boolean).length;
+  const isFinished = pairs.length > 0 && matchedCount === pairs.length;
+
+  const clearWrongTimer = () => {
+    if (wrongTimerRef.current) {
+      window.clearTimeout(wrongTimerRef.current);
+      wrongTimerRef.current = null;
+    }
+  };
+
+  const judge = (leftId: string, rightId: string) => {
+    if (leftId === rightId) {
+      const nextMatchedCount = matchedCount + 1;
+      setMatchedIds((previous) => ({ ...previous, [leftId]: true }));
+      setSelectedLeftId(null);
+      setSelectedRightId(null);
+      setWrongPair(null);
+      if (nextMatchedCount === pairs.length) {
+        onComplete();
+      }
+      return;
+    }
+
+    setWrongPair({ leftId, rightId });
+    clearWrongTimer();
+    wrongTimerRef.current = window.setTimeout(() => {
+      setWrongPair(null);
+      setSelectedLeftId(null);
+      setSelectedRightId(null);
+    }, 450);
+  };
+
+  const handleSelectLeft = (id: string) => {
+    if (matchedIds[id] || isFinished || wrongPair) return;
+    setSelectedLeftId(id);
+    if (selectedRightId) judge(id, selectedRightId);
+  };
+
+  const handleSelectRight = (id: string) => {
+    if (matchedIds[id] || isFinished || wrongPair || !selectedLeftId) return;
+    setSelectedRightId(id);
+    judge(selectedLeftId, id);
+  };
 
   if (pairs.length === 0) {
     return (
@@ -152,10 +168,7 @@ export function VocabMatchingGame({
               <button
                 key={`left-${id}`}
                 type="button"
-                onClick={() => {
-                  if (isMatched || isFinished) return;
-                  setSelectedLeftId(id);
-                }}
+                onClick={() => handleSelectLeft(id)}
                 disabled={isMatched || isFinished}
                 className={`flex w-full items-center justify-center rounded-2xl border px-4 py-3 text-base font-bold transition ${
                   isMatched
@@ -186,10 +199,7 @@ export function VocabMatchingGame({
               <button
                 key={`right-${id}`}
                 type="button"
-                onClick={() => {
-                  if (isMatched || isFinished || !selectedLeftId) return;
-                  setSelectedRightId(id);
-                }}
+                onClick={() => handleSelectRight(id)}
                 disabled={isMatched || isFinished || !selectedLeftId}
                 className={`flex w-full items-center justify-center rounded-2xl border px-4 py-3 text-base font-semibold transition ${
                   isMatched

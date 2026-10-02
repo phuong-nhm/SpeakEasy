@@ -24,6 +24,7 @@ namespace EnglishLearningApp.Dtos.Writings
     {
         public bool IsCorrect { get; set; }
         public int Score { get; set; }
+        public string? Band { get; set; }
         public List<WritingErrorDto> Errors { get; set; }
         public string Explanation { get; set; }
         public string SuggestedCorrection { get; set; }
@@ -41,7 +42,7 @@ namespace EnglishLearningApp.Dtos.Writings
     {
         public Guid TopicId { get; set; }
         public string TopicTitle { get; set; }   // thêm mới - join từ WritingTopic
-        public string UserName { get; set; } 
+        public string UserName { get; set; }
         public string UserContent { get; set; }
         public AiFeedbackDto Feedback { get; set; }
         public DateTime CreationTime { get; set; }

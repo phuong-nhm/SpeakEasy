@@ -10,6 +10,7 @@ import {
 import { chapterService } from "@/features/admin/chapters/services/chapterService";
 import { levelService } from "@/features/admin/levels/services/levelService";
 import { listeningService } from "@/features/admin/listening/services/listeningService";
+import { useSafeAsyncEffect } from "@/hooks/useSafeAsyncEffect";
 
 export function useAdminListening() {
   const [levels, setLevels] = useState<LevelDto[]>([]);
@@ -54,16 +55,14 @@ export function useAdminListening() {
     };
   }, []);
 
-  useEffect(() => {
-    if (!selectedLevelId) {
-      setChapters([]);
-      setPassages([]);
-      return;
-    }
+  useSafeAsyncEffect(
+    async (isMounted) => {
+      if (!selectedLevelId) {
+        setChapters([]);
+        setPassages([]);
+        return;
+      }
 
-    let isMounted = true;
-
-    const fetchData = async () => {
       setIsLoading(true);
 
       try {
@@ -72,7 +71,7 @@ export function useAdminListening() {
           listeningService.getList(),
         ]);
 
-        if (!isMounted) return;
+        if (!isMounted()) return;
 
         setChapters(chapterData);
         if (chapterData.length > 0) {
@@ -89,18 +88,11 @@ export function useAdminListening() {
       } catch (error) {
         console.error("Lỗi lấy danh sách listening:", error);
       } finally {
-        if (isMounted) {
-          setIsLoading(false);
-        }
+        if (isMounted()) setIsLoading(false);
       }
-    };
-
-    fetchData();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [selectedLevelId, refreshKey]);
+    },
+    [selectedLevelId, refreshKey],
+  );
 
   const visiblePassages = useMemo(() => {
     const chapterOrder = new Map(

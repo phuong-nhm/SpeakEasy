@@ -18,6 +18,8 @@ export default function AdminVocabularyPage() {
     handleChapterChange,
     lessons,
     selectedLessonId,
+    modalLessonId,
+    setModalLessonId,
     vocabularies,
     isLoading,
     isModalOpen,
@@ -33,6 +35,10 @@ export default function AdminVocabularyPage() {
     setAudioUrl,
     distractor,
     setDistractor,
+    imageHint,
+    setImageHint,
+    wordType,
+    setWordType,
     isSubmitting,
     handleLessonChange,
     openCreateModal,
@@ -114,6 +120,13 @@ export default function AdminVocabularyPage() {
         setAudioUrl={setAudioUrl}
         distractor={distractor}
         setDistractor={setDistractor}
+        imageHint={imageHint}
+        setImageHint={setImageHint}
+        wordType={wordType}
+        setWordType={setWordType}
+        lessonId={modalLessonId || ""}
+        setLessonId={setModalLessonId}
+        lessons={lessons}
         isSubmitting={isSubmitting}
         onClose={closeModal}
         onSubmit={handleSubmit}

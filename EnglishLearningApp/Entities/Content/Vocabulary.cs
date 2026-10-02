@@ -24,6 +24,7 @@ namespace EnglishLearningApp.Entities.Content
             string meaning,
             string distractor,
             string imageUrl = null,
+            string? imageHint = null,
             string audioUrl = null) : base(id)
         {
             LessonId = lessonId;
@@ -31,6 +32,7 @@ namespace EnglishLearningApp.Entities.Content
             Meaning = meaning;
             Distractor = distractor;
             ImageUrl = imageUrl;
+            ImageHint = imageHint;
             AudioUrl = audioUrl;
         }
     }

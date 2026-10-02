@@ -8,8 +8,13 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="10.0.12" />
+    <PackageReference Include="Microsoft.Extensions.Http.Polly" Version="10.0.12" />
     <PackageReference Include="Serilog.AspNetCore" Version="8.0.2.0" />
     <PackageReference Include="Serilog.Sinks.Async" Version="2.0.0.0" />
+    <PackageReference Include="StackExchange.Redis" Version="3.3.1" />
+    <PackageReference Include="ZiggyCreatures.FusionCache" Version="2.9.0" />
+    <PackageReference Include="ZiggyCreatures.FusionCache.Serialization.NewtonsoftJson" Version="2.9.0" />
   </ItemGroup>
 
   <ItemGroup>
@@ -76,7 +81,8 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="9.0.0.0">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
-      <PrivateAssets>compile; contentFiles; build; buildMultitargeting; buildTransitive; analyzers; native</PrivateAssets>
+      <PrivateAssets>compile; contentFiles; build; buildMultitargeting; buildTransitive; analyzers;
+        native</PrivateAssets>
     </PackageReference>
   </ItemGroup>
 
@@ -109,5 +115,7 @@
     <Folder Include="Services\Writings\" />
     <Folder Include="Services\Progresses\" />
   </ItemGroup>
-
+  <ItemGroup>
+    <Watch Include="**\*" Exclude="wwwroot\uploads\**;bin\**;obj\**" />
+  </ItemGroup>
 </Project>

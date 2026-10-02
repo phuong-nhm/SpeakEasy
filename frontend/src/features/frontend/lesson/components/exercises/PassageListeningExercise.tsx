@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useRef, useState } from "react";
 
 import AiFeedbackCard from "../AiFeedbackCard";
 import { lessonService } from "../../services/lessonService";
@@ -24,6 +24,8 @@ const optionKeyMap: ListeningOptionKey[] = ["A", "B", "C", "D"];
 const sortQuestions = (questions: ListeningPassageQuestionDto[]) =>
   [...questions].sort((a, b) => a.orderIndex - b.orderIndex);
 
+// Component ngoài: chỉ lo việc hiển thị header chung (tiêu đề, nút phát audio)
+// và gắn key cho component con khi passage đổi.
 export function PassageListeningExercise({
   passage,
   onQuestionCorrect,
@@ -32,6 +34,67 @@ export function PassageListeningExercise({
   onComplete,
 }: PassageListeningExerciseProps) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  const playAudio = () => {
+    if (!audioRef.current) {
+      audioRef.current = new Audio(passage.audioUrl);
+    } else {
+      audioRef.current.src = passage.audioUrl;
+    }
+
+    audioRef.current.currentTime = 0;
+    void audioRef.current.play();
+  };
+
+  return (
+    <div className="space-y-5">
+      <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-500">
+              Passage listening
+            </p>
+            <h2 className="mt-2 text-2xl font-black text-slate-900">
+              {passage.title}
+            </h2>
+          </div>
+          <button
+            type="button"
+            onClick={playAudio}
+            className="rounded-full bg-indigo-600 px-4 py-2 text-sm font-bold text-white transition hover:bg-indigo-700"
+          >
+            Phát audio
+          </button>
+        </div>
+
+        <p className="mt-4 text-sm font-medium text-slate-600">
+          Nghe đoạn dài và trả lời từng câu hỏi bên dưới.
+        </p>
+      </div>
+
+      <PassageListeningExerciseContent
+        // Đổi passage -> key đổi -> React dựng lại component con từ đầu,
+        // toàn bộ state của passage cũ (currentIndex, essay, result...) tự sạch.
+        key={passage.questions.map((q) => q.id).join("|")}
+        passage={passage}
+        onQuestionCorrect={onQuestionCorrect}
+        onQuestionIncorrect={onQuestionIncorrect}
+        onEssaySubmitted={onEssaySubmitted}
+        onComplete={onComplete}
+      />
+    </div>
+  );
+}
+
+// Component trong: giữ toàn bộ state của riêng 1 passage
+// (currentIndex, selectedOptionKey, essayContent, result, isCompleted, loading).
+function PassageListeningExerciseContent({
+  passage,
+  onQuestionCorrect,
+  onQuestionIncorrect,
+  onEssaySubmitted,
+  onComplete,
+}: PassageListeningExerciseProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [selectedOptionKey, setSelectedOptionKey] =
     useState<ListeningOptionKey | null>(null);
@@ -46,27 +109,13 @@ export function PassageListeningExercise({
   const [loading, setLoading] = useState(false);
   const questionLocked = Boolean(result);
 
-  const questions = useMemo(() => sortQuestions(passage.questions), [passage]);
+  const questions = sortQuestions(passage.questions);
   const currentQuestion = questions[currentIndex] ?? null;
 
-  useEffect(() => {
-    setCurrentIndex(0);
-    setSelectedOptionKey(null);
-    setEssayContent("");
-    setResult(null);
-    setIsCompleted(false);
-    setLoading(false);
-  }, [passage]);
-
   const playAudio = () => {
-    if (!audioRef.current) {
-      audioRef.current = new Audio(passage.audioUrl);
-    } else {
-      audioRef.current.src = passage.audioUrl;
-    }
-
-    audioRef.current.currentTime = 0;
-    void audioRef.current.play();
+    const audio = new Audio(passage.audioUrl);
+    audio.currentTime = 0;
+    void audio.play();
   };
 
   const advanceQuestion = () => {
@@ -221,37 +270,15 @@ export function PassageListeningExercise({
           {loading ? "ĐANG CHẤM..." : "GỬI AI CHẤM BÀI"}
         </button>
 
-        {result?.aiFeedback && <AiFeedbackCard feedback={result.aiFeedback} />}
+        {result?.aiFeedback && (
+          <AiFeedbackCard feedback={result.aiFeedback} showBand={false} />
+        )}
       </div>
     );
   };
 
   return (
     <div className="space-y-5">
-      <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-500">
-              Passage listening
-            </p>
-            <h2 className="mt-2 text-2xl font-black text-slate-900">
-              {passage.title}
-            </h2>
-          </div>
-          <button
-            type="button"
-            onClick={playAudio}
-            className="rounded-full bg-indigo-600 px-4 py-2 text-sm font-bold text-white transition hover:bg-indigo-700"
-          >
-            Phát audio
-          </button>
-        </div>
-
-        <p className="mt-4 text-sm font-medium text-slate-600">
-          Nghe đoạn dài và trả lời từng câu hỏi bên dưới.
-        </p>
-      </div>
-
       {renderQuestionBody()}
 
       {result && currentQuestion?.questionType === "MultipleChoice" && (

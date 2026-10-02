@@ -26,7 +26,7 @@ export interface DueReviewItem {
   vocabId?: string | number;
 
   // Optional generic metadata bag coming from server
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 
   createdAt?: string;
   updatedAt?: string;
@@ -54,7 +54,7 @@ export interface PagedResult<T> {
 }
 
 // Server responses / requests for review flows
-export interface DueReviewsResponse extends PagedResult<DueReviewItem> {}
+export type DueReviewsResponse = PagedResult<DueReviewItem>;
 
 export interface CompleteReviewRequest {
   ids: Array<string | number>;
