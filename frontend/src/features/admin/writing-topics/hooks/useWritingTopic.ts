@@ -106,10 +106,12 @@ export function useWritingTopic() {
     };
   }, [selectedLevelId]);
 
-  // 3. Fetch topics theo level với phân trang
+  // 3. Fetch topics theo level với phân trang.
+  // Hàm này nhận levelId tùy chọn để có thể gọi ngay khi user đổi level,
+  // mà không cần effect nào trigger setState trong body effect.
   const fetchTopics = useCallback(
-    async (page = 1) => {
-      if (!selectedLevelId) {
+    async (page = 1, levelId = selectedLevelId) => {
+      if (!levelId) {
         setTopics([]);
         setTotalCount(0);
         return;
@@ -119,7 +121,7 @@ export function useWritingTopic() {
       try {
         const skipCount = (page - 1) * pageSize;
         const result = await writingTopicService.getTopicsByLevel(
-          selectedLevelId,
+          levelId,
           skipCount,
           pageSize,
         );
@@ -137,18 +139,21 @@ export function useWritingTopic() {
     [selectedLevelId, pageSize],
   );
 
-  // Gọi fetchTopics khi selectedLevelId thay đổi
-  useEffect(() => {
-    let isMounted = true;
+  const handleSelectLevel = useCallback(
+    (levelId: string) => {
+      setSelectedLevelId(levelId);
+      setCurrentPage(1);
 
-    if (isMounted) {
-      fetchTopics(1); // Reset về page 1 khi đổi level
-    }
+      if (!levelId) {
+        setTopics([]);
+        setTotalCount(0);
+        return;
+      }
 
-    return () => {
-      isMounted = false;
-    };
-  }, [fetchTopics]);
+      void fetchTopics(1, levelId);
+    },
+    [fetchTopics],
+  );
 
   // Backend đang fetch theo Level, nên không filter client-side theo Chapter.
   // Việc filter ở đây làm sai pagination vì page đang tính trên toàn dataset level.
@@ -226,7 +231,7 @@ export function useWritingTopic() {
   return {
     levels,
     selectedLevelId,
-    setSelectedLevelId,
+    setSelectedLevelId: handleSelectLevel,
     chapters,
     selectedChapterId,
     setSelectedChapterId,
