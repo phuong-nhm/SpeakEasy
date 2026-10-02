@@ -1,79 +1,90 @@
+import { apiClient } from "@/lib/apiClient";
+import { levelService } from "@/features/admin/levels/services/levelService";
+import { chapterService } from "@/features/admin/chapters/services/chapterService";
 import {
   WritingTopicDto,
   CreateUpdateWritingTopicDto,
   WritingTopicType,
 } from "@/features/admin/writing-topics/types/writing-topic";
 
-// Mock Data duy nhất cho WritingTopic
-let mockWritingTopics: WritingTopicDto[] = [
-  {
-    id: "11111111-1111-1111-1111-111111111111",
-    chapterId: "chap-001",
-    topicType: WritingTopicType.Weekly,
-    promptTitle: "Describe your best friend and why they are important to you.",
-  },
-  {
-    id: "22222222-2222-2222-2222-222222222222",
-    chapterId: "chap-002",
-    topicType: WritingTopicType.Monthly,
-    promptTitle:
-      "Write an essay about the impact of social media on modern relationships.",
-  },
-  {
-    id: "33333333-3333-3333-3333-333333333333",
-    chapterId: "4ba85f64-5717-4562-b3fc-2c963f66afa7",
-    topicType: WritingTopicType.Weekly,
-    promptTitle: "Discuss the pros and cons of working remotely from home.",
-  },
-];
+const mapTopic = (
+  topic: Partial<WritingTopicDto> | null | undefined,
+): WritingTopicDto | null => {
+  if (!topic) return null;
 
-// Helper giả lập delay API 200ms
-const delay = (ms: number = 200) =>
-  new Promise((resolve) => setTimeout(resolve, ms));
+  return {
+    id: String(topic.id ?? topic.id ?? ""),
+    chapterId: String(topic.chapterId ?? topic.chapterId ?? ""),
+    topicType: Number(
+      topic.topicType ?? topic.topicType ?? WritingTopicType.Weekly,
+    ),
+    promptTitle: String(topic.promptTitle ?? topic.promptTitle ?? ""),
+  };
+};
 
 export const writingTopicService = {
-  // GET /api/app/writing-topic
   async getTopics(): Promise<WritingTopicDto[]> {
-    await delay();
-    return [...mockWritingTopics];
+    const levels = await levelService.getList();
+    const topicMap = new Map<string, WritingTopicDto>();
+
+    for (const level of levels) {
+      const chapters = await chapterService.getByLevelId(level.id);
+
+      for (const chapter of chapters) {
+        for (const topicType of [
+          WritingTopicType.Weekly,
+          WritingTopicType.Monthly,
+        ]) {
+          try {
+            const topic = await apiClient<WritingTopicDto | null>(
+              `/api/app/writing-topic/available-topic/${encodeURIComponent(chapter.id)}`,
+            );
+
+            const normalized = mapTopic(topic);
+            if (!normalized || !normalized.id) {
+              continue;
+            }
+
+            topicMap.set(normalized.id, normalized);
+          } catch (error) {
+            const message = error instanceof Error ? error.message : "";
+            if (!/TopicNotAvailable|404|Not Found/i.test(message)) {
+              throw error;
+            }
+          }
+        }
+      }
+    }
+
+    return Array.from(topicMap.values()).sort((a, b) =>
+      a.chapterId.localeCompare(b.chapterId),
+    );
   },
 
-  // POST /api/app/writing-topic
   async createTopic(
     input: CreateUpdateWritingTopicDto,
   ): Promise<WritingTopicDto> {
-    await delay();
-    const newTopic: WritingTopicDto = {
-      id: crypto.randomUUID(),
-      ...input,
-    };
-    mockWritingTopics.push(newTopic);
-    return newTopic;
+    return apiClient<WritingTopicDto>("/api/app/writing-topic", {
+      method: "POST",
+      body: JSON.stringify(input),
+    });
   },
 
-  // PUT /api/app/writing-topic/{id}
   async updateTopic(
     id: string,
     input: CreateUpdateWritingTopicDto,
   ): Promise<WritingTopicDto> {
-    await delay();
-    const index = mockWritingTopics.findIndex(
-      (t) => String(t.id) === String(id),
-    );
-    if (index === -1) {
-      throw new Error("Writing topic not found");
-    }
-
-    const updatedTopic = { ...mockWritingTopics[index], ...input };
-    mockWritingTopics[index] = updatedTopic;
-    return updatedTopic;
+    return apiClient<WritingTopicDto>(`/api/app/writing-topic/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(input),
+    });
   },
 
-  // DELETE /api/app/writing-topic/{id}
   async deleteTopic(id: string): Promise<void> {
-    await delay();
-    mockWritingTopics = mockWritingTopics.filter(
-      (t) => String(t.id) !== String(id),
-    );
+    await apiClient<void>(`/api/app/writing-topic/${id}`, {
+      method: "DELETE",
+    });
   },
 };
+
+export default writingTopicService;

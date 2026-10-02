@@ -90,10 +90,9 @@ export function useAdminGrammarNotes() {
           return;
         }
 
-        const note = await grammarNoteService.getByLessonId(lessonId);
-        const items = note ? [note] : [];
-        setGrammarNotes(items);
-        setTotalCount(items.length);
+        const items = await grammarNoteService.getByLessonId(lessonId);
+        setGrammarNotes(items ?? []);
+        setTotalCount((items ?? []).length);
       } catch (error) {
         console.error("Lỗi lấy grammar note:", error);
         setGrammarNotes([]);

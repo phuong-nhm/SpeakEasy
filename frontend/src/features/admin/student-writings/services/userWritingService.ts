@@ -1,3 +1,4 @@
+import { apiClient } from "@/lib/apiClient";
 import { UserWritingDto } from "@/features/admin/student-writings/types/user-writings";
 
 type GetListForAdminParams = {
@@ -12,118 +13,66 @@ type AdminWritingListResult = {
   items: UserWritingDto[];
 };
 
-const mockUserWritings: UserWritingDto[] = [
-  {
-    id: "writing-001",
-    topicId: "topic-01",
-    topicTitle: "Describe your favorite holiday",
-    userName: "alice.nguyen",
-    userContent:
-      "My favorite holiday is Tet holiday because I can spend time with my family and eat traditional foods.",
-    feedback: {
-      isCorrect: true,
-      score: 88,
-      errors: [],
-      explanation:
-        "Bài viết có cấu trúc rõ ràng, từ vựng phù hợp và diễn đạt ý tưởng tốt.",
-      suggestedCorrection: "",
-    },
-    creationTime: "2026-09-12T09:15:00Z",
-  },
-  {
-    id: "writing-002",
-    topicId: "topic-02",
-    topicTitle: "Write about your daily routine",
-    userName: "minh.tran",
-    userContent:
-      "I usually wake up at six o clock, have breakfast, and go to school by bus. After class, I study and play football with my friends.",
-    feedback: {
-      isCorrect: false,
-      score: 72,
-      errors: [
-        {
-          errorType: "Grammar",
-          originalText: "six o clock",
-          suggestion: "six o'clock",
-        },
-        {
-          errorType: "Vocabulary",
-          originalText: "football",
-          suggestion: "soccer",
-        },
-      ],
-      explanation:
-        "Một số lỗi ngữ pháp và từ vựng cần được chỉnh sửa để câu văn tự nhiên hơn.",
-      suggestedCorrection:
-        "I usually wake up at six o'clock, have breakfast, and go to school by bus. After class, I study and play soccer with my friends.",
-    },
-    creationTime: "2026-09-13T14:20:00Z",
-  },
-  {
-    id: "writing-003",
-    topicId: "topic-01",
-    topicTitle: "Describe your favorite holiday",
-    userName: "hoang.le",
-    userContent:
-      "During summer vacation, I visited my grandparents in the countryside and learned how to cook local dishes.",
-    feedback: {
-      isCorrect: true,
-      score: 91,
-      errors: [],
-      explanation:
-        "Bài viết mạch lạc, thông tin hợp lý và có nhiều từ vựng phong phú.",
-      suggestedCorrection: "",
-    },
-    creationTime: "2026-09-14T08:40:00Z",
-  },
-];
+type PagedResponse<T> = {
+  totalCount?: number;
+  items?: T[];
+};
+
+const normalizeListResponse = <T>(
+  response: PagedResponse<T> | T[] | null | undefined,
+): { totalCount: number; items: T[] } => {
+  if (Array.isArray(response)) {
+    return { totalCount: response.length, items: response };
+  }
+
+  if (!response) {
+    return { totalCount: 0, items: [] };
+  }
+
+  return {
+    totalCount: response.totalCount ?? response.items?.length ?? 0,
+    items: response.items ?? [],
+  };
+};
 
 export const userWritingService = {
   getListForAdmin: async (
     params: GetListForAdminParams = {},
   ): Promise<AdminWritingListResult> => {
-    await new Promise((resolve) => setTimeout(resolve, 500));
+    const query = new URLSearchParams();
 
-    const filteredWritings = mockUserWritings.filter((writing) => {
-      const matchesUser = params.userId
-        ? writing.userName?.toLowerCase() === params.userId.toLowerCase()
-        : true;
-      const matchesTopic = params.topicId
-        ? writing.topicId === params.topicId
-        : true;
+    if (params.userId) query.set("userId", params.userId);
+    if (params.topicId) query.set("topicId", params.topicId);
+    if (params.skipCount !== undefined) {
+      query.set("skipCount", String(params.skipCount));
+    }
+    if (params.maxResultCount !== undefined) {
+      query.set("maxResultCount", String(params.maxResultCount));
+    }
 
-      return matchesUser && matchesTopic;
-    });
+    const endpoint = `/api/app/user-writing/for-admin${query.toString() ? `?${query.toString()}` : ""}`;
+    const response = await apiClient<
+      PagedResponse<UserWritingDto> | UserWritingDto[]
+    >(endpoint);
 
-    const skipCount = params.skipCount ?? 0;
-    const maxResultCount = params.maxResultCount ?? filteredWritings.length;
-
-    return {
-      totalCount: filteredWritings.length,
-      items: filteredWritings.slice(skipCount, skipCount + maxResultCount),
-    };
+    return normalizeListResponse(response);
   },
 
   getDetailForAdmin: async (
     writingId: string,
   ): Promise<UserWritingDto | undefined> => {
-    await new Promise((resolve) => setTimeout(resolve, 500));
+    const response = await apiClient<UserWritingDto | null>(
+      `/api/app/user-writing/detail-for-admin/${encodeURIComponent(writingId)}`,
+    );
 
-    return mockUserWritings.find((writing) => writing.id === writingId);
+    return response ?? undefined;
   },
 
   deleteWriting: async (writingId: string): Promise<boolean> => {
-    await new Promise((resolve) => setTimeout(resolve, 500));
+    await apiClient<void>(`/api/app/user-writing/${writingId}`, {
+      method: "DELETE",
+    });
 
-    const index = mockUserWritings.findIndex(
-      (writing) => writing.id === writingId,
-    );
-
-    if (index === -1) {
-      return false;
-    }
-
-    mockUserWritings.splice(index, 1);
     return true;
   },
 };
