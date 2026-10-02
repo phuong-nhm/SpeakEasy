@@ -7,7 +7,7 @@ import {
 export const sentenceExerciseService = {
   getByLessonId: async (lessonId: string): Promise<SentenceExerciseDto[]> => {
     return apiClient<SentenceExerciseDto[]>(
-      `/api/app/sentence-exercise/list-by-lesson?lessonId=${lessonId}`,
+      `/api/app/sentence-exercise/by-lesson/${lessonId}`,
     );
   },
 

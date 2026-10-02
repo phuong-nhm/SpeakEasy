@@ -48,22 +48,15 @@ export const grammarNoteService = {
     }
   },
 
-  getByLessonId: async (lessonId: string): Promise<GrammarNoteDto | null> => {
+  getByLessonId: async (lessonId: string): Promise<GrammarNoteDto[]> => {
     try {
-      return await apiClient<GrammarNoteDto>(
+      return await apiClient<GrammarNoteDto[]>(
         `/api/app/grammar-note/by-lesson/${lessonId}`,
       );
     } catch {
-      try {
-        return await apiClient<GrammarNoteDto>(
-          `/api/app/grammar-note/by-lesson/${lessonId}`,
-        );
-      } catch {
-        return null;
-      }
+      return [];
     }
   },
-
   getList: async (
     skipCount = 0,
     maxResultCount = 10,
