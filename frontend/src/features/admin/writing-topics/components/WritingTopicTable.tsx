@@ -39,7 +39,7 @@ export function WritingTopicTable({
           ) : topics.length === 0 ? (
             <tr>
               <td colSpan={4} className="py-8 text-center text-slate-400">
-                Chưa có Writing Topic nào trong Chapter này.
+                Chưa có Writing Topic nào trong Level này.
               </td>
             </tr>
           ) : (

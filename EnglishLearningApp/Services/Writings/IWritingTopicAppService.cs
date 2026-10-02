@@ -2,6 +2,7 @@ using System;
 using System.Threading.Tasks;
 using EnglishLearningApp.Dtos.Writings;
 using EnglishLearningApp.Entities;
+using Volo.Abp.Application.Dtos;
 using Volo.Abp.Application.Services;
 
 namespace EnglishLearningApp.AppServices.Writings
@@ -12,5 +13,8 @@ namespace EnglishLearningApp.AppServices.Writings
         Task<WritingTopicDto> CreateAsync(CreateUpdateWritingTopicDto input);
         Task<WritingTopicDto> UpdateAsync(Guid id, CreateUpdateWritingTopicDto input);
         Task DeleteAsync(Guid id);
+        Task<PagedResultDto<WritingTopicDto>> GetListByLevelAsync(
+    Guid levelId,
+    PagedAndSortedResultRequestDto input);
     }
 }

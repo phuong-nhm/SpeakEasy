@@ -20,6 +20,11 @@ export function useWritingTopic() {
   const [selectedLevelId, setSelectedLevelId] = useState<string>("");
   const [selectedChapterId, setSelectedChapterId] = useState<string>("");
 
+  // Pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize] = useState(10);
+  const [totalCount, setTotalCount] = useState(0);
+
   // Loading state
   const [loading, setLoading] = useState<boolean>(false);
 
@@ -29,7 +34,7 @@ export function useWritingTopic() {
     null,
   );
 
-  // 1. Fetch danh sách Levels ban đầu khi mount
+  // 1. Fetch levels khi mount
   useEffect(() => {
     let isMounted = true;
 
@@ -61,12 +66,11 @@ export function useWritingTopic() {
     };
   }, []);
 
-  // 2. Fetch danh sách Chapters khi selectedLevelId thay đổi
+  // 2. Fetch chapters khi selectedLevelId thay đổi
   useEffect(() => {
     let isMounted = true;
 
     const fetchChapters = async () => {
-      // Đưa kiểm tra điều kiện rỗng vào trong async function
       if (!selectedLevelId) {
         setChapters([]);
         setSelectedChapterId("");
@@ -102,37 +106,62 @@ export function useWritingTopic() {
     };
   }, [selectedLevelId]);
 
-  // 3. Fetch tất cả Topics khi mount
-  const fetchTopics = useCallback(async () => {
-    setLoading(true);
-    try {
-      const data = await writingTopicService.getTopics();
-      setTopics(data);
-    } catch (error) {
-      console.error("Failed to fetch topics:", error);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  // 3. Fetch topics theo level với phân trang
+  const fetchTopics = useCallback(
+    async (page = 1) => {
+      if (!selectedLevelId) {
+        setTopics([]);
+        setTotalCount(0);
+        return;
+      }
 
+      setLoading(true);
+      try {
+        const skipCount = (page - 1) * pageSize;
+        const result = await writingTopicService.getTopicsByLevel(
+          selectedLevelId,
+          skipCount,
+          pageSize,
+        );
+        setTopics(result.items ?? []);
+        setTotalCount(result.totalCount ?? 0);
+        setCurrentPage(page);
+      } catch (error) {
+        console.error("Failed to fetch topics:", error);
+        setTopics([]);
+        setTotalCount(0);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [selectedLevelId, pageSize],
+  );
+
+  // Gọi fetchTopics khi selectedLevelId thay đổi
   useEffect(() => {
     let isMounted = true;
 
-    // Chuyển việc gọi fetchTopics vào microtask để không bị trùng luồng render sync
-    Promise.resolve().then(() => {
-      if (isMounted) {
-        fetchTopics();
-      }
-    });
+    if (isMounted) {
+      fetchTopics(1); // Reset về page 1 khi đổi level
+    }
 
     return () => {
       isMounted = false;
     };
   }, [fetchTopics]);
 
-  // Lọc bài viết theo Chapter được chọn
-  const filteredTopics = topics.filter(
-    (t) => t.chapterId === selectedChapterId,
+  // Backend đang fetch theo Level, nên không filter client-side theo Chapter.
+  // Việc filter ở đây làm sai pagination vì page đang tính trên toàn dataset level.
+  const filteredTopics = topics;
+
+  // Pagination handler
+  const handlePageChange = useCallback(
+    async (nextPage: number) => {
+      const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
+      const normalizedPage = Math.min(Math.max(nextPage, 1), totalPages);
+      await fetchTopics(normalizedPage);
+    },
+    [fetchTopics, totalCount, pageSize],
   );
 
   // Modal Actions
@@ -151,13 +180,12 @@ export function useWritingTopic() {
     setEditingTopic(null);
   };
 
-  // POST /api/app/writing-topic
   const createTopic = async (input: CreateUpdateWritingTopicDto) => {
     setLoading(true);
     try {
-      const newTopic = await writingTopicService.createTopic(input);
-      setTopics((prev) => [...prev, newTopic]);
+      await writingTopicService.createTopic(input);
       closeModal();
+      await fetchTopics(currentPage);
     } catch (error) {
       console.error("Failed to create topic:", error);
     } finally {
@@ -165,16 +193,15 @@ export function useWritingTopic() {
     }
   };
 
-  // PUT /api/app/writing-topic/{id}
   const updateTopic = async (
     id: string,
     input: CreateUpdateWritingTopicDto,
   ) => {
     setLoading(true);
     try {
-      const updated = await writingTopicService.updateTopic(id, input);
-      setTopics((prev) => prev.map((t) => (t.id === id ? updated : t)));
+      await writingTopicService.updateTopic(id, input);
       closeModal();
+      await fetchTopics(currentPage);
     } catch (error) {
       console.error("Failed to update topic:", error);
     } finally {
@@ -182,13 +209,12 @@ export function useWritingTopic() {
     }
   };
 
-  // DELETE /api/app/writing-topic/{id}
   const deleteTopic = async (id: string) => {
     if (confirm("Bạn có chắc chắn muốn xóa chủ đề bài viết này?")) {
       setLoading(true);
       try {
         await writingTopicService.deleteTopic(id);
-        await setTopics((prev) => prev.filter((t) => t.id !== id));
+        await fetchTopics(currentPage);
       } catch (error) {
         console.error("Failed to delete topic:", error);
       } finally {
@@ -204,16 +230,20 @@ export function useWritingTopic() {
     chapters,
     selectedChapterId,
     setSelectedChapterId,
-    filteredTopics,
+    topics,
     loading,
     isModalOpen,
     editingTopic,
+    currentPage,
+    pageSize,
+    totalCount,
+    totalPages: Math.max(1, Math.ceil(totalCount / pageSize)),
     openAddModal,
     openEditModal,
     closeModal,
     createTopic,
     updateTopic,
     deleteTopic,
-    refetchTopics: fetchTopics,
+    handlePageChange,
   };
 }

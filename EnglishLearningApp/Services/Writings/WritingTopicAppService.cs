@@ -1,5 +1,6 @@
 using EnglishLearningApp.Dtos.Writings;
 using EnglishLearningApp.Entities;
+using EnglishLearningApp.Entities.Content;
 using EnglishLearningApp.Entities.Writing;
 using EnglishLearningApp.Permissions;
 using EnglishLearningApp.Services;
@@ -8,6 +9,7 @@ using System;
 using System.Linq;
 using System.Threading.Tasks;
 using Volo.Abp;
+using Volo.Abp.Application.Dtos;
 using Volo.Abp.Domain.Repositories;
 
 namespace EnglishLearningApp.AppServices.Writings
@@ -56,6 +58,38 @@ namespace EnglishLearningApp.AppServices.Writings
         public async Task DeleteAsync(Guid id)
         {
             await _topicRepo.DeleteAsync(id);
+        }
+        [AllowAnonymous]
+        public async Task<PagedResultDto<WritingTopicDto>> GetListByLevelAsync(
+    Guid levelId,
+    PagedAndSortedResultRequestDto input)
+        {
+            var chapterRepo = LazyServiceProvider.LazyGetRequiredService<IRepository<Chapter, Guid>>();
+
+            var chapterQueryable = await chapterRepo.GetQueryableAsync();
+            var chapterIds = await AsyncExecuter.ToListAsync(
+                chapterQueryable
+                    .Where(x => x.LevelId == levelId)
+                    .Select(x => x.Id));
+
+            if (!chapterIds.Any())
+            {
+                return new PagedResultDto<WritingTopicDto>(0, new List<WritingTopicDto>());
+            }
+
+            var topicQueryable = await _topicRepo.GetQueryableAsync();
+            var filteredQuery = topicQueryable
+                .Where(x => chapterIds.Contains(x.ChapterId))
+                .OrderBy(x => x.ChapterId)
+                .ThenBy(x => x.TopicType);
+
+            var totalCount = await AsyncExecuter.CountAsync(filteredQuery);
+            var items = await AsyncExecuter.ToListAsync(
+                filteredQuery.Skip(input.SkipCount).Take(input.MaxResultCount));
+
+            var itemDtos = ObjectMapper.Map<List<WritingTopic>, List<WritingTopicDto>>(items);
+
+            return new PagedResultDto<WritingTopicDto>(totalCount, itemDtos);
         }
     }
 }

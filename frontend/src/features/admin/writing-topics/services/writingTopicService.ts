@@ -21,7 +21,10 @@ const mapTopic = (
     promptTitle: String(topic.promptTitle ?? topic.promptTitle ?? ""),
   };
 };
-
+interface PagedResultDto<T> {
+  items: T[];
+  totalCount: number;
+}
 export const writingTopicService = {
   async getTopics(): Promise<WritingTopicDto[]> {
     const levels = await levelService.getList();
@@ -60,7 +63,20 @@ export const writingTopicService = {
       a.chapterId.localeCompare(b.chapterId),
     );
   },
+  async getTopicsByLevel(
+    levelId: string,
+    skipCount = 0,
+    maxResultCount = 10,
+  ): Promise<PagedResultDto<WritingTopicDto>> {
+    const params = new URLSearchParams({
+      SkipCount: String(skipCount),
+      MaxResultCount: String(maxResultCount),
+    });
 
+    return await apiClient<PagedResultDto<WritingTopicDto>>(
+      `/api/app/writing-topic/by-level/${levelId}?${params.toString()}`,
+    );
+  },
   async createTopic(
     input: CreateUpdateWritingTopicDto,
   ): Promise<WritingTopicDto> {
