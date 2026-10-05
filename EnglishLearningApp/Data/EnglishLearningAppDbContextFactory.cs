@@ -12,7 +12,7 @@ public class EnglishLearningAppDbContextFactory : IDesignTimeDbContextFactory<En
         var configuration = BuildConfiguration();
 
         var builder = new DbContextOptionsBuilder<EnglishLearningAppDbContext>()
-            .UseSqlServer(configuration.GetConnectionString("Default"));
+            .UseNpgsql(configuration.GetConnectionString("Default"));
 
         return new EnglishLearningAppDbContext(builder.Options);
     }
