@@ -27,19 +27,19 @@ function UserModalForm({
   onClose: () => void;
   onSave: (data: CreateIdentityUserDto | UpdateIdentityUserDto) => void;
 }) {
-  const [userName, setUserName] = useState(editingUser?.userName || "");
-  const [name, setName] = useState(editingUser?.name || "");
-  const [surname, setSurname] = useState(editingUser?.surname || "");
-  const [email, setEmail] = useState(editingUser?.email || "");
+  const [userName, setUserName] = useState(() => editingUser?.userName ?? "");
+  const [name, setName] = useState(() => editingUser?.name ?? "");
+  const [surname, setSurname] = useState(() => editingUser?.surname ?? "");
+  const [email, setEmail] = useState(() => editingUser?.email ?? "");
   const [phoneNumber, setPhoneNumber] = useState(
-    editingUser?.phoneNumber || "",
+    () => editingUser?.phoneNumber ?? "",
   );
   const [password, setPassword] = useState("");
-  const [isActive, setIsActive] = useState(
-    editingUser ? editingUser.isActive : true,
+  const [isActive, setIsActive] = useState(() =>
+    Boolean(editingUser ? editingUser.isActive : true),
   );
   const [selectedRoles, setSelectedRoles] = useState<string[]>(
-    editingUser ? (editingUser.roleNames ?? []) : ["student"],
+    () => editingUser?.roleNames ?? [],
   );
 
   const handleToggleRole = (roleName: string) => {
