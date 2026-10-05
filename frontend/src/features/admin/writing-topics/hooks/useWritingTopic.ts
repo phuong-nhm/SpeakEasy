@@ -139,21 +139,32 @@ export function useWritingTopic() {
     [selectedLevelId, pageSize],
   );
 
-  const handleSelectLevel = useCallback(
-    (levelId: string) => {
-      setSelectedLevelId(levelId);
-      setCurrentPage(1);
+  const handleSelectLevel = useCallback((levelId: string) => {
+    setSelectedLevelId(levelId);
+    setCurrentPage(1);
 
-      if (!levelId) {
-        setTopics([]);
-        setTotalCount(0);
-        return;
-      }
+    if (!levelId) {
+      setTopics([]);
+      setTotalCount(0);
+    }
+  }, []);
 
-      void fetchTopics(1, levelId);
-    },
-    [fetchTopics],
-  );
+  // Auto-fetch khi level đã sẵn sàng, bao gồm lần đầu component mount.
+  // Dùng effect với dependency [selectedLevelId, fetchTopics] để tránh rơi vào
+  // trường hợp level mới set nhưng không trigger fetch topics.
+  useEffect(() => {
+    if (!selectedLevelId) {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      void fetchTopics(1, selectedLevelId);
+    }, 0);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [fetchTopics, selectedLevelId]);
 
   // Backend đang fetch theo Level, nên không filter client-side theo Chapter.
   // Việc filter ở đây làm sai pagination vì page đang tính trên toàn dataset level.
