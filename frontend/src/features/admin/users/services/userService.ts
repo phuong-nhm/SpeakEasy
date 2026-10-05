@@ -23,6 +23,32 @@ type PagedResponse<T> = {
   items?: T[];
 };
 
+type UserRoleResponse =
+  | Array<{ id?: string; name?: string } | string>
+  | {
+      items?: Array<{ id?: string; name?: string } | string>;
+      roleNames?: string[];
+      roles?: string[];
+    }
+  | null
+  | undefined;
+
+const normalizeUser = (
+  user: Partial<IdentityUserDto> | null | undefined,
+): IdentityUserDto => ({
+  id: user?.id ?? "",
+  userName: user?.userName ?? "",
+  name: user?.name ?? "",
+  surname: user?.surname ?? "",
+  email: user?.email ?? "",
+  phoneNumber: user?.phoneNumber ?? "",
+  isActive: user?.isActive ?? false,
+  lockoutEnabled: user?.lockoutEnabled ?? false,
+  creationTime: user?.creationTime ?? "",
+  concurrencyStamp: user?.concurrencyStamp ?? "",
+  roleNames: Array.isArray(user?.roleNames) ? user.roleNames : [],
+});
+
 const normalizeListResponse = <T>(
   response: PagedResponse<T> | T[] | null | undefined,
 ): { totalCount: number; items: T[] } => {
@@ -41,6 +67,46 @@ const normalizeListResponse = <T>(
 };
 
 export const userService = {
+  getUserRoleNames: async (userId: string): Promise<string[]> => {
+    if (!userId) {
+      return [];
+    }
+
+    try {
+      const response = await apiClient<UserRoleResponse>(
+        `/api/identity/users/${userId}/roles`,
+      );
+
+      if (!response) {
+        return [];
+      }
+
+      if (Array.isArray(response)) {
+        return response
+          .map((item) => (typeof item === "string" ? item : item?.name))
+          .filter((name): name is string => Boolean(name));
+      }
+
+      if (Array.isArray(response.items)) {
+        return response.items
+          .map((item) => (typeof item === "string" ? item : item?.name))
+          .filter((name): name is string => Boolean(name));
+      }
+
+      if (Array.isArray(response.roleNames)) {
+        return response.roleNames;
+      }
+
+      if (Array.isArray(response.roles)) {
+        return response.roles;
+      }
+
+      return [];
+    } catch {
+      return [];
+    }
+  },
+
   getList: async (
     params: GetListUserParams = {},
   ): Promise<GetListUserResult> => {
@@ -60,14 +126,28 @@ export const userService = {
     >(`/api/identity/users${query.toString() ? `?${query.toString()}` : ""}`);
 
     const normalized = normalizeListResponse(response);
+    const users = (normalized.items as Array<Partial<IdentityUserDto>>).map(
+      normalizeUser,
+    );
+
+    const enrichedUsers = await Promise.all(
+      users.map(async (user) => ({
+        ...user,
+        roleNames: user.id ? await userService.getUserRoleNames(user.id) : [],
+      })),
+    );
+
     return {
       totalCount: normalized.totalCount,
-      items: normalized.items,
+      items: enrichedUsers,
     };
   },
 
   getById: async (id: string): Promise<IdentityUserDto | undefined> => {
-    return apiClient<IdentityUserDto>(`/api/identity/users/${id}`);
+    const user = await apiClient<IdentityUserDto | undefined>(
+      `/api/identity/users/${id}`,
+    );
+    return user ? normalizeUser(user) : undefined;
   },
 
   create: async (data: CreateIdentityUserDto): Promise<IdentityUserDto> => {
@@ -81,9 +161,23 @@ export const userService = {
     id: string,
     data: UpdateIdentityUserDto,
   ): Promise<IdentityUserDto> => {
+    const { roleNames, ...profilePayload } = data;
+
+    void roleNames;
+
     return apiClient<IdentityUserDto>(`/api/identity/users/${id}`, {
       method: "PUT",
-      body: JSON.stringify(data),
+      body: JSON.stringify(profilePayload),
+    });
+  },
+
+  updateRoles: async (
+    id: string,
+    roleNames: string[],
+  ): Promise<IdentityUserDto> => {
+    return apiClient<IdentityUserDto>(`/api/identity/users/${id}/roles`, {
+      method: "PUT",
+      body: JSON.stringify({ roleNames }),
     });
   },
 

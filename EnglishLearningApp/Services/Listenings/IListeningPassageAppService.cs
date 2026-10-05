@@ -5,6 +5,8 @@ namespace EnglishLearningApp.Services.Listenings
 {
     public interface IListeningPassageAppService
     {
+        Task<List<ListeningPassageDto>> GetListByLevelAsync(Guid levelId);
+        Task<List<ListeningPassageDto>> GetListByChapterAsync(Guid chapterId);
         Task<ListeningPassageDto> CreateAsync(CreateUpdateListeningPassageDto input);
         Task<ListeningPassageDto> UpdateAsync(Guid id, CreateUpdateListeningPassageDto input);
         Task<ListeningPassageDto> GetForAdminAsync(Guid id);

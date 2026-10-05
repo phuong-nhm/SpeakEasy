@@ -61,14 +61,16 @@ export default function UsersPage() {
         </div>
       ) : null}
 
-      <UserTable
-        users={users}
-        isLoading={loading}
-        onEdit={openEditModal}
-        onDelete={handleDeleteUser}
-        onAssignRole={openEditModal}
-        onToggleActive={toggleUserActive}
-      />
+      {!error ? (
+        <UserTable
+          users={users}
+          isLoading={loading}
+          onEdit={openEditModal}
+          onDelete={handleDeleteUser}
+          onAssignRole={openEditModal}
+          onToggleActive={toggleUserActive}
+        />
+      ) : null}
 
       <UserModal
         isOpen={isModalOpen}

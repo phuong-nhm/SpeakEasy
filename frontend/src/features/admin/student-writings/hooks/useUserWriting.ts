@@ -15,6 +15,7 @@ export function useUserWriting() {
   const [skipCount, setSkipCount] = useState(0);
   const [maxResultCount, setMaxResultCount] = useState(10);
   const [totalCount, setTotalCount] = useState(0);
+  const [currentPage, setCurrentPage] = useState(1);
   const [filter, setFilter] = useState<UserWritingFilter>({});
   const [selectedWriting, setSelectedWriting] = useState<UserWritingDto | null>(
     null,
@@ -69,7 +70,21 @@ export function useUserWriting() {
       ...nextFilter,
     }));
     setSkipCount(0);
+    setCurrentPage(1);
   }, []);
+
+  const totalPages = Math.max(1, Math.ceil(totalCount / maxResultCount));
+
+  const handlePageChange = useCallback(
+    (nextPage: number) => {
+      const normalizedPage = Math.min(Math.max(nextPage, 1), totalPages);
+      const nextSkipCount = (normalizedPage - 1) * maxResultCount;
+
+      setCurrentPage(normalizedPage);
+      setSkipCount(nextSkipCount);
+    },
+    [maxResultCount, totalPages],
+  );
 
   const openDetailModal = useCallback(async (writingId: string) => {
     setDetailLoading(true);
@@ -126,6 +141,8 @@ export function useUserWriting() {
       skipCount,
       maxResultCount,
       totalCount,
+      currentPage,
+      totalPages,
     },
     filter,
     userId: filter.userId,
@@ -137,7 +154,11 @@ export function useUserWriting() {
     setMaxResultCount: (value: number) => {
       setMaxResultCount(value);
       setSkipCount(0);
+      setCurrentPage(1);
     },
+    currentPage,
+    totalPages,
+    handlePageChange,
     searchQuery,
     setSearchQuery,
     selectedWriting,
