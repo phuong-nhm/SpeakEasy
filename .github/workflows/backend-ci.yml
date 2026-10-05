@@ -27,7 +27,35 @@ jobs:
 
       - name: Restore dependencies
         run: dotnet restore EnglishLearningApp.sln
+        # ----------------------------------------------------
+      # SECURITY SCAN 1: Quét lỗ hổng thư viện NuGet chính chủ .NET
+      # ----------------------------------------------------
+      - name: Check Vulnerable NuGet Packages
+        run: dotnet list EnglishLearningApp.sln package --vulnerable --include-transitive
+        # ----------------------------------------------------
+      # SECURITY SCAN 2: Quét mã nguồn & cấu hình bằng Trivy
+      # ----------------------------------------------------
+      - name: Run Trivy Security Scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: 'EnglishLearningApp'
+          severity: 'CRITICAL,HIGH'
+          exit-code: '0' # Đặt '1' nếu muốn CI bị FAIL ngay khi phát hiện lỗi bảo mật nặng (Critical/High)
+# ----------------------------------------------------
+      # BƯỚC MỚI 1: Cài đặt công cụ dotnet-ef trên máy ảo CI
+      # ----------------------------------------------------
+      - name: Install dotnet-ef Tool
+        run: dotnet tool install --global dotnet-ef
 
+      # ----------------------------------------------------
+      # BƯỚC MỚI 2: Kiểm tra EF Core Migrations (Dry-run)
+      # ----------------------------------------------------
+      - name: Verify EF Core Migrations
+        run: |
+          dotnet ef migrations script --idempotent --project EnglishLearningApp/EnglishLearningApp.csproj
+       
+          
       - name: Build backend project
         run: dotnet build EnglishLearningApp.sln --no-restore --configuration Release
 

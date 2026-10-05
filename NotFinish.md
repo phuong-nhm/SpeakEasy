@@ -1,1 +1,8 @@
-Có 1 chỗ không liên quan lint nhưng mình thấy: listeningService.getList() không truyền selectedLevelId, nghĩa là mỗi lần đổi level nó lại tải lại toàn bộ danh sách passage giống hệt. Nếu đúng là danh sách này không phụ thuộc level (rồi lọc theo chapter ở phía client), thì nên tách ra 1 effect riêng chỉ chạy theo refreshKey, còn effect theo level chỉ tải chapter. Đỡ gọi API thừa, và đổi level cũng không bị chớp loading cả danh sách passage. Nếu thực ra backend có lọc theo level thì bạn bỏ qua, nhưng khi đó nên truyền level vào hàm cho đúng.
+Đúng rồi bạn! Cách 2 (Dựng Database Container thật) thường được dùng ở giai đoạn Integration Test hoặc ngay trước khi CD (Deploy) để đảm bảo lệnh migration thực sự chạy thành công trên database thật chứ không chỉ kiểm tra cú pháp trên giấy.
+
+Dưới đây là tóm tắt ngắn gọn Cách 2 để mốt bạn cần dùng chỉ việc bảo mình nhé:
+
+Cách 2: Dựng Database Container thật bằng services (Run Integration Test / CD Check)
+Bản chất của cách này là bảo GitHub Actions: "Hãy kéo Docker Image của PostgreSQL về, bật một Database Server thật chạy song song bên cạnh máy ảo CI, rồi chạy lệnh dotnet ef database update vào đó!"
+
+Cấu hình mẫu trong Workflow YAML:
