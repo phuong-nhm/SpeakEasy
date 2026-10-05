@@ -59,7 +59,13 @@ export async function apiClient<T>(
     // ABP trả lỗi dạng { error: { message, details } }
     const errorBody = await res.json().catch(() => null);
     const message = errorBody?.error?.message || `API error: ${res.status}`;
-    throw new Error(message);
+    const apiError = new Error(message) as Error & {
+      status?: number;
+      code?: string;
+    };
+    apiError.status = res.status;
+    apiError.code = errorBody?.error?.code;
+    throw apiError;
   }
 
   // 204 No Content (DeleteAsync thường trả kiểu này)

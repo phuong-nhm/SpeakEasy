@@ -17,6 +17,9 @@ export default function UserWritingsPage() {
     topicId,
     setUserId,
     setTopicId,
+    currentPage,
+    totalPages,
+    handlePageChange,
     selectedWriting,
     openDetailModal,
     closeDetailModal,
@@ -25,12 +28,15 @@ export default function UserWritingsPage() {
   const filteredWritings = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
 
+    if (!query) {
+      return writings;
+    }
+
     return writings.filter((item) => {
       const matchesQuery =
-        query.length === 0 ||
         (item.userName?.toLowerCase() || "").includes(query) ||
         (item.topicTitle?.toLowerCase() || "").includes(query) ||
-        item.userContent.toLowerCase().includes(query);
+        (item.userContent?.toLowerCase() || "").includes(query);
 
       const matchesUserId =
         !userId || (item.userName || "").toLowerCase() === userId.toLowerCase();
@@ -78,6 +84,50 @@ export default function UserWritingsPage() {
           void openDetailModal(writing.id);
         }}
       />
+
+      <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+        <span className="text-sm text-slate-600">
+          Trang {currentPage} / {totalPages}
+        </span>
+
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => handlePageChange(1)}
+            disabled={currentPage <= 1}
+            className="rounded border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            &lt;&lt;
+          </button>
+
+          <button
+            type="button"
+            onClick={() => handlePageChange(currentPage - 1)}
+            disabled={currentPage <= 1}
+            className="rounded border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            Previous
+          </button>
+
+          <button
+            type="button"
+            onClick={() => handlePageChange(currentPage + 1)}
+            disabled={currentPage >= totalPages}
+            className="rounded border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            Next
+          </button>
+
+          <button
+            type="button"
+            onClick={() => handlePageChange(totalPages)}
+            disabled={currentPage >= totalPages}
+            className="rounded border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            &gt;&gt;
+          </button>
+        </div>
+      </div>
 
       <UserWritingDetailModal
         isOpen={!!selectedWriting}

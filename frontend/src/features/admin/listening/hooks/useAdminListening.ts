@@ -68,7 +68,7 @@ export function useAdminListening() {
       try {
         const [chapterData, passageData] = await Promise.all([
           chapterService.getByLevelId(selectedLevelId),
-          listeningService.getList(),
+          listeningService.getList(selectedLevelId),
         ]);
 
         if (!isMounted()) return;

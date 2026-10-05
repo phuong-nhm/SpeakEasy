@@ -5,15 +5,16 @@ export interface IdentityRoleLookupDto {
 
 export interface IdentityUserDto {
   id: string;
-  userName: string;
-  name: string;
-  surname: string;
-  email: string;
+  userName?: string;
+  name?: string;
+  surname?: string;
+  email?: string;
   phoneNumber?: string;
-  isActive: boolean;
-  lockoutEnabled: boolean;
-  creationTime: string;
-  roleNames: string[];
+  isActive?: boolean;
+  lockoutEnabled?: boolean;
+  creationTime?: string;
+  concurrencyStamp?: string;
+  roleNames?: string[];
 }
 
 export interface CreateIdentityUserDto {
@@ -25,7 +26,8 @@ export interface CreateIdentityUserDto {
   password?: string;
   isActive: boolean;
   lockoutEnabled: boolean;
-  roleNames: string[];
+  concurrencyStamp?: string;
+  roleNames?: string[];
 }
 
 export interface UpdateIdentityUserDto {
@@ -37,5 +39,6 @@ export interface UpdateIdentityUserDto {
   password?: string;
   isActive: boolean;
   lockoutEnabled: boolean;
-  roleNames: string[];
+  concurrencyStamp?: string;
+  roleNames?: string[];
 }

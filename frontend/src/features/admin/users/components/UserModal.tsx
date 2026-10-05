@@ -39,7 +39,7 @@ function UserModalForm({
     editingUser ? editingUser.isActive : true,
   );
   const [selectedRoles, setSelectedRoles] = useState<string[]>(
-    editingUser?.roleNames || ["student"],
+    editingUser ? (editingUser.roleNames ?? []) : ["student"],
   );
 
   const handleToggleRole = (roleName: string) => {
@@ -62,6 +62,7 @@ function UserModalForm({
       password: password || undefined,
       isActive,
       lockoutEnabled: true,
+      concurrencyStamp: editingUser?.concurrencyStamp,
       roleNames: selectedRoles,
     };
 

@@ -12,6 +12,11 @@ type UserFilter = {
   roleName?: string;
 };
 
+type ApiLikeError = Error & {
+  status?: number;
+  code?: string;
+};
+
 export function useUserManagement() {
   const [data, setData] = useState<IdentityUserDto[]>([]);
   const [roles, setRoles] = useState<IdentityRoleLookupDto[]>([]);
@@ -47,11 +52,21 @@ export function useUserManagement() {
         setData(result.items);
         setTotalCount(result.totalCount);
       } catch (err) {
-        const message =
-          err instanceof Error ? err.message : "Failed to load users.";
+        const apiErr = err as ApiLikeError;
+        const isForbidden =
+          apiErr?.status === 403 ||
+          apiErr?.code === "Volo.Authorization:010001";
+        const message = isForbidden
+          ? "Bạn không còn quyền xem danh sách người dùng (AbpIdentity.Users). Hãy đăng nhập bằng tài khoản admin hoặc gán lại quyền."
+          : err instanceof Error
+            ? err.message
+            : "Failed to load users.";
         setError(message);
-        setData([]);
-        setTotalCount(0);
+
+        if (!isForbidden) {
+          setData([]);
+          setTotalCount(0);
+        }
       } finally {
         setLoading(false);
       }
@@ -116,17 +131,57 @@ export function useUserManagement() {
     setSelectedUser(null);
   }, []);
 
+  const resolveRoleSaveError = useCallback((err: unknown) => {
+    const detail = err instanceof Error ? err.message : "Unknown error.";
+    return `Luu thong tin nguoi dung thanh cong nhung gan vai tro that bai. Vui long mo lai nguoi dung va thu lai. Chi tiet: ${detail}`;
+  }, []);
+
+  const hasProfileChanges = useCallback(
+    (payload: UpdateIdentityUserDto, currentUser: IdentityUserDto) => {
+      return (
+        (payload.userName ?? "") !== (currentUser.userName ?? "") ||
+        (payload.name ?? "") !== (currentUser.name ?? "") ||
+        (payload.surname ?? "") !== (currentUser.surname ?? "") ||
+        (payload.email ?? "") !== (currentUser.email ?? "") ||
+        (payload.phoneNumber ?? "") !== (currentUser.phoneNumber ?? "") ||
+        (payload.isActive ?? false) !== (currentUser.isActive ?? false) ||
+        (payload.lockoutEnabled ?? false) !==
+          (currentUser.lockoutEnabled ?? false) ||
+        Boolean(payload.password)
+      );
+    },
+    [],
+  );
+
   const handleCreateUser = useCallback(
     async (payload: CreateIdentityUserDto) => {
       setLoading(true);
       setError(null);
 
       try {
-        const createdUser = await userService.create(payload);
-        setSelectedUser(createdUser);
+        let roleSaveWarning: string | null = null;
+        const { roleNames, ...profilePayload } = payload;
+        const createdUser = await userService.create(profilePayload);
+
+        if (roleNames && roleNames.length > 0) {
+          try {
+            await userService.updateRoles(createdUser.id, roleNames);
+          } catch (roleErr) {
+            roleSaveWarning = resolveRoleSaveError(roleErr);
+          }
+        }
+
+        setSelectedUser({
+          ...createdUser,
+          roleNames: roleNames ?? createdUser.roleNames,
+        });
         setIsModalOpen(false);
         setEditingUser(null);
         await handleFetchUsers();
+
+        if (roleSaveWarning) {
+          setError(roleSaveWarning);
+        }
       } catch (err) {
         const message =
           err instanceof Error ? err.message : "Failed to create user.";
@@ -135,7 +190,7 @@ export function useUserManagement() {
         setLoading(false);
       }
     },
-    [handleFetchUsers],
+    [handleFetchUsers, resolveRoleSaveError],
   );
 
   const handleUpdateUser = useCallback(
@@ -144,11 +199,47 @@ export function useUserManagement() {
       setError(null);
 
       try {
-        const updatedUser = await userService.update(id, payload);
+        let roleSaveWarning: string | null = null;
+        if (!editingUser) {
+          throw new Error(
+            "Khong tim thay du lieu nguoi dung hien tai de cap nhat.",
+          );
+        }
+
+        let updatedUser: IdentityUserDto = editingUser;
+        const { roleNames, ...profilePayload } = payload;
+        const shouldUpdateProfile = hasProfileChanges(payload, editingUser);
+
+        if (shouldUpdateProfile) {
+          const safePayload: UpdateIdentityUserDto = {
+            ...profilePayload,
+            concurrencyStamp:
+              payload.concurrencyStamp || editingUser.concurrencyStamp || "",
+          };
+
+          updatedUser = await userService.update(id, safePayload);
+        }
+
+        if (Array.isArray(roleNames)) {
+          try {
+            await userService.updateRoles(id, roleNames);
+            updatedUser = {
+              ...updatedUser,
+              roleNames,
+            };
+          } catch (roleErr) {
+            roleSaveWarning = resolveRoleSaveError(roleErr);
+          }
+        }
+
         setSelectedUser(updatedUser);
         setIsModalOpen(false);
         setEditingUser(null);
         await handleFetchUsers();
+
+        if (roleSaveWarning) {
+          setError(roleSaveWarning);
+        }
       } catch (err) {
         const message =
           err instanceof Error ? err.message : "Failed to update user.";
@@ -157,7 +248,7 @@ export function useUserManagement() {
         setLoading(false);
       }
     },
-    [handleFetchUsers],
+    [editingUser, handleFetchUsers, hasProfileChanges, resolveRoleSaveError],
   );
 
   const handleSaveUser = useCallback(
@@ -201,15 +292,16 @@ export function useUserManagement() {
   const toggleUserActive = useCallback(
     async (user: IdentityUserDto) => {
       const nextPayload: UpdateIdentityUserDto = {
-        userName: user.userName,
-        name: user.name,
-        surname: user.surname,
-        email: user.email,
+        userName: user.userName ?? "",
+        name: user.name ?? "",
+        surname: user.surname ?? "",
+        email: user.email ?? "",
         phoneNumber: user.phoneNumber,
         password: undefined,
-        isActive: !user.isActive,
-        lockoutEnabled: user.lockoutEnabled,
-        roleNames: user.roleNames,
+        isActive: !(user.isActive ?? false),
+        lockoutEnabled: user.lockoutEnabled ?? false,
+        concurrencyStamp: user.concurrencyStamp,
+        roleNames: user.roleNames ?? [],
       };
 
       await handleUpdateUser(user.id, nextPayload);

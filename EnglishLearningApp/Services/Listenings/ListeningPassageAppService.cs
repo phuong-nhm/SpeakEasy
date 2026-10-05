@@ -1,5 +1,6 @@
 ﻿using EnglishLearningApp.Dtos.Listenings;
 using EnglishLearningApp.Entities;
+using EnglishLearningApp.Entities.Content;
 using EnglishLearningApp.Entities.Listening;
 using EnglishLearningApp.Permissions;
 using Microsoft.AspNetCore.Authorization;
@@ -12,16 +13,66 @@ namespace EnglishLearningApp.Services.Listenings
     {
         private readonly IRepository<ListeningPassage, Guid> _passageRepo;
         private readonly IRepository<ListeningQuestion, Guid> _questionRepo;
+        private readonly IRepository<Chapter, Guid> _chapterRepo;
 
         public ListeningPassageAppService(
             IRepository<ListeningPassage, Guid> passageRepo,
-            IRepository<ListeningQuestion, Guid> questionRepo)
+            IRepository<ListeningQuestion, Guid> questionRepo,
+            IRepository<Chapter, Guid> chapterRepo)
         {
             _passageRepo = passageRepo;
             _questionRepo = questionRepo;
+            _chapterRepo = chapterRepo;
         }
 
         // ================= ADMIN =================
+
+        [Authorize(EnglishLearningAppPermissions.ContentManagement.View)]
+        public async Task<List<ListeningPassageDto>> GetListByLevelAsync(Guid levelId)
+        {
+            var chapterQueryable = await _chapterRepo.GetQueryableAsync();
+            var chapterIds = await AsyncExecuter.ToListAsync(
+                chapterQueryable
+                    .Where(x => x.LevelId == levelId)
+                    .Select(x => x.Id));
+
+            if (!chapterIds.Any())
+            {
+                return new List<ListeningPassageDto>();
+            }
+
+            var passageQueryable = await _passageRepo.GetQueryableAsync();
+            var passages = await AsyncExecuter.ToListAsync(
+                passageQueryable
+                    .Where(x => chapterIds.Contains(x.ChapterId))
+                    .OrderBy(x => x.Title));
+
+            var items = new List<ListeningPassageDto>();
+            foreach (var passage in passages)
+            {
+                items.Add(await BuildDtoAsync(passage));
+            }
+
+            return items;
+        }
+
+        [Authorize(EnglishLearningAppPermissions.ContentManagement.View)]
+        public async Task<List<ListeningPassageDto>> GetListByChapterAsync(Guid chapterId)
+        {
+            var passageQueryable = await _passageRepo.GetQueryableAsync();
+            var passages = await AsyncExecuter.ToListAsync(
+                passageQueryable
+                    .Where(x => x.ChapterId == chapterId)
+                    .OrderBy(x => x.Title));
+
+            var items = new List<ListeningPassageDto>();
+            foreach (var passage in passages)
+            {
+                items.Add(await BuildDtoAsync(passage));
+            }
+
+            return items;
+        }
 
         [Authorize(EnglishLearningAppPermissions.ContentManagement.Create)]
         public async Task<ListeningPassageDto> CreateAsync(CreateUpdateListeningPassageDto input)
