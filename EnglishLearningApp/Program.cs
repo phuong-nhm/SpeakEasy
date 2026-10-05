@@ -9,6 +9,7 @@ public class Program
 {
     public async static Task<int> Main(string[] args)
     {
+        AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
         var loggerConfiguration = new LoggerConfiguration()
 #if DEBUG
             .MinimumLevel.Debug()

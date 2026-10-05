@@ -103,11 +103,11 @@ public class EnglishLearningAppDbContext : AbpDbContext<EnglishLearningAppDbCont
         {
             b.ToTable("AppGrammarNotes");
             b.Property(x => x.Title).HasMaxLength(128).IsRequired();
-            b.HasIndex(x => x.LessonId).IsUnique(); // Mỗi Lesson chỉ 1 GrammarNote
 
             b.HasOne(x => x.Lesson)
-                .WithOne()
-                .HasForeignKey<GrammarNote>(x => x.LessonId);
+                .WithMany()                           // ← Đổi WithOne() thành WithMany()
+                .HasForeignKey(x => x.LessonId)        // ← Bỏ <GrammarNote> generic vì không cần nữa
+                .IsRequired();
 
             b.HasMany(x => x.Structures)
                 .WithOne(x => x.GrammarNote)

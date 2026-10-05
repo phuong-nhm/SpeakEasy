@@ -2,16 +2,9 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "start-sql-docker",
-      "type": "shell",
-      "command": "docker compose up -d sqlserver",
-      "problemMatcher": []
-    },
-    {
       "label": "🔥 Dev: Backend (.NET Watch)",
       "type": "shell",
-"command": "dotnet watch run --project EnglishLearningApp/EnglishLearningApp.csproj --no-hot-reload",
-      "dependsOn": ["start-sql-docker"],
+      "command": "dotnet watch run --project EnglishLearningApp/EnglishLearningApp.csproj --no-hot-reload",
       "isBackground": true,
       "problemMatcher": "$msCompile"
     },
