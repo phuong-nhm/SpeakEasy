@@ -34,3 +34,28 @@ export interface LearningStatsDto {
   period: LearningStatsPeriod;
   entries: LearningStatEntryDto[];
 }
+
+export interface AccountProfileDto {
+  userName?: string;
+  email?: string;
+  name?: string;
+  surname?: string;
+  phoneNumber?: string;
+  isExternal?: boolean;
+  hasPassword?: boolean;
+  concurrencyStamp?: string;
+}
+
+export interface UpdateAccountProfileDto {
+  userName?: string;
+  email?: string;
+  name?: string;
+  surname?: string;
+  phoneNumber?: string;
+  concurrencyStamp?: string;
+}
+
+export interface ChangePasswordInput {
+  currentPassword: string;
+  newPassword: string;
+}

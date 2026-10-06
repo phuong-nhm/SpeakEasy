@@ -33,6 +33,23 @@ type UserRoleResponse =
   | null
   | undefined;
 
+type GetUserRoleNamesOptions = {
+  forceRefresh?: boolean;
+};
+
+const userRoleCache = new Map<string, string[]>();
+let rolesLookupCache: IdentityRoleLookupDto[] | null = null;
+
+const cloneRoleNames = (roleNames?: string[]) => [...(roleNames ?? [])];
+
+const setCachedUserRoleNames = (userId: string, roleNames?: string[]) => {
+  if (!userId) {
+    return;
+  }
+
+  userRoleCache.set(userId, cloneRoleNames(roleNames));
+};
+
 const normalizeUser = (
   user: Partial<IdentityUserDto> | null | undefined,
 ): IdentityUserDto => ({
@@ -46,7 +63,7 @@ const normalizeUser = (
   lockoutEnabled: user?.lockoutEnabled ?? false,
   creationTime: user?.creationTime ?? "",
   concurrencyStamp: user?.concurrencyStamp ?? "",
-  roleNames: Array.isArray(user?.roleNames) ? user.roleNames : [],
+  roleNames: Array.isArray(user?.roleNames) ? user.roleNames : undefined,
 });
 
 const normalizeListResponse = <T>(
@@ -67,9 +84,19 @@ const normalizeListResponse = <T>(
 };
 
 export const userService = {
-  getUserRoleNames: async (userId: string): Promise<string[]> => {
+  getUserRoleNames: async (
+    userId: string,
+    options: GetUserRoleNamesOptions = {},
+  ): Promise<string[]> => {
     if (!userId) {
       return [];
+    }
+
+    if (!options.forceRefresh) {
+      const cachedRoleNames = userRoleCache.get(userId);
+      if (cachedRoleNames) {
+        return cloneRoleNames(cachedRoleNames);
+      }
     }
 
     try {
@@ -81,24 +108,34 @@ export const userService = {
         return [];
       }
 
+      let roleNames: string[] = [];
+
       if (Array.isArray(response)) {
-        return response
+        roleNames = response
           .map((item) => (typeof item === "string" ? item : item?.name))
           .filter((name): name is string => Boolean(name));
+        setCachedUserRoleNames(userId, roleNames);
+        return roleNames;
       }
 
       if (Array.isArray(response.items)) {
-        return response.items
+        roleNames = response.items
           .map((item) => (typeof item === "string" ? item : item?.name))
           .filter((name): name is string => Boolean(name));
+        setCachedUserRoleNames(userId, roleNames);
+        return roleNames;
       }
 
       if (Array.isArray(response.roleNames)) {
-        return response.roleNames;
+        roleNames = cloneRoleNames(response.roleNames);
+        setCachedUserRoleNames(userId, roleNames);
+        return roleNames;
       }
 
       if (Array.isArray(response.roles)) {
-        return response.roles;
+        roleNames = cloneRoleNames(response.roles);
+        setCachedUserRoleNames(userId, roleNames);
+        return roleNames;
       }
 
       return [];
@@ -121,25 +158,65 @@ export const userService = {
       query.set("maxResultCount", String(params.maxResultCount));
     }
 
-    const response = await apiClient<
-      PagedResponse<IdentityUserDto> | IdentityUserDto[]
-    >(`/api/identity/users${query.toString() ? `?${query.toString()}` : ""}`);
+    const queryString = query.toString() ? `?${query.toString()}` : "";
+
+    const candidateEndpoints = [
+      `/api/app/admin-users/list-with-roles${queryString}`,
+      `/api/app/user-admin/list-with-roles${queryString}`,
+      `/api/app/user-admin/get-list-with-roles${queryString}`,
+      `/api/identity/users${queryString}`,
+    ];
+
+    let response:
+      | PagedResponse<IdentityUserDto>
+      | IdentityUserDto[]
+      | undefined;
+    let lastError: unknown;
+
+    for (const endpoint of candidateEndpoints) {
+      try {
+        response = await apiClient<
+          PagedResponse<IdentityUserDto> | IdentityUserDto[]
+        >(endpoint);
+        break;
+      } catch (error) {
+        const status = (error as { status?: number })?.status;
+        if (status === 404) {
+          lastError = error;
+          continue;
+        }
+
+        throw error;
+      }
+    }
+
+    if (!response) {
+      throw (lastError as Error) ?? new Error("API error: 404");
+    }
 
     const normalized = normalizeListResponse(response);
     const users = (normalized.items as Array<Partial<IdentityUserDto>>).map(
-      normalizeUser,
-    );
+      (user) => {
+        const normalizedUser = normalizeUser(user);
 
-    const enrichedUsers = await Promise.all(
-      users.map(async (user) => ({
-        ...user,
-        roleNames: user.id ? await userService.getUserRoleNames(user.id) : [],
-      })),
+        if (Array.isArray(normalizedUser.roleNames)) {
+          setCachedUserRoleNames(normalizedUser.id, normalizedUser.roleNames);
+          return normalizedUser;
+        }
+
+        const cachedRoleNames = userRoleCache.get(normalizedUser.id);
+        return cachedRoleNames
+          ? {
+              ...normalizedUser,
+              roleNames: cloneRoleNames(cachedRoleNames),
+            }
+          : normalizedUser;
+      },
     );
 
     return {
       totalCount: normalized.totalCount,
-      items: enrichedUsers,
+      items: users,
     };
   },
 
@@ -175,26 +252,37 @@ export const userService = {
     id: string,
     roleNames: string[],
   ): Promise<IdentityUserDto> => {
-    return apiClient<IdentityUserDto>(`/api/identity/users/${id}/roles`, {
-      method: "PUT",
-      body: JSON.stringify({ roleNames }),
-    });
+    const response = await apiClient<IdentityUserDto>(
+      `/api/identity/users/${id}/roles`,
+      {
+        method: "PUT",
+        body: JSON.stringify({ roleNames }),
+      },
+    );
+    setCachedUserRoleNames(id, roleNames);
+    return response;
   },
 
   delete: async (id: string): Promise<boolean> => {
     await apiClient<void>(`/api/identity/users/${id}`, {
       method: "DELETE",
     });
+    userRoleCache.delete(id);
     return true;
   },
 
   getRoles: async (): Promise<IdentityRoleLookupDto[]> => {
+    if (rolesLookupCache) {
+      return [...rolesLookupCache];
+    }
+
     const response = await apiClient<
       PagedResponse<IdentityRoleLookupDto> | IdentityRoleLookupDto[]
     >(`/api/identity/roles?maxResultCount=1000`);
 
     const normalized = normalizeListResponse(response);
-    return normalized.items;
+    rolesLookupCache = [...normalized.items];
+    return [...normalized.items];
   },
 };
 

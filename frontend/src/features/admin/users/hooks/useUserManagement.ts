@@ -17,6 +17,26 @@ type ApiLikeError = Error & {
   code?: string;
 };
 
+type FetchUsersOptions = {
+  silent?: boolean;
+};
+
+const normalizeRoleNames = (roleNames?: string[]) =>
+  [...(roleNames ?? [])].sort((left, right) => left.localeCompare(right));
+
+const areRoleNamesEqual = (left?: string[], right?: string[]) => {
+  const normalizedLeft = normalizeRoleNames(left);
+  const normalizedRight = normalizeRoleNames(right);
+
+  if (normalizedLeft.length !== normalizedRight.length) {
+    return false;
+  }
+
+  return normalizedLeft.every(
+    (roleName, index) => roleName === normalizedRight[index],
+  );
+};
+
 export function useUserManagement() {
   const [data, setData] = useState<IdentityUserDto[]>([]);
   const [roles, setRoles] = useState<IdentityRoleLookupDto[]>([]);
@@ -37,9 +57,12 @@ export function useUserManagement() {
       nextFilter: UserFilter = filter,
       nextSkipCount = skipCount,
       nextMaxResultCount = maxResultCount,
+      options: FetchUsersOptions = {},
     ) => {
-      setLoading(true);
-      setError(null);
+      if (!options.silent) {
+        setLoading(true);
+        setError(null);
+      }
 
       try {
         const result = await userService.getList({
@@ -68,7 +91,9 @@ export function useUserManagement() {
           setTotalCount(0);
         }
       } finally {
-        setLoading(false);
+        if (!options.silent) {
+          setLoading(false);
+        }
       }
     },
     [filter, maxResultCount, skipCount],
@@ -123,6 +148,26 @@ export function useUserManagement() {
     setEditingUser(user);
     setSelectedUser(user);
     setIsModalOpen(true);
+
+    if (!Array.isArray(user.roleNames)) {
+      void (async () => {
+        const roleNames = await userService.getUserRoleNames(user.id);
+        const nextUser = {
+          ...user,
+          roleNames,
+        };
+
+        setData((previous) =>
+          previous.map((item) => (item.id === user.id ? nextUser : item)),
+        );
+        setEditingUser((previous) =>
+          previous?.id === user.id ? nextUser : previous,
+        );
+        setSelectedUser((previous) =>
+          previous?.id === user.id ? nextUser : previous,
+        );
+      })();
+    }
   }, []);
 
   const closeModal = useCallback(() => {
@@ -177,7 +222,9 @@ export function useUserManagement() {
         });
         setIsModalOpen(false);
         setEditingUser(null);
-        await handleFetchUsers();
+        void handleFetchUsers(filter, skipCount, maxResultCount, {
+          silent: true,
+        });
 
         if (roleSaveWarning) {
           setError(roleSaveWarning);
@@ -190,7 +237,7 @@ export function useUserManagement() {
         setLoading(false);
       }
     },
-    [handleFetchUsers, resolveRoleSaveError],
+    [filter, handleFetchUsers, maxResultCount, resolveRoleSaveError, skipCount],
   );
 
   const handleUpdateUser = useCallback(
@@ -209,6 +256,9 @@ export function useUserManagement() {
         let updatedUser: IdentityUserDto = editingUser;
         const { roleNames, ...profilePayload } = payload;
         const shouldUpdateProfile = hasProfileChanges(payload, editingUser);
+        const shouldUpdateRoles =
+          Array.isArray(roleNames) &&
+          !areRoleNamesEqual(roleNames, editingUser.roleNames);
 
         if (shouldUpdateProfile) {
           const safePayload: UpdateIdentityUserDto = {
@@ -220,7 +270,7 @@ export function useUserManagement() {
           updatedUser = await userService.update(id, safePayload);
         }
 
-        if (Array.isArray(roleNames)) {
+        if (shouldUpdateRoles && Array.isArray(roleNames)) {
           try {
             await userService.updateRoles(id, roleNames);
             updatedUser = {
@@ -235,7 +285,12 @@ export function useUserManagement() {
         setSelectedUser(updatedUser);
         setIsModalOpen(false);
         setEditingUser(null);
-        await handleFetchUsers();
+        setData((previous) =>
+          previous.map((user) => (user.id === id ? updatedUser : user)),
+        );
+        void handleFetchUsers(filter, skipCount, maxResultCount, {
+          silent: true,
+        });
 
         if (roleSaveWarning) {
           setError(roleSaveWarning);
@@ -248,7 +303,15 @@ export function useUserManagement() {
         setLoading(false);
       }
     },
-    [editingUser, handleFetchUsers, hasProfileChanges, resolveRoleSaveError],
+    [
+      editingUser,
+      filter,
+      handleFetchUsers,
+      hasProfileChanges,
+      maxResultCount,
+      resolveRoleSaveError,
+      skipCount,
+    ],
   );
 
   const handleSaveUser = useCallback(
@@ -277,7 +340,11 @@ export function useUserManagement() {
           throw new Error("User not found.");
         }
 
-        await handleFetchUsers();
+        setData((previous) => previous.filter((user) => user.id !== id));
+        setTotalCount((previous) => Math.max(0, previous - 1));
+        void handleFetchUsers(filter, skipCount, maxResultCount, {
+          silent: true,
+        });
       } catch (err) {
         const message =
           err instanceof Error ? err.message : "Failed to delete user.";
@@ -301,7 +368,7 @@ export function useUserManagement() {
         isActive: !(user.isActive ?? false),
         lockoutEnabled: user.lockoutEnabled ?? false,
         concurrencyStamp: user.concurrencyStamp,
-        roleNames: user.roleNames ?? [],
+        roleNames: user.roleNames,
       };
 
       await handleUpdateUser(user.id, nextPayload);

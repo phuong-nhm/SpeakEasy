@@ -237,7 +237,7 @@ export function UserModal({
         </div>
 
         <UserModalForm
-          key={editingUser?.id || "new-user"}
+          key={`${editingUser?.id || "new-user"}-${(editingUser?.roleNames ?? []).join("|")}`}
           editingUser={editingUser}
           roles={roles}
           onClose={onClose}

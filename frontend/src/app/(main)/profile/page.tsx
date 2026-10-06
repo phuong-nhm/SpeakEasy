@@ -5,6 +5,7 @@ import {
   getLearningStats,
 } from "@/features/frontend/profile/services/profileService";
 import { LearningStatsTabs } from "@/features/frontend/profile/components/LearningStatsTabs";
+import { ProfileAccountSettings } from "@/features/frontend/profile/components/ProfileAccountSettings";
 
 export default async function ProfilePage() {
   const [profile, achievements, weeklyStats, monthlyStats] = await Promise.all([
@@ -66,6 +67,8 @@ export default async function ProfilePage() {
       </div>
 
       <LearningStatsTabs weekly={weeklyStats} monthly={monthlyStats} />
+
+      <ProfileAccountSettings />
 
       <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
         <h2 className="text-lg font-bold text-slate-800">
