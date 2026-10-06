@@ -1,4 +1,4 @@
-    using System;
+using System;
 using System.Collections.Generic;
 using EnglishLearningApp.Entities;
 using EnglishLearningApp.Entities.Content;
@@ -6,13 +6,17 @@ using Volo.Abp.Application.Dtos;
 
 namespace EnglishLearningApp.Dtos.Contents
 {
-    // Trả về cho FE - KHÔNG bao giờ chứa CorrectSentence gốc.
+    // Trả về cho FE.
     // Field nào dùng cho dạng nào thì mới có giá trị, còn lại để null - FE dựa vào
     // ExerciseType để biết đọc field nào, render UI tương ứng.
     public class SentenceExerciseDto : EntityDto<Guid>
     {
         public Guid LessonId { get; set; }
         public SectionType SectionType { get; set; }
+
+        // Dùng cho Admin CMS hiển thị cột câu chuẩn.
+        public string? CorrectSentence { get; set; }
+
         public string AudioUrl { get; set; }
         public ExerciseType ExerciseType { get; set; }
 
@@ -46,7 +50,7 @@ namespace EnglishLearningApp.Dtos.Contents
         public Guid LessonId { get; set; }
         public SectionType SectionType { get; set; }
         public string CorrectSentence { get; set; }
-        public string AudioUrl { get; set; }
+        public string? AudioUrl { get; set; }
         public ExerciseType ExerciseType { get; set; } = ExerciseType.WordOrder;
 
         // Chỉ cần điền khi ExerciseType = AnswerQuestion

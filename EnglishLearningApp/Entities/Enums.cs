@@ -13,7 +13,8 @@
     {
         Vocabulary = 0,
         Grammar = 1,
-        Review = 2
+        Review = 2,
+        Dialogue = 3
     }
 
     public enum WritingTopicType

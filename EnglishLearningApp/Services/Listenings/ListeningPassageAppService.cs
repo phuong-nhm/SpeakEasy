@@ -4,6 +4,8 @@ using EnglishLearningApp.Entities.Content;
 using EnglishLearningApp.Entities.Listening;
 using EnglishLearningApp.Permissions;
 using Microsoft.AspNetCore.Authorization;
+using EnglishLearningApp.Services;
+using EnglishLearningApp.Services.Contents;
 using Volo.Abp;
 using Volo.Abp.Domain.Repositories;
 
@@ -14,15 +16,18 @@ namespace EnglishLearningApp.Services.Listenings
         private readonly IRepository<ListeningPassage, Guid> _passageRepo;
         private readonly IRepository<ListeningQuestion, Guid> _questionRepo;
         private readonly IRepository<Chapter, Guid> _chapterRepo;
+        private readonly IAudioGenerationService _audioService;
 
         public ListeningPassageAppService(
             IRepository<ListeningPassage, Guid> passageRepo,
             IRepository<ListeningQuestion, Guid> questionRepo,
-            IRepository<Chapter, Guid> chapterRepo)
+            IRepository<Chapter, Guid> chapterRepo,
+            IAudioGenerationService audioService)
         {
             _passageRepo = passageRepo;
             _questionRepo = questionRepo;
             _chapterRepo = chapterRepo;
+            _audioService = audioService;
         }
 
         // ================= ADMIN =================
@@ -83,6 +88,10 @@ namespace EnglishLearningApp.Services.Listenings
             if (existed != null)
             {
                 throw new UserFriendlyException(L["ChapterAlreadyHasListeningPassage"]);
+            }
+            if (string.IsNullOrWhiteSpace(input.AudioUrl))
+            {
+                input.AudioUrl = await _audioService.GenerateAudioUrlAsync(input.Transcript);
             }
 
             var passage = new ListeningPassage(

@@ -365,7 +365,7 @@ export function ListeningPassageModal({
               <label className="block text-sm font-medium text-slate-700">
                 Transcript
               </label>
-              <button
+              {/* <button
                 type="button"
                 onClick={handleGenerateAudio}
                 disabled={isGeneratingAudio || !formData.transcript.trim()}
@@ -374,7 +374,7 @@ export function ListeningPassageModal({
                 {isGeneratingAudio
                   ? "Đang sinh audio..."
                   : "Sinh Audio từ Transcript"}
-              </button>
+              </button> */}
             </div>
             <textarea
               rows={7}

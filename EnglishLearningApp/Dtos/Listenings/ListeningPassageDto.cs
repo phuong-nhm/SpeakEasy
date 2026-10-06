@@ -27,7 +27,7 @@ namespace EnglishLearningApp.Dtos.Listenings
 
         [Required]
         public string Transcript { get; set; }
-        public string AudioUrl { get; set; } // null nếu chưa generate TTS
+        public string? AudioUrl { get; set; } // null nếu chưa generate TTS
 
         public List<CreateUpdateListeningQuestionDto> Questions { get; set; } = new();
     }
