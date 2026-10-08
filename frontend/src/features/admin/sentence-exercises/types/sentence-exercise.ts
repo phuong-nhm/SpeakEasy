@@ -3,6 +3,7 @@ export enum SectionType {
   Vocabulary = 0,
   Grammar = 1,
   Review = 2,
+  Dialogue = 3,
 }
 
 export enum ExerciseType {
@@ -67,6 +68,10 @@ export const SectionTypeLabels: Record<
   [SectionType.Review]: {
     label: "Review",
     color: "bg-amber-100 text-amber-700 border-amber-200",
+  },
+  [SectionType.Dialogue]: {
+    label: "Dialogue",
+    color: "bg-cyan-100 text-cyan-700 border-cyan-200",
   },
 };
 

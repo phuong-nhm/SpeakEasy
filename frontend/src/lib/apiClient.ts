@@ -1,8 +1,9 @@
 // frontend/src/lib/apiClient.ts
 // Lớp trung gian gọi API backend ABP - tự đính Bearer token, xử lý lỗi tập trung
 
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL || "https://localhost:44300";
+export const API_BASE_URL = (
+  process.env.NEXT_PUBLIC_API_BASE_URL || "https://localhost:44326"
+).replace(/\/+$/, "");
 const TOKEN_KEY = "auth_token";
 
 export function getToken(): string | null {
@@ -41,10 +42,22 @@ export async function apiClient<T>(
     }
   }
 
-  const res = await fetch(`${API_BASE_URL}${endpoint}`, {
-    ...rest,
-    headers: finalHeaders,
-  });
+  const requestUrl = endpoint.startsWith("http")
+    ? endpoint
+    : `${API_BASE_URL}${endpoint.startsWith("/") ? "" : "/"}${endpoint}`;
+
+  let res: Response;
+  try {
+    res = await fetch(requestUrl, {
+      ...rest,
+      headers: finalHeaders,
+    });
+  } catch (error) {
+    throw new Error(
+      `Không thể kết nối API (${requestUrl}). Hãy kiểm tra backend đang chạy và HTTPS certificate local đã được trust.`,
+      { cause: error },
+    );
+  }
 
   // Token hết hạn/sai -> xoá token, đá về login
   if (res.status === 401) {

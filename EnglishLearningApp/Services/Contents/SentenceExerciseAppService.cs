@@ -162,7 +162,25 @@ namespace EnglishLearningApp.AppServices.Contents
         {
             await _sentenceRepo.DeleteAsync(id);
         }
+        [AllowAnonymous]
+        public async Task<List<SentenceExerciseDto>> GetForDialogueAsync(Guid chapterId)
+        {
+            // Lấy tất cả LessonId thuộc Chapter này
+            var lessonQueryable = await _lessonRepo.GetQueryableAsync();
+            var lessonIds = await AsyncExecuter.ToListAsync(
+                lessonQueryable.Where(x => x.ChapterId == chapterId).Select(x => x.Id));
 
+            var queryable = await _sentenceRepo.GetQueryableAsync();
+            var query = queryable
+                .Where(x => lessonIds.Contains(x.LessonId)
+                    && x.ExerciseType == ExerciseType.ListenChoose
+                    && x.DialogueGroupId != null)
+                .OrderBy(x => x.DialogueGroupId)
+                .ThenBy(x => x.OrderInGroup);
+
+            var all = await AsyncExecuter.ToListAsync(query);
+            return all.Select(BuildDto).ToList();
+        }
         // MỚI: gom validate theo ExerciseType vào 1 chỗ, Create/CreateMany/Update dùng chung
         private void ValidateInput(CreateUpdateSentenceExerciseDto input)
         {

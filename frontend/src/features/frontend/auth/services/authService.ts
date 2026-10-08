@@ -1,8 +1,5 @@
-import { apiClient, clearToken, setToken } from "@/lib/apiClient";
+import { API_BASE_URL, apiClient, clearToken, setToken } from "@/lib/apiClient";
 import { User } from "@/features/frontend/auth/types/auth";
-
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL || "https://localhost:44300";
 
 const CLIENT_ID = "EnglishLearningApp_App";
 const DEFAULT_SCOPE = "EnglishLearningApp";

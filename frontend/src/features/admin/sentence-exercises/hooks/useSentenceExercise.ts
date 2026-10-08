@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import {
   SentenceExerciseDto,
   CreateUpdateSentenceExerciseDto,
@@ -31,6 +31,10 @@ export function useSentenceExercise() {
   const [exercises, setExercises] = useState<SentenceExerciseDto[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
 
+  // Pagination
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const pageSize = 10;
+
   // Modal Control States
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const [editingExercise, setEditingExercise] =
@@ -44,6 +48,7 @@ export function useSentenceExercise() {
   const loadExercises = useCallback(async (lessonId: string) => {
     if (!lessonId) {
       setExercises([]);
+      setCurrentPage(1);
       return;
     }
     setLoading(true);
@@ -51,6 +56,7 @@ export function useSentenceExercise() {
       const data: SentenceExerciseDto[] =
         await sentenceExerciseService.getByLessonId(lessonId);
       setExercises(data);
+      setCurrentPage(1);
     } catch (error) {
       console.error("Failed to fetch exercises:", error);
     } finally {
@@ -159,8 +165,25 @@ export function useSentenceExercise() {
 
   const handleLessonChange = async (lessonId: string) => {
     setSelectedLessonId(lessonId);
+    setCurrentPage(1);
     await loadExercises(lessonId);
   };
+
+  const totalCount = exercises.length;
+  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
+
+  const pagedExercises = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return exercises.slice(start, start + pageSize);
+  }, [currentPage, exercises]);
+
+  const handlePageChange = useCallback(
+    (nextPage: number) => {
+      const normalizedPage = Math.min(Math.max(nextPage, 1), totalPages);
+      setCurrentPage(normalizedPage);
+    },
+    [totalPages],
+  );
 
   // Modal Actions
   const openAddModal = () => {
@@ -242,6 +265,8 @@ export function useSentenceExercise() {
         const payload: CreateUpdateSentenceExerciseDto[] = rawItems.map(
           (item) => ({
             ...item,
+            audioUrl:
+              item.audioUrl && item.audioUrl.trim() ? item.audioUrl : undefined,
             sectionType: item.sectionType ?? SectionType.Grammar,
             exerciseType: item.exerciseType ?? ExerciseType.WordOrder,
             lessonId: item.lessonId || targetLessonId,
@@ -319,8 +344,13 @@ export function useSentenceExercise() {
     lessons,
     selectedLessonId,
     setSelectedLessonId: handleLessonChange,
-    filteredExercises: exercises,
+    filteredExercises: pagedExercises,
     loading,
+    currentPage,
+    pageSize,
+    totalCount,
+    totalPages,
+    handlePageChange,
     isModalOpen,
     editingExercise,
     isImportModalOpen,

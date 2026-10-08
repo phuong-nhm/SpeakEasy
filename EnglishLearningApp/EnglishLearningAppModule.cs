@@ -376,7 +376,7 @@ public class EnglishLearningAppModule : AbpModule
         }
 
         app.UseAbpRequestLocalization();
-
+        app.UseStaticFiles();
         if (!env.IsDevelopment())
         {
             app.UseErrorPage();

@@ -19,6 +19,10 @@ export default function SentenceExercisePage() {
     setSelectedLessonId,
     filteredExercises,
     loading,
+    currentPage,
+    totalPages,
+    totalCount,
+    handlePageChange,
     isModalOpen,
     editingExercise,
     isImportModalOpen,
@@ -88,6 +92,50 @@ export default function SentenceExercisePage() {
         onEdit={openEditModal}
         onDelete={deleteExercise}
       />
+
+      <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+        <span className="text-sm text-slate-600">
+          Trang {currentPage} / {totalPages} · Tổng {totalCount} bài tập
+        </span>
+
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => handlePageChange(1)}
+            disabled={currentPage <= 1}
+            className="rounded border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            &lt;&lt;
+          </button>
+
+          <button
+            type="button"
+            onClick={() => handlePageChange(currentPage - 1)}
+            disabled={currentPage <= 1}
+            className="rounded border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            Previous
+          </button>
+
+          <button
+            type="button"
+            onClick={() => handlePageChange(currentPage + 1)}
+            disabled={currentPage >= totalPages}
+            className="rounded border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            Next
+          </button>
+
+          <button
+            type="button"
+            onClick={() => handlePageChange(totalPages)}
+            disabled={currentPage >= totalPages}
+            className="rounded border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            &gt;&gt;
+          </button>
+        </div>
+      </div>
 
       {/* Form Modal */}
       <SentenceExerciseModal
