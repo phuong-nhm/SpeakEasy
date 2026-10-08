@@ -17,11 +17,19 @@ import { sentenceExerciseService } from "@/features/admin/sentence-exercises/ser
 
 interface DialogueSubmitInput {
   lessonId: string;
-  correctSentence: string;
-  distractorSentence: string;
-  dialogueGroupId: string;
-  orderInGroup: number;
+  partACorrectSentence: string;
+  partADistractorSentence: string;
+  partBCorrectSentence: string;
+  partBVietnameseTranslation: string;
 }
+
+const buildUuid = () => {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
+    return crypto.randomUUID();
+  }
+
+  return `${Date.now()}-${Math.random().toString(16).slice(2)}-${Math.random().toString(16).slice(2)}`;
+};
 
 const sortDialogues = (items: SentenceExerciseDto[]): SentenceExerciseDto[] =>
   [...items].sort((a, b) => {
@@ -59,11 +67,7 @@ export function useAdminListeningDialogue() {
     setIsLoading(true);
     try {
       const data = await sentenceExerciseService.getByChapterId(chapterId);
-      const filtered = data.filter(
-        (item) =>
-          item.exerciseType === ExerciseType.ListenChoose &&
-          !!item.dialogueGroupId?.trim(),
-      );
+      const filtered = data.filter((item) => !!item.dialogueGroupId?.trim());
       setDialogues(sortDialogues(filtered));
     } catch (error) {
       console.error("Lỗi tải dialogue listening:", error);
@@ -158,7 +162,7 @@ export function useAdminListeningDialogue() {
 
         if (!isMounted) return;
         setLessons(lessonData);
-      } catch (error) {
+      } catch {
         if (!isMounted) return;
         setLessons([]);
       }
@@ -176,6 +180,11 @@ export function useAdminListeningDialogue() {
     setEditingId(null);
   }, []);
 
+  const handleLevelChange = useCallback((levelId: string) => {
+    setSelectedLevelId(levelId);
+    setEditingId(null);
+  }, []);
+
   const handleOpenModal = useCallback((id?: string) => {
     setEditingId(id ?? null);
     setIsModalOpen(true);
@@ -190,20 +199,48 @@ export function useAdminListeningDialogue() {
     async (input: DialogueSubmitInput) => {
       setIsSubmitting(true);
       try {
-        const payload: CreateUpdateSentenceExerciseDto = {
-          lessonId: input.lessonId,
-          sectionType: SectionType.Dialogue,
-          exerciseType: ExerciseType.ListenChoose,
-          correctSentence: input.correctSentence.trim(),
-          distractorSentence: input.distractorSentence.trim(),
-          dialogueGroupId: input.dialogueGroupId.trim(),
-          orderInGroup: input.orderInGroup,
-        };
+        const dialogueGroupId = buildUuid();
+        const payload: CreateUpdateSentenceExerciseDto[] = [
+          {
+            lessonId: input.lessonId,
+            sectionType: SectionType.Dialogue,
+            exerciseType: ExerciseType.ListenChoose,
+            correctSentence: input.partACorrectSentence.trim(),
+            distractorSentence: input.partADistractorSentence.trim(),
+            promptText: "",
+            dialogueGroupId,
+            orderInGroup: 1,
+          },
+          {
+            lessonId: input.lessonId,
+            sectionType: SectionType.Dialogue,
+            exerciseType: ExerciseType.TranslateFromVietnamese,
+            correctSentence: input.partBCorrectSentence.trim(),
+            vietnameseTranslation: input.partBVietnameseTranslation.trim(),
+            distractorSentence: "",
+            promptText: "",
+            dialogueGroupId,
+            orderInGroup: 2,
+          },
+        ];
 
         if (editingDialogue) {
-          await sentenceExerciseService.update(editingDialogue.id, payload);
+          const payloadForEdit: CreateUpdateSentenceExerciseDto = {
+            lessonId: input.lessonId,
+            sectionType: SectionType.Dialogue,
+            exerciseType: ExerciseType.ListenChoose,
+            correctSentence: input.partACorrectSentence.trim(),
+            distractorSentence: input.partADistractorSentence.trim(),
+            dialogueGroupId: editingDialogue.dialogueGroupId || dialogueGroupId,
+            orderInGroup: editingDialogue.orderInGroup ?? 1,
+          };
+
+          await sentenceExerciseService.update(
+            editingDialogue.id,
+            payloadForEdit,
+          );
         } else {
-          await sentenceExerciseService.create(payload);
+          await sentenceExerciseService.createMany(payload);
         }
 
         handleCloseModal();
@@ -219,30 +256,129 @@ export function useAdminListeningDialogue() {
   );
 
   const handleImportMany = useCallback(
-    async (inputs: DialogueSubmitInput[]) => {
-      if (inputs.length === 0) {
-        return;
+    async (
+      rawItems: (Omit<CreateUpdateSentenceExerciseDto, "lessonId"> & {
+        lessonId?: string;
+      })[],
+    ): Promise<number> => {
+      if (rawItems.length === 0) {
+        throw new Error("Danh sách import rỗng.");
       }
 
       setIsSubmitting(true);
       try {
-        const payload = inputs.map((item) => ({
-          lessonId: item.lessonId,
-          sectionType: SectionType.Dialogue,
-          exerciseType: ExerciseType.ListenChoose,
-          correctSentence: item.correctSentence.trim(),
-          distractorSentence: item.distractorSentence.trim(),
-          dialogueGroupId: item.dialogueGroupId.trim(),
-          orderInGroup: item.orderInGroup,
-        }));
+        const invalidBaseIndex = rawItems.findIndex(
+          (item) =>
+            item == null ||
+            item.sectionType == null ||
+            item.exerciseType == null ||
+            !item.correctSentence?.trim(),
+        );
+
+        if (invalidBaseIndex >= 0) {
+          throw new Error(
+            `Phần tử thứ ${invalidBaseIndex + 1} không hợp lệ: bắt buộc sectionType, exerciseType, correctSentence.`,
+          );
+        }
+        const dialogueGroupMap = new Map<number, string>();
+        const payload: CreateUpdateSentenceExerciseDto[] = rawItems.map(
+          (item, index) => {
+            let groupId: string;
+
+            if (item.dialogueGroupId?.trim().toLowerCase() === "auto") {
+              // Part A (orderInGroup=1) → tạo UUID mới
+              if (item.orderInGroup === 1) {
+                groupId = buildUuid();
+                dialogueGroupMap.set(index, groupId);
+              }
+              // Part B (orderInGroup=2) → dùng UUID của Part A trước nó
+              else if (item.orderInGroup === 2) {
+                groupId = dialogueGroupMap.get(index - 1) || buildUuid();
+              } else {
+                groupId = buildUuid();
+              }
+            } else {
+              groupId = item.dialogueGroupId?.trim() || "";
+            }
+
+            return {
+              lessonId: (item.lessonId || "").trim(),
+              sectionType: item.sectionType,
+              exerciseType: item.exerciseType,
+              correctSentence: item.correctSentence.trim(),
+              audioUrl:
+                item.audioUrl && item.audioUrl.trim()
+                  ? item.audioUrl.trim()
+                  : undefined,
+              promptText: item.promptText?.trim() || "",
+              vietnameseTranslation:
+                item.vietnameseTranslation?.trim() || undefined,
+              distractorSentence: item.distractorSentence?.trim() || "",
+              dialogueGroupId: groupId || undefined, // ← Thêm cái này
+              orderInGroup: item.orderInGroup,
+            };
+          },
+        );
+
+        const invalidLessonIndex = payload.findIndex(
+          (item) => !item.lessonId?.trim(),
+        );
+        if (invalidLessonIndex >= 0) {
+          throw new Error(
+            `Phần tử thứ ${invalidLessonIndex + 1} thiếu lessonId.`,
+          );
+        }
+
+        const invalidDialogueIndex = payload.findIndex(
+          (item) => item.sectionType !== SectionType.Dialogue,
+        );
+        if (invalidDialogueIndex >= 0) {
+          throw new Error(
+            `Phần tử thứ ${invalidDialogueIndex + 1} phải có sectionType = Dialogue (3).`,
+          );
+        }
+
+        const invalidExerciseTypeIndex = payload.findIndex(
+          (item) =>
+            item.exerciseType !== ExerciseType.ListenChoose &&
+            item.exerciseType !== ExerciseType.TranslateFromVietnamese,
+        );
+        if (invalidExerciseTypeIndex >= 0) {
+          throw new Error(
+            `Phần tử thứ ${invalidExerciseTypeIndex + 1} chỉ hỗ trợ exerciseType = ListenChoose (4) hoặc TranslateFromVietnamese (3).`,
+          );
+        }
+
+        const invalidConditionalIndex = payload.findIndex((item) => {
+          if (item.exerciseType === ExerciseType.ListenChoose) {
+            return !item.distractorSentence?.trim();
+          }
+
+          if (item.exerciseType === ExerciseType.TranslateFromVietnamese) {
+            return !item.vietnameseTranslation?.trim();
+          }
+
+          return false;
+        });
+        if (invalidConditionalIndex >= 0) {
+          throw new Error(
+            `Phần tử thứ ${invalidConditionalIndex + 1} thiếu trường bắt buộc theo exerciseType.`,
+          );
+        }
 
         await sentenceExerciseService.createMany(payload);
+
+        handleCloseModal();
         await refreshForChapter();
+        return payload.length;
+      } catch (error) {
+        console.error("Lỗi import dialogue:", error);
+        throw error;
       } finally {
         setIsSubmitting(false);
       }
     },
-    [refreshForChapter],
+    [handleCloseModal, refreshForChapter],
   );
 
   const handleDelete = useCallback(
@@ -264,7 +400,7 @@ export function useAdminListeningDialogue() {
   return {
     levels,
     selectedLevelId,
-    setSelectedLevelId,
+    handleLevelChange,
     chapters,
     selectedChapterId,
     lessons,

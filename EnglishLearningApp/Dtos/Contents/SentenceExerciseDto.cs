@@ -54,12 +54,12 @@ namespace EnglishLearningApp.Dtos.Contents
         public ExerciseType ExerciseType { get; set; } = ExerciseType.WordOrder;
 
         // Chỉ cần điền khi ExerciseType = AnswerQuestion
-        public string PromptText { get; set; }
+        public string? PromptText { get; set; }
 
         // Chỉ cần điền khi ExerciseType = TranslateFromVietnamese
-        public string VietnameseTranslation { get; set; }
+        public string? VietnameseTranslation { get; set; }
         // Chỉ cần điền khi ExerciseType = ListenChoose - câu nhiễu để tạo 2 lựa chọn
-        public string DistractorSentence { get; set; }
+        public string? DistractorSentence { get; set; }
 
         // Chỉ cần điền khi ExerciseType = ListenChoose hoặc TranslateFromVietnamese thuộc dạng Dialogue
         public Guid? DialogueGroupId { get; set; }

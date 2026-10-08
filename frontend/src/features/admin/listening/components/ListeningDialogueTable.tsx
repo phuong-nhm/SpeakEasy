@@ -73,14 +73,14 @@ export function ListeningDialogueTable({
               <td className="px-6 py-4">
                 {dialogue.audioUrl ? (
                   <div className="space-y-2">
-                    <a
+                    {/* <a
                       href={dialogue.audioUrl}
                       target="_blank"
                       rel="noreferrer"
                       className="line-clamp-1 text-xs text-indigo-600 hover:text-indigo-800"
                     >
                       {dialogue.audioUrl}
-                    </a>
+                    </a> */}
                     <audio
                       controls
                       src={dialogue.audioUrl}

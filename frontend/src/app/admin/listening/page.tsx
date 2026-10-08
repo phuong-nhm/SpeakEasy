@@ -14,6 +14,7 @@ export default function AdminListeningPage() {
   const [activeTab, setActiveTab] = useState<"passage" | "dialogue">("passage");
 
   const {
+    levels,
     selectedLevelId,
     chapters,
     selectedChapterId,
@@ -23,6 +24,7 @@ export default function AdminListeningPage() {
     editingPassage,
     isSubmitting,
     isGeneratingAudio,
+    handleLevelChange,
     handleChapterChange,
     openCreateModal,
     openEditModal,
@@ -33,6 +35,8 @@ export default function AdminListeningPage() {
   } = useAdminListening();
 
   const {
+    levels: dialogueLevels,
+    selectedLevelId: selectedDialogueLevelId,
     selectedChapterId: selectedDialogueChapterId,
     chapters: dialogueChapters,
     lessons,
@@ -41,14 +45,23 @@ export default function AdminListeningPage() {
     isLoading: isDialogueLoading,
     isModalOpen: isDialogueModalOpen,
     isSubmitting: isDialogueSubmitting,
+    handleLevelChange: handleDialogueLevelChange,
     handleSelectChapter,
     handleOpenModal,
     handleCloseModal,
     handleSubmit: handleDialogueSubmit,
+    handleImportMany: handleDialogueImport,
     handleDelete: handleDialogueDelete,
   } = useAdminListeningDialogue();
 
   const isPassageTab = activeTab === "passage";
+  const levelOptions = isPassageTab ? levels : dialogueLevels;
+  const selectedLevel = isPassageTab
+    ? selectedLevelId
+    : selectedDialogueLevelId;
+  const handleLevelSelect = isPassageTab
+    ? handleLevelChange
+    : handleDialogueLevelChange;
   const chapterOptions = isPassageTab ? chapters : dialogueChapters;
   const selectedChapter = isPassageTab
     ? selectedChapterId
@@ -92,6 +105,9 @@ export default function AdminListeningPage() {
       </div>
 
       <ListeningFilterBar
+        levels={levelOptions}
+        selectedLevelId={selectedLevel}
+        onLevelChange={handleLevelSelect}
         chapters={chapterOptions}
         selectedChapterId={selectedChapter}
         onChapterChange={handleChapterSelect}
@@ -135,6 +151,7 @@ export default function AdminListeningPage() {
             editingDialogue={editingDialogue}
             onClose={handleCloseModal}
             onSubmit={handleDialogueSubmit}
+            onImport={handleDialogueImport}
           />
         </>
       )}

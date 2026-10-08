@@ -12,7 +12,10 @@ on:
 
 jobs:
   build-and-test:
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest] # Thay 8.0.x hoặc 9.0.x đúng với bản .NET của bạn
+    runs-on: ${{ matrix.os }}
 
     # KHÔNG CẦN 'defaults.run.working-directory' vì ta sẽ chạy các lệnh dotnet ngay tại root repo nơi chứa file .sln
 

@@ -2,7 +2,6 @@ import { API_BASE_URL, apiClient } from "@/lib/apiClient";
 import {
   SentenceExerciseDto,
   CreateUpdateSentenceExerciseDto,
-  ExerciseType,
 } from "@/features/admin/sentence-exercises/types/sentence-exercise";
 import { lessonService } from "@/features/admin/lessons/services/lessonService";
 
@@ -73,18 +72,6 @@ export const sentenceExerciseService = {
       return [];
     }
 
-    try {
-      const data = await apiClient<SentenceExerciseDto[]>(
-        `/api/app/sentence-exercise/for-dialogue?chapterId=${chapterId}`,
-      );
-      return data.map(normalizeExercise);
-    } catch (error) {
-      const status = (error as Error & { status?: number }).status;
-      if (status !== 404) {
-        throw error;
-      }
-    }
-
     const lessons = await lessonService.getByChapterId(chapterId);
     const byLesson = await Promise.all(
       lessons.map((lesson) => sentenceExerciseService.getByLessonId(lesson.id)),
@@ -92,11 +79,7 @@ export const sentenceExerciseService = {
 
     return byLesson
       .flat()
-      .filter(
-        (exercise) =>
-          exercise.exerciseType === ExerciseType.ListenChoose &&
-          !!exercise.dialogueGroupId,
-      )
+      .filter((exercise) => !!exercise.dialogueGroupId)
       .sort((a, b) => {
         const groupCompare = (a.dialogueGroupId || "").localeCompare(
           b.dialogueGroupId || "",
