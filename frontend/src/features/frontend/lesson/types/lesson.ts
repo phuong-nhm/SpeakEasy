@@ -196,3 +196,30 @@ export interface AiFeedbackDto {
 export interface SubmitListeningEssayResponse {
   aiFeedback: AiFeedbackDto;
 }
+// ===== WRITING TOPIC =====
+export enum WritingTopicType {
+  Weekly = 0,
+  Monthly = 1,
+}
+
+export interface WritingTopicDto {
+  id: string;
+  chapterId: string;
+  topicType: WritingTopicType;
+  promptTitle: string;
+}
+
+export interface SubmitWritingRequest {
+  topicId: string;
+  userContent: string;
+}
+
+export interface UserWritingDto {
+  id: string;
+  topicId: string;
+  topicTitle?: string;
+  userName?: string;
+  userContent: string;
+  feedback: AiFeedbackDto;
+  creationTime: string;
+}

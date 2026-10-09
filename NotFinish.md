@@ -194,3 +194,25 @@ Nếu sau này đổi hướng (vd: trả đáp án kèm theo lúc load câu h�
   WordOrder) để đổi lấy tốc độ, chỉ giữ gọi API cho dạng cần AI chấm (Essay).
 
 thay đổi nhỏ
+
+<p>{topic.promptTitle}</p>
+<div>{topic.promptText}</div>  
+chỗ checkpoint writting á 
+-------------------------------------------------
+
+🔴 Cần sửa chắc chắn (do hook đổi API):
+
+WordOrderExercise.tsx — dùng handleSelectWords thay vì handleSelectAnswer
+FillInBlankExercise.tsx — dùng handleSelectText + cần displaySentence/blankIndex thay vì questionText
+AnswerQuestionExercise.tsx — dùng handleSelectText, field promptText
+TranslateExercise.tsx — dùng handleSelectWords, field vietnameseTranslation + shuffledWords
+DialogueListenExercise.tsx — dùng handleSelectSentence (Part A) + handleSelectWords (Part B), gọi submitSentenceAnswer theo dialogueGroupId/orderInGroup
+FooterAction.tsx — nút Check giờ gọi async handleCheckAnswer, cần loading state (isChecking), và không còn hiển thị correctAnswer trong feedback nữa
+LessonScreen.tsx — orchestrator chính, switch theo exerciseType (number enum giờ, không phải string), render đúng field mới
+VocabIntroCard.tsx — field vocabularies lấy từ hook mới (nếu tên field thay đổi)
+VocabFlashcardQuiz.tsx / VocabMatchingGame.tsx — đổi sang dùng quizBatch (VocabularyQuizDto) thay vì matching pair cũ
+
+🟡 Có thể cần sửa nhẹ (field/type đổi nhưng logic không đổi nhiều): 10. MatchingGameExercise.tsx — có khi bỏ hẳn (vì Part 3 giờ không còn MatchingGame, đã thống nhất) 11. HeaderBar.tsx — chỉ hiển thị hearts/progress, có thể không cần sửa 12. CompleteScreen.tsx / VictoryModal.tsx — hiển thị summary, kiểm tra field name có đổi không
+
+🟢 Không liên quan lesson flow chính (Checkpoint/Listening Passage riêng): 13. CheckpointWritingExercise.tsx, ListeningExercise.tsx, PassageListeningExercise.tsx, AiFeedbackCard.tsx, GrammarReferenceCard.tsx — đã nối hoặc thuộc flow khác, để sau
+là giờ mấy cái này xong hết rồi đúng hog còn cái nào bạn chưa check hoặc chưa sửa hog, có mấy cái bạn bảo hog liên quan nhưng khi qua phần khác có phải làm hog nếu phải làm thì đợi qua phần khác làm còn hog nếu cần làm thì làm luôn để mốt qua phần khác cho khỏe nha

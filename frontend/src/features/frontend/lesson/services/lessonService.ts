@@ -13,6 +13,10 @@ import {
   SubmitListeningMultipleChoiceResponse,
   VocabularyDto,
   VocabularyQuizDto,
+  SubmitWritingRequest,
+  UserWritingDto,
+  WritingTopicDto,
+  WritingTopicType,
 } from "../types/lesson";
 
 export const lessonService = {
@@ -122,5 +126,24 @@ export const lessonService = {
       }
       throw error;
     }
+  },
+  // ===== WRITING TOPIC =====
+  getAvailableWritingTopic: async (
+    chapterId: string,
+    topicType: WritingTopicType,
+  ): Promise<WritingTopicDto> => {
+    return apiClient<WritingTopicDto>(
+      `/api/app/writing-topic/available-topic/${chapterId}?topicType=${topicType}`,
+      { method: "GET" },
+    );
+  },
+
+  submitWriting: async (
+    input: SubmitWritingRequest,
+  ): Promise<UserWritingDto> => {
+    return apiClient<UserWritingDto>("/api/app/user-writing/submit-writing", {
+      method: "POST",
+      body: JSON.stringify(input),
+    });
   },
 };
