@@ -3,19 +3,23 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { lessonService } from "../services/lessonService";
-import { LessonDto, LessonQuestion } from "../types/lesson";
-
-const normalizeAnswer = (value: string) =>
-  value.trim().replace(/\s+/g, " ").toLowerCase();
+import {
+  CheckSentenceAnswerRequest,
+  ExerciseType,
+  GrammarNoteDto,
+  LessonDto,
+  SectionType,
+  SentenceExerciseDto,
+  VocabularyDto,
+  VocabularyQuizDto,
+} from "../types/lesson";
 
 const shuffleItems = <T>(items: T[]) => {
   const next = [...items];
-
   for (let index = next.length - 1; index > 0; index -= 1) {
     const randomIndex = Math.floor(Math.random() * (index + 1));
     [next[index], next[randomIndex]] = [next[randomIndex], next[index]];
   }
-
   return next;
 };
 
@@ -29,32 +33,48 @@ const defaultCompletedParts: CompletedParts = {
   comprehensive: false,
 };
 
+// Backend không trả hearts/xp mặc định -> FE tự định nghĩa cứng
+const DEFAULT_HEARTS = 5;
+const XP_PER_CORRECT = 30;
+const XP_PER_HEART_LEFT = 10;
+
 export function useLessonFlow(lessonId: string) {
   const [lesson, setLesson] = useState<LessonDto | null>(null);
+  const [grammarNote, setGrammarNote] = useState<GrammarNoteDto | null>(null);
+  const [vocabularies, setVocabularies] = useState<VocabularyDto[]>([]);
+  const [sentences, setSentences] = useState<SentenceExerciseDto[]>([]);
+
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+
   const [currentIndex, setCurrentIndex] = useState(0);
   const [selectedPart, setSelectedPart] = useState<LessonPart | null>(null);
   const [completedParts, setCompletedParts] = useState<CompletedParts>(
     defaultCompletedParts,
   );
-  const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
+
+  // Đáp án người dùng chọn - tuỳ ExerciseType mà dùng field khác nhau
+  const [selectedWords, setSelectedWords] = useState<string[]>([]); // WordOrder, TranslateFromVietnamese
+  const [selectedText, setSelectedText] = useState(""); // AnswerQuestion, FillInBlank
+  const [selectedSentence, setSelectedSentence] = useState<string | null>(null); // ListenChoose
+
+  const [isChecking, setIsChecking] = useState(false);
   const [isChecked, setIsChecked] = useState(false);
   const [resultType, setResultType] = useState<"correct" | "incorrect" | null>(
     null,
   );
-  const [hearts, setHearts] = useState(5);
+
+  const [hearts, setHearts] = useState(DEFAULT_HEARTS);
   const [correctAnswers, setCorrectAnswers] = useState(0);
   const [isCompleted, setIsCompleted] = useState(false);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
+
   const [vocabSubStep, setVocabSubStep] = useState<VocabSubStep>("intro");
   const [isVocabularyMatchingCompleted, setIsVocabularyMatchingCompleted] =
     useState(false);
+
   const startedAtRef = useRef<number>(0);
 
-  // 2. Gán Date.now() trong useEffect (chỉ chạy đúng 1 lần khi mount)
-  useEffect(() => {
-    startedAtRef.current = Date.now();
-  }, []);
   const [summary, setSummary] = useState<{
     xpEarned: number;
     accuracyPercent: number;
@@ -70,7 +90,9 @@ export function useLessonFlow(lessonId: string) {
   };
 
   const resetCurrentState = () => {
-    setSelectedAnswer(null);
+    setSelectedWords([]);
+    setSelectedText("");
+    setSelectedSentence(null);
     setIsChecked(false);
     setResultType(null);
   };
@@ -80,7 +102,6 @@ export function useLessonFlow(lessonId: string) {
       setCorrectAnswers((prev) => prev + 1);
       return;
     }
-
     setHearts((prev) => Math.max(0, prev - 1));
   };
 
@@ -96,43 +117,49 @@ export function useLessonFlow(lessonId: string) {
     resetCurrentState();
   };
 
+  // ===== LOAD DATA =====
   useEffect(() => {
     let isMounted = true;
 
     const load = async () => {
+      setLoading(true);
+      setLoadError(null);
+
       try {
-        const [lessonData, grammarNote] = await Promise.all([
-          lessonService.getLessonById(lessonId),
+        const [content, note] = await Promise.all([
+          lessonService.getLessonContent(lessonId),
           lessonService.getGrammarNoteByLesson(lessonId),
         ]);
 
         if (!isMounted) return;
 
-        setLesson({
-          ...lessonData,
-          grammarNote,
-        });
-        setHearts(lessonData.totalHearts);
+        setLesson(content.lesson);
+        setVocabularies(content.vocabularies);
+        setSentences(content.sentences);
+        setGrammarNote(note);
+
+        setHearts(DEFAULT_HEARTS);
         setSelectedPart(null);
         setCompletedParts(defaultCompletedParts);
         setCurrentIndex(0);
-        setSelectedAnswer(null);
-        setIsChecked(false);
-        setResultType(null);
+        resetCurrentState();
         setCorrectAnswers(0);
         setIsCompleted(false);
         setSummary(null);
         setVocabSubStep("intro");
         setIsVocabularyMatchingCompleted(false);
         startedAtRef.current = Date.now();
-      } catch {
+      } catch (error) {
         if (isMounted) {
           setLesson(null);
+          setLoadError(
+            error instanceof Error
+              ? error.message
+              : "Không thể tải dữ liệu bài học.",
+          );
         }
       } finally {
-        if (isMounted) {
-          setLoading(false);
-        }
+        if (isMounted) setLoading(false);
       }
     };
 
@@ -143,38 +170,27 @@ export function useLessonFlow(lessonId: string) {
     };
   }, [lessonId]);
 
-  const grammarQuestions = useMemo<LessonQuestion[]>(() => {
-    if (!lesson) return [];
+  // ===== PHÂN LOẠI SENTENCES THEO PHẦN =====
+  const grammarQuestions = useMemo<SentenceExerciseDto[]>(() => {
+    return sentences.filter((s) => s.sectionType === SectionType.Grammar);
+  }, [sentences]);
 
-    return lesson.questions.filter(
-      (question) =>
-        question.sectionType === 1 && question.exerciseType !== "MatchingGame",
+  const comprehensiveQuestions = useMemo<SentenceExerciseDto[]>(() => {
+    const questions = sentences.filter(
+      (s) => s.sectionType === SectionType.Review,
     );
-  }, [lesson]);
-
-  const comprehensiveQuestions = useMemo<LessonQuestion[]>(() => {
-    if (!lesson) return [];
-
-    const questions = lesson.questions.filter(
-      (question) =>
-        question.sectionType === 2 || question.exerciseType === "MatchingGame",
-    );
-
     return shuffleItems(questions);
-  }, [lesson]);
+  }, [sentences]);
 
   const currentPart = selectedPart ?? "vocabulary";
 
-  const partQuestions = useMemo<LessonQuestion[]>(() => {
-    if (!lesson) return [];
-
+  const partQuestions = useMemo<SentenceExerciseDto[]>(() => {
     if (currentPart === "grammar") return grammarQuestions;
     if (currentPart === "comprehensive") return comprehensiveQuestions;
-
     return [];
-  }, [comprehensiveQuestions, currentPart, grammarQuestions, lesson]);
+  }, [comprehensiveQuestions, currentPart, grammarQuestions]);
 
-  const currentQuestion = useMemo<LessonQuestion | null>(() => {
+  const currentQuestion = useMemo<SentenceExerciseDto | null>(() => {
     if (!lesson || !selectedPart || currentPart === "vocabulary") return null;
     return partQuestions[currentIndex] ?? null;
   }, [currentIndex, currentPart, lesson, partQuestions, selectedPart]);
@@ -200,34 +216,83 @@ export function useLessonFlow(lessonId: string) {
           33 * lessonParts.indexOf(currentPart) + currentPartProgress,
         );
 
+  const hasAnswerSelected = () => {
+    if (!currentQuestion) return false;
+    switch (currentQuestion.exerciseType) {
+      case ExerciseType.WordOrder:
+      case ExerciseType.TranslateFromVietnamese:
+        return selectedWords.length > 0;
+      case ExerciseType.FillInBlank:
+      case ExerciseType.AnswerQuestion:
+        return selectedText.trim().length > 0;
+      case ExerciseType.ListenChoose:
+        return Boolean(selectedSentence);
+      default:
+        return false;
+    }
+  };
+
   const canCheck =
     selectedPart !== null &&
     selectedPart !== "vocabulary" &&
-    Boolean(selectedAnswer?.trim()) &&
+    hasAnswerSelected() &&
     !isChecked &&
+    !isChecking &&
     !isCompleted;
 
-  const handleSelectAnswer = (answer: string) => {
-    if (
-      isChecked ||
-      isCompleted ||
-      !selectedPart ||
-      selectedPart === "vocabulary"
-    )
-      return;
-    setSelectedAnswer(answer);
+  // ===== SELECT ANSWER HANDLERS (theo từng dạng) =====
+  const handleSelectWords = (words: string[]) => {
+    if (isChecked || isCompleted) return;
+    setSelectedWords(words);
   };
 
-  const handleCheckAnswer = () => {
-    if (!currentQuestion || !selectedAnswer || isChecked || isCompleted) return;
+  const handleSelectText = (text: string) => {
+    if (isChecked || isCompleted) return;
+    setSelectedText(text);
+  };
 
-    const isCorrect =
-      normalizeAnswer(selectedAnswer) ===
-      normalizeAnswer(currentQuestion.correctAnswer);
+  const handleSelectSentence = (sentence: string) => {
+    if (isChecked || isCompleted) return;
+    setSelectedSentence(sentence);
+  };
 
-    setIsChecked(true);
-    setResultType(isCorrect ? "correct" : "incorrect");
-    recordAttemptResult(isCorrect);
+  // ===== CHECK ANSWER (gọi API thật) =====
+  const handleCheckAnswer = async () => {
+    if (!currentQuestion || isChecked || isChecking || isCompleted) return;
+
+    const request: CheckSentenceAnswerRequest = {
+      exerciseId: currentQuestion.id,
+    };
+
+    switch (currentQuestion.exerciseType) {
+      case ExerciseType.WordOrder:
+      case ExerciseType.TranslateFromVietnamese:
+        request.userOrderedWords = selectedWords;
+        break;
+      case ExerciseType.FillInBlank:
+        request.userAnswerText = selectedText;
+        request.blankIndex = currentQuestion.blankIndex;
+        break;
+      case ExerciseType.AnswerQuestion:
+        request.userAnswerText = selectedText;
+        break;
+      case ExerciseType.ListenChoose:
+        request.userSelectedSentence = selectedSentence ?? "";
+        break;
+    }
+
+    setIsChecking(true);
+
+    try {
+      const isCorrect = await lessonService.submitSentenceAnswer(request);
+      setIsChecked(true);
+      setResultType(isCorrect ? "correct" : "incorrect");
+      recordAttemptResult(isCorrect);
+    } catch {
+      // Lỗi mạng/server - không đánh dấu đã check, cho người dùng thử lại
+    } finally {
+      setIsChecking(false);
+    }
   };
 
   const handleAdvanceQuestions = (step = 1) => {
@@ -253,33 +318,43 @@ export function useLessonFlow(lessonId: string) {
     resetCurrentState();
   };
 
-  const finalizeLesson = () => {
+  // ===== FINALIZE (gọi API submit kết quả thật) =====
+  const finalizeLesson = async () => {
     if (!lesson) return;
 
-    const allQuestions = lesson.questions.filter(
-      (question) =>
-        question.exerciseType !== "MatchingGame" || question.sectionType === 2,
-    );
+    const totalAnswered =
+      grammarQuestions.length + comprehensiveQuestions.length;
     const elapsedSeconds = Math.max(
       1,
       Math.round((Date.now() - startedAtRef.current) / 1000),
     );
     const accuracyPercent =
-      allQuestions.length === 0
+      totalAnswered === 0
         ? 0
-        : Math.round((correctAnswers / allQuestions.length) * 100);
-    const xpEarned = correctAnswers * 30 + hearts * 10;
+        : Math.round((correctAnswers / totalAnswered) * 100);
+    const xpEarned =
+      correctAnswers * XP_PER_CORRECT + hearts * XP_PER_HEART_LEFT;
 
-    setSummary({
-      xpEarned,
-      accuracyPercent,
-      elapsedSeconds,
-    });
-
+    setSummary({ xpEarned, accuracyPercent, elapsedSeconds });
     setIsCompleted(true);
     setSelectedPart(null);
     setCurrentIndex(0);
     resetCurrentState();
+
+    try {
+      await lessonService.submitLessonResult({
+        lessonId: lesson.id,
+        correctAnswers,
+        totalQuestions: totalAnswered,
+        xpEarned,
+        heartsLeft: hearts,
+        accuracyPercent,
+        elapsedSeconds,
+      });
+    } catch {
+      // Không chặn UI nếu submit lỗi - người dùng đã thấy summary rồi
+      // Có thể thêm retry/log sau nếu cần
+    }
   };
 
   const completeCurrentPart = () => {
@@ -305,6 +380,7 @@ export function useLessonFlow(lessonId: string) {
     resetCurrentState();
   };
 
+  // ===== VOCABULARY SUB-FLOW =====
   const handleVocabularyContinueToFlashcard = () => {
     if (!selectedPart || selectedPart !== "vocabulary") return;
     setVocabSubStep("flashcard");
@@ -344,32 +420,30 @@ export function useLessonFlow(lessonId: string) {
         completeCurrentPart();
         return;
       }
-
       handleAdvanceQuestions(1);
     }
   };
 
-  const handleExit = () => {
-    setShowExitConfirm(true);
-  };
-
+  const handleExit = () => setShowExitConfirm(true);
   const confirmExit = () => {
     setShowExitConfirm(false);
     window.location.href = "/dashboard";
   };
-
-  const cancelExit = () => {
-    setShowExitConfirm(false);
-  };
+  const cancelExit = () => setShowExitConfirm(false);
 
   return {
     lesson,
+    grammarNote,
     loading,
+    loadError,
     currentPart,
     currentQuestion,
     currentIndex,
     totalQuestions,
-    selectedAnswer,
+    selectedWords,
+    selectedText,
+    selectedSentence,
+    isChecking,
     isChecked,
     resultType,
     hearts,
@@ -383,17 +457,18 @@ export function useLessonFlow(lessonId: string) {
     isVocabularyMatchingCompleted,
     canStartGrammarFromVocabulary,
     lessonParts,
-    vocabulary: lesson?.vocabulary ?? [],
+    vocabularies,
     grammarQuestions,
     comprehensiveQuestions,
     selectedPart,
     completedParts,
     isPartUnlocked,
     openPart,
-    handleSelectAnswer,
+    handleSelectWords,
+    handleSelectText,
+    handleSelectSentence,
     handleCheckAnswer,
     handleAdvanceQuestions,
-    recordAttemptResult,
     handleVocabularyContinueToFlashcard,
     handleVocabularyFlashcardComplete,
     handleVocabularyMatchingComplete,
@@ -401,5 +476,6 @@ export function useLessonFlow(lessonId: string) {
     handleExit,
     confirmExit,
     cancelExit,
+    recordAttemptResult,
   };
 }
