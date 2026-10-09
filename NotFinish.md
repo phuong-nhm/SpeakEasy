@@ -192,3 +192,5 @@ Nếu sau này đổi hướng (vd: trả đáp án kèm theo lúc load câu h�
   dạng plain text.
 - Cách 3: Chấp nhận lộ đáp án ở 1 số dạng ít quan trọng (vd FillInBlank,
   WordOrder) để đổi lấy tốc độ, chỉ giữ gọi API cho dạng cần AI chấm (Essay).
+
+thay đổi nhỏ
