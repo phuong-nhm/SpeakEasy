@@ -81,6 +81,11 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository_owner }}/english-learning-backend
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
@@ -88,6 +93,6 @@ jobs:
           file: Dockerfile
           push: true
           tags: ${{steps.meta.outputs.tags}}
-          lables: ${{steps.meta.outputs.labels}}
+          labels: ${{steps.meta.outputs.labels}}
           cache-from: type=gha
           cache-to: type=gha,mode=max
