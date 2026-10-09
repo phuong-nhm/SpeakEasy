@@ -132,3 +132,87 @@ Nếu bạn muốn, bước tiếp theo là tôi làm luôn 1 phần “chặn �
 không cho phép người dùng hiện tại tự hủy quyền admin của chính mình
 chỉ cho phép admin quyền gán role khi token có quyền hợp lệ
 và vẫn giữ đúng permission model của ABP.
+
+nên nhớ có những cái cần gọi hết về client có những cái gọi api, hiện tại có mấy cái gọi api như checkanswer hay gọi gì gì đó thì nó hơi tốn gọi api nên mốt check lại mấy chỗ đó dể đổi nha
+
+# TODO - Tối ưu performance: lấy đáp án về client thay vì gọi API check-answer
+
+## Bối cảnh
+
+Hiện tại đang ưu tiên chạy được trước, nên mọi chỗ check đáp án SentenceExercise
+(WordOrder, FillInBlank, AnswerQuestion, TranslateFromVietnamese, ListenChoose)
+đều gọi API `POST /api/app/sentence-exercise/check-answer` để chấm, vì backend
+không trả `correctSentence`/đáp án đúng về cho learner (tránh lộ đáp án qua F12).
+
+Nhược điểm: mỗi lần bấm "Kiểm tra" phải chờ round-trip API (chậm hơn check
+local), và không hiển thị được "Đáp án đúng là: ..." khi sai.
+
+Nếu sau này đổi hướng (vd: trả đáp án kèm theo lúc load câu hỏi, hoặc chấp nhận
+đánh đổi lộ đáp án để đổi lấy tốc độ), cần sửa lại các chỗ sau:
+
+## Các vị trí đang gọi API để check (cần sửa nếu đổi sang check local)
+
+1. **`hooks/useLessonFlow.ts` → `handleCheckAnswer`**
+   - Đang gọi `lessonService.submitSentenceAnswer(request)` cho toàn bộ câu hỏi
+     Part 2 (Grammar) và Part 3 (Comprehensive/Review).
+   - Nếu đổi sang check local: cần backend trả thêm field đáp án đúng
+     (`correctSentence`, hoặc từ đúng tại `blankIndex`...) kèm trong
+     `LessonContentDto.Sentences`, rồi so sánh ở client bằng `normalizeAnswer`.
+
+2. **`components/exercises/DialogueListenExercise.tsx` → `handleCheckListenChoose` và `handleCheckTranslate`**
+   - Đang gọi `lessonService.submitSentenceAnswer(...)` cho cả Part A
+     (ListenChoose) và Part B (TranslateFromVietnamese) của Dialogue.
+   - Trước đây (bản mock) từng check local bằng `question.correctSentence`
+     trực tiếp - đã đổi sang gọi API thật.
+
+3. **`components/FooterAction.tsx`**
+   - Dòng hiển thị kết quả sai đã bị cắt bớt phần "Đáp án đúng là: ..."
+     (trước: `` `❌ Sai rồi! Đáp án đúng là: ${correctAnswer}` ``)
+   - Giờ chỉ còn: `"❌ Sai rồi! Hãy xem lại bài học và thử câu tiếp theo."`
+   - Nếu sau này có đáp án đúng ở client, khôi phục lại dòng hiển thị
+     `correctAnswer` như cũ, và truyền lại prop `correctAnswer` cho component
+     này (đã bị xoá khỏi interface `FooterActionProps`).
+
+## Các vị trí SẼ còn gọi API khi làm tiếp (không phải SentenceExercise, không tối ưu được theo kiểu này)
+
+- **Listening Passage (MC + Essay)**: `submitMultipleChoice`, `submitEssay`
+  - Essay bắt buộc phải gọi API vì cần AI chấm (Gemini), không thể check local.
+  - MC về lý thuyết CÓ THỂ check local nếu backend trả `correctOptionKey` kèm
+    theo câu hỏi, nhưng hiện đang theo kiểu gọi API để tránh lộ đáp án MC.
+
+- **Checkpoint** (`getCheckpointExercises` + chấm từng câu) - sẽ dùng lại
+  đúng pattern `check-answer` như Grammar/Comprehensive ở trên khi code tiếp.
+
+## Hướng tối ưu gợi ý (làm sau, không làm bây giờ)
+
+- Cách 1: Giữ gọi API như hiện tại (an toàn, không lộ đáp án) nhưng thêm
+  debounce/optimistic UI để cảm giác nhanh hơn.
+- Cách 2: Đổi backend trả đáp án đã mã hoá/hash kèm câu hỏi, FE hash câu trả
+  lời rồi so sánh hash - vừa nhanh (không cần gọi API) vừa không lộ đáp án
+  dạng plain text.
+- Cách 3: Chấp nhận lộ đáp án ở 1 số dạng ít quan trọng (vd FillInBlank,
+  WordOrder) để đổi lấy tốc độ, chỉ giữ gọi API cho dạng cần AI chấm (Essay).
+
+thay đổi nhỏ
+
+<p>{topic.promptTitle}</p>
+<div>{topic.promptText}</div>  
+chỗ checkpoint writting á 
+-------------------------------------------------
+
+🔴 Cần sửa chắc chắn (do hook đổi API):
+
+WordOrderExercise.tsx — dùng handleSelectWords thay vì handleSelectAnswer
+FillInBlankExercise.tsx — dùng handleSelectText + cần displaySentence/blankIndex thay vì questionText
+AnswerQuestionExercise.tsx — dùng handleSelectText, field promptText
+TranslateExercise.tsx — dùng handleSelectWords, field vietnameseTranslation + shuffledWords
+DialogueListenExercise.tsx — dùng handleSelectSentence (Part A) + handleSelectWords (Part B), gọi submitSentenceAnswer theo dialogueGroupId/orderInGroup
+FooterAction.tsx — nút Check giờ gọi async handleCheckAnswer, cần loading state (isChecking), và không còn hiển thị correctAnswer trong feedback nữa
+LessonScreen.tsx — orchestrator chính, switch theo exerciseType (number enum giờ, không phải string), render đúng field mới
+VocabIntroCard.tsx — field vocabularies lấy từ hook mới (nếu tên field thay đổi)
+VocabFlashcardQuiz.tsx / VocabMatchingGame.tsx — đổi sang dùng quizBatch (VocabularyQuizDto) thay vì matching pair cũ
+
+🟡 Có thể cần sửa nhẹ (field/type đổi nhưng logic không đổi nhiều): 10. MatchingGameExercise.tsx — có khi bỏ hẳn (vì Part 3 giờ không còn MatchingGame, đã thống nhất) 11. HeaderBar.tsx — chỉ hiển thị hearts/progress, có thể không cần sửa 12. CompleteScreen.tsx / VictoryModal.tsx — hiển thị summary, kiểm tra field name có đổi không
+
+🟢 Không liên quan lesson flow chính (Checkpoint/Listening Passage riêng): 13. CheckpointWritingExercise.tsx, ListeningExercise.tsx, PassageListeningExercise.tsx, AiFeedbackCard.tsx, GrammarReferenceCard.tsx — đã nối hoặc thuộc flow khác, để sau
+là giờ mấy cái này xong hết rồi đúng hog còn cái nào bạn chưa check hoặc chưa sửa hog, có mấy cái bạn bảo hog liên quan nhưng khi qua phần khác có phải làm hog nếu phải làm thì đợi qua phần khác làm còn hog nếu cần làm thì làm luôn để mốt qua phần khác cho khỏe nha

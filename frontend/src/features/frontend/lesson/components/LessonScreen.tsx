@@ -3,11 +3,10 @@
 import { useRouter } from "next/navigation";
 
 import { useLessonFlow } from "../hooks/useLessonFlow";
-import { ExerciseType } from "../types/lesson";
+import { ExerciseType, SentenceExerciseDto } from "../types/lesson";
 import { DialogueListenExercise } from "./exercises/DialogueListenExercise";
 import { AnswerQuestionExercise } from "./exercises/AnswerQuestionExercise";
 import { FillInBlankExercise } from "./exercises/FillInBlankExercise";
-import { MatchingGameExercise } from "./exercises/MatchingGameExercise";
 import { TranslateExercise } from "./exercises/TranslateExercise";
 import { WordOrderExercise } from "./exercises/WordOrderExercise";
 import { CompleteScreen } from "./CompleteScreen";
@@ -22,15 +21,38 @@ interface LessonScreenProps {
   lessonId: string;
 }
 
+// Tiêu đề hiển thị tuỳ dạng bài - backend không trả "prompt"/"questionText" chung nữa
+const getQuestionHeading = (question: SentenceExerciseDto): string => {
+  switch (question.exerciseType) {
+    case ExerciseType.WordOrder:
+      return "Sắp xếp các từ thành câu đúng";
+    case ExerciseType.FillInBlank:
+      return question.displaySentence ?? "Điền từ vào chỗ trống";
+    case ExerciseType.AnswerQuestion:
+      return question.promptText ?? "Trả lời câu hỏi";
+    case ExerciseType.TranslateFromVietnamese:
+      return question.vietnameseTranslation ?? "Dịch câu sau sang tiếng Anh";
+    case ExerciseType.ListenChoose:
+      return "Nghe và chọn câu đúng";
+    default:
+      return "Exercise";
+  }
+};
+
 export function LessonScreen({ lessonId }: LessonScreenProps) {
   const router = useRouter();
   const {
     lesson,
+    grammarNote,
     loading,
+    loadError,
     currentPart,
     currentQuestion,
     currentIndex,
-    selectedAnswer,
+    selectedWords,
+    selectedText,
+    selectedSentence,
+    isChecking,
     isChecked,
     resultType,
     hearts,
@@ -39,14 +61,17 @@ export function LessonScreen({ lessonId }: LessonScreenProps) {
     showExitConfirm,
     vocabSubStep,
     canStartGrammarFromVocabulary,
-    vocabulary,
+    isVocabularyMatchingCompleted,
+    vocabularies,
     lessonParts,
     completedParts,
     grammarQuestions,
     selectedPart,
     isPartUnlocked,
     openPart,
-    handleSelectAnswer,
+    handleSelectWords,
+    handleSelectText,
+    handleSelectSentence,
     handleCheckAnswer,
     handleAdvanceQuestions,
     recordAttemptResult,
@@ -75,7 +100,6 @@ export function LessonScreen({ lessonId }: LessonScreenProps) {
             .sort((left, right) => {
               const orderLeft = left.orderInGroup ?? Number.MAX_SAFE_INTEGER;
               const orderRight = right.orderInGroup ?? Number.MAX_SAFE_INTEGER;
-
               return orderLeft - orderRight;
             })
         : [];
@@ -95,8 +119,8 @@ export function LessonScreen({ lessonId }: LessonScreenProps) {
         return (
           <WordOrderExercise
             question={currentQuestion}
-            selectedAnswer={selectedAnswer}
-            onAnswerChange={handleSelectAnswer}
+            selectedWords={selectedWords}
+            onWordsChange={handleSelectWords}
             isChecked={isChecked}
           />
         );
@@ -104,8 +128,8 @@ export function LessonScreen({ lessonId }: LessonScreenProps) {
         return (
           <FillInBlankExercise
             question={currentQuestion}
-            selectedAnswer={selectedAnswer}
-            onAnswerChange={handleSelectAnswer}
+            selectedText={selectedText}
+            onTextChange={handleSelectText}
             isChecked={isChecked}
           />
         );
@@ -113,61 +137,22 @@ export function LessonScreen({ lessonId }: LessonScreenProps) {
         return (
           <TranslateExercise
             question={currentQuestion}
-            selectedAnswer={selectedAnswer}
-            onAnswerChange={handleSelectAnswer}
+            selectedWords={selectedWords}
+            onWordsChange={handleSelectWords}
+            isChecked={isChecked}
           />
         );
       case ExerciseType.AnswerQuestion:
         return (
           <AnswerQuestionExercise
             question={currentQuestion}
-            selectedAnswer={selectedAnswer}
-            onAnswerChange={handleSelectAnswer}
-          />
-        );
-      case "MatchingGame":
-        return (
-          <MatchingGameExercise
-            question={currentQuestion}
-            selectedAnswer={selectedAnswer}
-            onAnswerChange={handleSelectAnswer}
+            selectedText={selectedText}
+            onTextChange={handleSelectText}
             isChecked={isChecked}
           />
         );
       default:
-        return (
-          <div className="mt-6 grid gap-3">
-            {currentQuestion.options?.map((option) => {
-              const isSelected = selectedAnswer === option;
-              const isCorrect =
-                isChecked && option === currentQuestion.correctAnswer;
-              const isWrongSelected =
-                isChecked &&
-                isSelected &&
-                option !== currentQuestion.correctAnswer;
-
-              return (
-                <button
-                  key={option}
-                  type="button"
-                  onClick={() => handleSelectAnswer(option)}
-                  disabled={isChecked}
-                  className={`rounded-2xl border px-4 py-4 text-left text-base font-medium transition ${
-                    isCorrect
-                      ? "border-emerald-300 bg-emerald-50 text-emerald-700"
-                      : isWrongSelected
-                        ? "border-rose-300 bg-rose-50 text-rose-700"
-                        : isSelected
-                          ? "border-indigo-300 bg-indigo-50 text-indigo-700"
-                          : "border-slate-200 bg-slate-50 text-slate-700 hover:border-indigo-200 hover:bg-indigo-50"
-                  }`}
-                >
-                  {option}
-                </button>
-              );
-            })}
-          </div>
-        );
+        return null;
     }
   };
 
@@ -205,7 +190,7 @@ export function LessonScreen({ lessonId }: LessonScreenProps) {
     );
   }
 
-  if (!lesson) {
+  if (!lesson || loadError) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
         <div className="w-full max-w-lg rounded-3xl border border-rose-200 bg-white p-6 text-center shadow-sm">
@@ -213,7 +198,7 @@ export function LessonScreen({ lessonId }: LessonScreenProps) {
             Lesson not found
           </p>
           <h2 className="mt-3 text-2xl font-black text-slate-900">
-            Không tìm thấy bài học
+            {loadError || "Không tìm thấy bài học"}
           </h2>
           <button
             type="button"
@@ -287,7 +272,7 @@ export function LessonScreen({ lessonId }: LessonScreenProps) {
       if (vocabSubStep === "intro") {
         return (
           <VocabIntroCard
-            vocabulary={vocabulary}
+            vocabulary={vocabularies}
             onContinue={handleVocabularyContinueToFlashcard}
           />
         );
@@ -296,7 +281,7 @@ export function LessonScreen({ lessonId }: LessonScreenProps) {
       if (vocabSubStep === "flashcard") {
         return (
           <VocabFlashcardQuiz
-            vocabulary={vocabulary}
+            vocabulary={vocabularies}
             onComplete={handleVocabularyFlashcardComplete}
           />
         );
@@ -304,7 +289,7 @@ export function LessonScreen({ lessonId }: LessonScreenProps) {
 
       return (
         <VocabMatchingGame
-          vocabulary={vocabulary}
+          vocabulary={vocabularies}
           onComplete={handleVocabularyMatchingComplete}
         />
       );
@@ -324,22 +309,23 @@ export function LessonScreen({ lessonId }: LessonScreenProps) {
         )}
 
         {currentPart === "grammar" && (
-          <GrammarReferenceCard grammarNote={lesson.grammarNote ?? null} />
+          <GrammarReferenceCard grammarNote={grammarNote} />
         )}
 
         <div className="mb-6 flex items-center justify-between text-sm text-slate-500">
           <span>
             Câu {currentQuestion ? currentIndex + 1 : 0}/{totalQuestions}
           </span>
-          <span>{lesson.estimatedMinutes} phút</span>
         </div>
 
         <div className="rounded-3xl bg-gradient-to-br from-slate-50 to-indigo-50 p-5 sm:p-6">
           <p className="text-xs font-semibold uppercase tracking-[0.24em] text-indigo-600">
-            {currentQuestion?.prompt ?? "Exercise"}
+            Exercise
           </p>
           <h2 className="mt-4 text-2xl font-bold leading-tight text-slate-900">
-            {currentQuestion?.questionText ?? "Đang chuẩn bị câu hỏi..."}
+            {currentQuestion
+              ? getQuestionHeading(currentQuestion)
+              : "Đang chuẩn bị câu hỏi..."}
           </h2>
         </div>
 
@@ -388,11 +374,11 @@ export function LessonScreen({ lessonId }: LessonScreenProps) {
     return (
       <FooterAction
         canCheck={canCheck}
+        isChecking={isChecking}
         isChecked={isChecked}
         resultType={resultType}
         onCheck={handleCheckAnswer}
         onContinue={handleContinue}
-        correctAnswer={currentQuestion?.correctAnswer}
       />
     );
   };
@@ -411,15 +397,9 @@ export function LessonScreen({ lessonId }: LessonScreenProps) {
       <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
         <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
           <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-indigo-600">
-              {lesson.category}
-            </p>
             <h1 className="mt-2 text-3xl font-black text-slate-900">
               {lesson.title}
             </h1>
-          </div>
-          <div className="rounded-full bg-indigo-50 px-3 py-2 text-sm font-semibold text-indigo-700">
-            +{lesson.xpReward} XP
           </div>
         </div>
 

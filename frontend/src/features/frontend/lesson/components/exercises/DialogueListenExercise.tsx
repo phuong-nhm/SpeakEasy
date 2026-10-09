@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
+import { lessonService } from "../../services/lessonService";
 import { ExerciseType, SentenceExerciseDto } from "../../types/lesson";
 
 interface DialogueListenExerciseProps {
@@ -9,28 +10,6 @@ interface DialogueListenExerciseProps {
   onQuestionResult: (isCorrect: boolean) => void;
   onComplete: () => void;
 }
-
-const normalizeText = (value: string) =>
-  value.trim().replace(/\s+/g, " ").toLowerCase();
-
-const shuffleWords = (items: string[]) => {
-  const next = [...items];
-
-  for (let index = next.length - 1; index > 0; index -= 1) {
-    const randomIndex = Math.floor(Math.random() * (index + 1));
-    [next[index], next[randomIndex]] = [next[randomIndex], next[index]];
-  }
-
-  return next;
-};
-
-const buildWordBank = (question: SentenceExerciseDto) => {
-  if (question.shuffledWords && question.shuffledWords.length > 0) {
-    return question.shuffledWords;
-  }
-
-  return shuffleWords(question.correctSentence.split(/\s+/).filter(Boolean));
-};
 
 // Component ngoài: chỉ lo tiến trình cả đoạn hội thoại (đang ở câu mấy, đã xong chưa).
 export function DialogueListenExercise({
@@ -78,8 +57,6 @@ export function DialogueListenExercise({
 
   return (
     <DialogueQuestionCard
-      // Đổi câu hỏi (đổi id, hoặc đổi index nếu DTO không có id) -> React
-      // tự dựng lại component con từ đầu, khỏi cần effect reset state.
       key={currentQuestion.id ?? currentIndex}
       question={currentQuestion}
       index={currentIndex}
@@ -109,16 +86,15 @@ function DialogueQuestionCard({
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const advanceTimerRef = useRef<number | null>(null);
 
-  const [selectedAnswer, setSelectedAnswer] = useState<string>("");
+  const [selectedSentence, setSelectedSentence] = useState<string>("");
   const [selectedWords, setSelectedWords] = useState<string[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [feedback, setFeedback] = useState<{
     type: "correct" | "incorrect";
     message: string;
   } | null>(null);
   const [isAdvancing, setIsAdvancing] = useState(false);
 
-  // Chỉ dọn timer/audio khi component này bị huỷ (đổi sang câu khác hoặc unmount),
-  // không setState trong effect nên không bị rule bắt.
   useEffect(() => {
     return () => {
       if (advanceTimerRef.current) window.clearTimeout(advanceTimerRef.current);
@@ -126,11 +102,7 @@ function DialogueQuestionCard({
     };
   }, []);
 
-  const wordBank = useMemo(() => {
-    return question.exerciseType === ExerciseType.TranslateFromVietnamese
-      ? buildWordBank(question)
-      : [];
-  }, [question]);
+  const wordBank = question.shuffledWords ?? [];
 
   const playAudio = () => {
     if (!question.audioUrl) return;
@@ -156,24 +128,36 @@ function DialogueQuestionCard({
     }, 450);
   };
 
-  const handleCheckListenChoose = () => {
-    if (!selectedAnswer) return;
+  const handleCheckListenChoose = async () => {
+    if (!selectedSentence || isSubmitting) return;
 
-    const isCorrect =
-      normalizeText(selectedAnswer) === normalizeText(question.correctSentence);
+    setIsSubmitting(true);
+    try {
+      const isCorrect = await lessonService.submitSentenceAnswer({
+        exerciseId: question.id,
+        userSelectedSentence: selectedSentence,
+      });
 
-    setFeedback(
-      isCorrect
-        ? {
-            type: "correct",
-            message: "Đúng rồi. Tự động chuyển lượt kế tiếp...",
-          }
-        : {
-            type: "incorrect",
-            message: "Chưa đúng, hãy nghe lại và chọn câu khác.",
-          },
-    );
-    finishQuestion(isCorrect);
+      setFeedback(
+        isCorrect
+          ? {
+              type: "correct",
+              message: "Đúng rồi. Tự động chuyển lượt kế tiếp...",
+            }
+          : {
+              type: "incorrect",
+              message: "Chưa đúng, hãy nghe lại và chọn câu khác.",
+            },
+      );
+      finishQuestion(isCorrect);
+    } catch {
+      setFeedback({
+        type: "incorrect",
+        message: "Có lỗi khi kiểm tra đáp án, thử lại nhé.",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleToggleWord = (word: string) => {
@@ -184,23 +168,36 @@ function DialogueQuestionCard({
     );
   };
 
-  const handleCheckTranslate = () => {
-    const answer = selectedWords.join(" ");
-    const isCorrect =
-      normalizeText(answer) === normalizeText(question.correctSentence);
+  const handleCheckTranslate = async () => {
+    if (selectedWords.length === 0 || isSubmitting) return;
 
-    setFeedback(
-      isCorrect
-        ? {
-            type: "correct",
-            message: "Chính xác. Tự động chuyển lượt kế tiếp...",
-          }
-        : {
-            type: "incorrect",
-            message: "Chưa đúng, hãy ghép lại câu hoàn chỉnh.",
-          },
-    );
-    finishQuestion(isCorrect);
+    setIsSubmitting(true);
+    try {
+      const isCorrect = await lessonService.submitSentenceAnswer({
+        exerciseId: question.id,
+        userOrderedWords: selectedWords,
+      });
+
+      setFeedback(
+        isCorrect
+          ? {
+              type: "correct",
+              message: "Chính xác. Tự động chuyển lượt kế tiếp...",
+            }
+          : {
+              type: "incorrect",
+              message: "Chưa đúng, hãy ghép lại câu hoàn chỉnh.",
+            },
+      );
+      finishQuestion(isCorrect);
+    } catch {
+      setFeedback({
+        type: "incorrect",
+        message: "Có lỗi khi kiểm tra đáp án, thử lại nhé.",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const renderContent = () => {
@@ -229,20 +226,20 @@ function DialogueQuestionCard({
             </div>
 
             <p className="mt-4 text-sm font-medium text-slate-600">
-              {question.promptText ?? "Nghe và chọn câu đúng."}
+              Nghe và chọn câu đúng.
             </p>
           </div>
 
           <div className="grid gap-3">
             {options.map((option) => {
-              const isSelected = selectedAnswer === option;
+              const isSelected = selectedSentence === option;
 
               return (
                 <button
                   key={option}
                   type="button"
-                  onClick={() => setSelectedAnswer(option)}
-                  disabled={isAdvancing}
+                  onClick={() => setSelectedSentence(option)}
+                  disabled={isAdvancing || isSubmitting}
                   className={`rounded-2xl border px-4 py-4 text-left text-base font-semibold transition ${
                     isSelected
                       ? "border-indigo-300 bg-indigo-50 text-indigo-700"
@@ -258,10 +255,10 @@ function DialogueQuestionCard({
           <button
             type="button"
             onClick={handleCheckListenChoose}
-            disabled={!selectedAnswer || isAdvancing}
+            disabled={!selectedSentence || isAdvancing || isSubmitting}
             className="w-full rounded-2xl bg-emerald-600 px-4 py-3 text-sm font-bold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            KIỂM TRA
+            {isSubmitting ? "ĐANG KIỂM TRA..." : "KIỂM TRA"}
           </button>
         </div>
       );
@@ -278,7 +275,7 @@ function DialogueQuestionCard({
               Lượt {index + 1}/{total}
             </h3>
             <p className="mt-4 text-base font-medium text-slate-700">
-              {question.vietnameseTranslation ?? question.promptText}
+              {question.vietnameseTranslation}
             </p>
           </div>
 
@@ -289,12 +286,12 @@ function DialogueQuestionCard({
             <div className="mt-3 min-h-14 rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-3 text-sm text-slate-700">
               {selectedWords.length > 0 ? (
                 <div className="flex flex-wrap gap-2">
-                  {selectedWords.map((word) => (
+                  {selectedWords.map((word, idx) => (
                     <button
-                      key={word}
+                      key={`${word}-${idx}`}
                       type="button"
                       onClick={() => handleToggleWord(word)}
-                      disabled={isAdvancing}
+                      disabled={isAdvancing || isSubmitting}
                       className="rounded-full border border-violet-300 bg-white px-3 py-2 text-sm font-semibold text-violet-700 shadow-sm"
                     >
                       {word}
@@ -310,35 +307,36 @@ function DialogueQuestionCard({
           </div>
 
           <div className="flex flex-wrap gap-2">
-            {wordBank.map((word) => (
-              <button
-                key={word}
-                type="button"
-                onClick={() => handleToggleWord(word)}
-                className={`rounded-full border px-3 py-2 text-sm font-semibold transition ${
-                  selectedWords.includes(word)
-                    ? "border-violet-300 bg-violet-100 text-violet-700"
-                    : "border-slate-200 bg-slate-50 text-slate-700 hover:border-violet-200 hover:bg-violet-50"
-                }`}
-              >
-                {word}
-              </button>
-            ))}
+            {wordBank
+              .filter((word) => !selectedWords.includes(word))
+              .map((word, idx) => (
+                <button
+                  key={`${word}-${idx}`}
+                  type="button"
+                  onClick={() => handleToggleWord(word)}
+                  disabled={isAdvancing || isSubmitting}
+                  className="rounded-full border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-700 transition hover:border-violet-200 hover:bg-violet-50"
+                >
+                  {word}
+                </button>
+              ))}
           </div>
 
           <div className="flex items-center gap-3">
             <button
               type="button"
               onClick={handleCheckTranslate}
-              disabled={selectedWords.length === 0 || isAdvancing}
+              disabled={
+                selectedWords.length === 0 || isAdvancing || isSubmitting
+              }
               className="rounded-2xl bg-emerald-600 px-4 py-3 text-sm font-bold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              KIỂM TRA
+              {isSubmitting ? "ĐANG KIỂM TRA..." : "KIỂM TRA"}
             </button>
             <button
               type="button"
               onClick={() => setSelectedWords([])}
-              disabled={isAdvancing}
+              disabled={isAdvancing || isSubmitting}
               className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50"
             >
               Xóa hết

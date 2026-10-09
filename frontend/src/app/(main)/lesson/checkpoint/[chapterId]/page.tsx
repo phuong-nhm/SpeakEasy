@@ -5,8 +5,8 @@ import { useParams, useRouter } from "next/navigation";
 
 import { lessonService } from "@/features/frontend/lesson/services/lessonService";
 import {
+  CheckSentenceAnswerRequest,
   ExerciseType,
-  LessonQuestion,
   SentenceExerciseDto,
 } from "@/features/frontend/lesson/types/lesson";
 import { AnswerQuestionExercise } from "@/features/frontend/lesson/components/exercises/AnswerQuestionExercise";
@@ -21,30 +21,22 @@ const DEFAULT_HEARTS = 3;
 
 type CheckResult = "correct" | "incorrect" | null;
 
-const normalizeAnswer = (value: string) =>
-  value.trim().replace(/\s+/g, " ").toLowerCase();
-
-const toLessonQuestion = (exercise: SentenceExerciseDto): LessonQuestion => ({
-  id: exercise.id,
-  lessonId: exercise.lessonId,
-  sectionType: exercise.sectionType,
-  exerciseType: exercise.exerciseType,
-  promptText: exercise.promptText,
-  prompt: exercise.promptText ?? "Checkpoint question",
-  questionText:
-    exercise.questionText ?? exercise.promptText ?? "Checkpoint question",
-  vietnameseTranslation: exercise.vietnameseTranslation,
-  correctSentence: exercise.correctSentence,
-  correctAnswer: exercise.correctAnswer ?? exercise.correctSentence,
-  options: exercise.options ?? exercise.listenOptions,
-  listenOptions: exercise.listenOptions,
-  wordBank: exercise.wordBank,
-  shuffledWords: exercise.shuffledWords,
-  audioUrl: exercise.audioUrl,
-  dialogueGroupId: exercise.dialogueGroupId,
-  orderInGroup: exercise.orderInGroup,
-  explanation: "",
-});
+const getQuestionHeading = (question: SentenceExerciseDto): string => {
+  switch (question.exerciseType) {
+    case ExerciseType.WordOrder:
+      return "Sắp xếp các từ thành câu đúng";
+    case ExerciseType.FillInBlank:
+      return question.displaySentence ?? "Điền từ vào chỗ trống";
+    case ExerciseType.AnswerQuestion:
+      return question.promptText ?? "Trả lời câu hỏi";
+    case ExerciseType.TranslateFromVietnamese:
+      return question.vietnameseTranslation ?? "Dịch câu sau sang tiếng Anh";
+    case ExerciseType.ListenChoose:
+      return "Nghe và chọn câu đúng";
+    default:
+      return "Exercise";
+  }
+};
 
 const normalizeCheckpointList = (items: SentenceExerciseDto[]) => {
   const visitedGroups = new Set<string>();
@@ -89,7 +81,9 @@ export default function CheckpointChapterPage() {
   const [loadError, setLoadError] = useState<string | null>(null);
 
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
+  const [selectedWords, setSelectedWords] = useState<string[]>([]);
+  const [selectedText, setSelectedText] = useState("");
+  const [isChecking, setIsChecking] = useState(false);
   const [isChecked, setIsChecked] = useState(false);
   const [resultType, setResultType] = useState<CheckResult>(null);
 
@@ -101,7 +95,13 @@ export default function CheckpointChapterPage() {
   const [hasUnlocked, setHasUnlocked] = useState(false);
   const [unlockError, setUnlockError] = useState<string | null>(null);
 
-  // Bọc loadCheckpoint bằng useCallback để dùng an toàn trong useEffect
+  const resetAnswerState = () => {
+    setSelectedWords([]);
+    setSelectedText("");
+    setIsChecked(false);
+    setResultType(null);
+  };
+
   const loadCheckpoint = useCallback(
     async (isMounted: () => boolean = () => true) => {
       setIsLoading(true);
@@ -116,9 +116,7 @@ export default function CheckpointChapterPage() {
 
         setQuestions(normalizedQuestions);
         setCurrentIndex(0);
-        setSelectedAnswer(null);
-        setIsChecked(false);
-        setResultType(null);
+        resetAnswerState();
         setHearts(DEFAULT_HEARTS);
         setCorrectCount(0);
         setAnsweredCount(0);
@@ -139,7 +137,6 @@ export default function CheckpointChapterPage() {
   const totalQuestions = questions.length;
   const currentQuestion = questions[currentIndex] ?? null;
 
-  // Dùng useMemo tối ưu tính toán nhóm hội thoại
   const currentDialogueGroup = useMemo(() => {
     if (!currentQuestion?.dialogueGroupId) return [];
     return questions
@@ -154,10 +151,8 @@ export default function CheckpointChapterPage() {
       });
   }, [currentQuestion, questions]);
 
-  const currentQuestionForRender =
-    currentQuestion && currentDialogueGroup.length === 0
-      ? toLessonQuestion(currentQuestion)
-      : null;
+  const showSingleQuestion =
+    currentQuestion !== null && currentDialogueGroup.length === 0;
 
   const progressPercent =
     totalQuestions > 0
@@ -169,11 +164,9 @@ export default function CheckpointChapterPage() {
 
   const isPassed = accuracyPercent >= PASS_PERCENT;
 
-  // TÍNH TOÁN TRỰC TIẾP (Derived State) - Không dùng useState cho isFinished nữa!
   const isFinished =
     totalQuestions > 0 && (hearts <= 0 || answeredCount >= totalQuestions);
 
-  // Effect unlock Chapter khi hoàn thành
   useEffect(() => {
     if (!isFinished || !isPassed || isUnlocking || hasUnlocked) {
       return;
@@ -221,32 +214,67 @@ export default function CheckpointChapterPage() {
     setHearts((value) => Math.max(0, value - 1));
   };
 
-  const evaluateCurrentAnswer = () => {
-    if (!currentQuestion || !selectedAnswer || !selectedAnswer.trim()) {
+  const hasAnswerSelected = () => {
+    if (!currentQuestion) return false;
+    switch (currentQuestion.exerciseType) {
+      case ExerciseType.WordOrder:
+      case ExerciseType.TranslateFromVietnamese:
+        return selectedWords.length > 0;
+      case ExerciseType.FillInBlank:
+      case ExerciseType.AnswerQuestion:
+        return selectedText.trim().length > 0;
+      default:
+        return false;
+    }
+  };
+
+  const canCheck = hasAnswerSelected() && !isChecked && !isChecking;
+
+  const evaluateCurrentAnswer = async () => {
+    if (!currentQuestion || isChecked || isChecking || !hasAnswerSelected()) {
       return;
     }
 
-    const correctAnswer =
-      currentQuestion.correctAnswer ?? currentQuestion.correctSentence;
-    const isCorrect =
-      normalizeAnswer(selectedAnswer) === normalizeAnswer(correctAnswer);
+    const request: CheckSentenceAnswerRequest = {
+      exerciseId: currentQuestion.id,
+    };
 
-    applyQuestionResult(isCorrect);
-    setIsChecked(true);
-    setResultType(isCorrect ? "correct" : "incorrect");
+    switch (currentQuestion.exerciseType) {
+      case ExerciseType.WordOrder:
+      case ExerciseType.TranslateFromVietnamese:
+        request.userOrderedWords = selectedWords;
+        break;
+      case ExerciseType.FillInBlank:
+        request.userAnswerText = selectedText;
+        request.blankIndex = currentQuestion.blankIndex;
+        break;
+      case ExerciseType.AnswerQuestion:
+        request.userAnswerText = selectedText;
+        break;
+      default:
+        return;
+    }
+
+    setIsChecking(true);
+    try {
+      const isCorrect = await lessonService.submitSentenceAnswer(request);
+      setIsChecked(true);
+      setResultType(isCorrect ? "correct" : "incorrect");
+      applyQuestionResult(isCorrect);
+    } catch {
+      // lỗi mạng/server - không đánh dấu đã check, cho thử lại
+    } finally {
+      setIsChecking(false);
+    }
   };
 
   const moveNext = () => {
     setCurrentIndex((index) => index + 1);
-    setSelectedAnswer(null);
-    setIsChecked(false);
-    setResultType(null);
+    resetAnswerState();
   };
 
   const handleContinue = () => {
-    if (isFinished) {
-      return;
-    }
+    if (isFinished) return;
     moveNext();
   };
 
@@ -256,12 +284,8 @@ export default function CheckpointChapterPage() {
 
   const onDialogueComplete = () => {
     setCurrentIndex((index) => index + currentDialogueGroup.length);
-    setSelectedAnswer(null);
-    setIsChecked(false);
-    setResultType(null);
+    resetAnswerState();
   };
-
-  const canCheck = !!selectedAnswer && selectedAnswer.trim().length > 0;
 
   if (isLoading) {
     return (
@@ -410,58 +434,46 @@ export default function CheckpointChapterPage() {
               onQuestionResult={onDialogueResult}
               onComplete={onDialogueComplete}
             />
-          ) : currentQuestionForRender ? (
+          ) : showSingleQuestion && currentQuestion ? (
             <div className="space-y-5">
-              {currentQuestionForRender.exerciseType ===
-                ExerciseType.WordOrder && (
+              <h3 className="text-lg font-bold text-slate-900">
+                {getQuestionHeading(currentQuestion)}
+              </h3>
+
+              {currentQuestion.exerciseType === ExerciseType.WordOrder && (
                 <WordOrderExercise
-                  question={currentQuestionForRender}
-                  selectedAnswer={selectedAnswer}
-                  onAnswerChange={setSelectedAnswer}
+                  question={currentQuestion}
+                  selectedWords={selectedWords}
+                  onWordsChange={setSelectedWords}
                   isChecked={isChecked}
                 />
               )}
 
-              {currentQuestionForRender.exerciseType ===
-                ExerciseType.FillInBlank && (
+              {currentQuestion.exerciseType === ExerciseType.FillInBlank && (
                 <FillInBlankExercise
-                  question={currentQuestionForRender}
-                  selectedAnswer={selectedAnswer}
-                  onAnswerChange={setSelectedAnswer}
+                  question={currentQuestion}
+                  selectedText={selectedText}
+                  onTextChange={setSelectedText}
                   isChecked={isChecked}
                 />
               )}
 
-              {currentQuestionForRender.exerciseType ===
-                ExerciseType.AnswerQuestion && (
+              {currentQuestion.exerciseType === ExerciseType.AnswerQuestion && (
                 <AnswerQuestionExercise
-                  question={currentQuestionForRender}
-                  selectedAnswer={selectedAnswer}
-                  onAnswerChange={setSelectedAnswer}
+                  question={currentQuestion}
+                  selectedText={selectedText}
+                  onTextChange={setSelectedText}
+                  isChecked={isChecked}
                 />
               )}
 
-              {currentQuestionForRender.exerciseType ===
+              {currentQuestion.exerciseType ===
                 ExerciseType.TranslateFromVietnamese && (
                 <TranslateExercise
-                  question={currentQuestionForRender}
-                  selectedAnswer={selectedAnswer}
-                  onAnswerChange={setSelectedAnswer}
-                />
-              )}
-
-              {![
-                ExerciseType.WordOrder,
-                ExerciseType.FillInBlank,
-                ExerciseType.AnswerQuestion,
-                ExerciseType.TranslateFromVietnamese,
-              ].includes(
-                currentQuestionForRender.exerciseType as ExerciseType,
-              ) && (
-                <TranslateExercise
-                  question={currentQuestionForRender}
-                  selectedAnswer={selectedAnswer}
-                  onAnswerChange={setSelectedAnswer}
+                  question={currentQuestion}
+                  selectedWords={selectedWords}
+                  onWordsChange={setSelectedWords}
+                  isChecked={isChecked}
                 />
               )}
 
@@ -483,11 +495,11 @@ export default function CheckpointChapterPage() {
                 {!isChecked ? (
                   <button
                     type="button"
-                    onClick={evaluateCurrentAnswer}
+                    onClick={() => void evaluateCurrentAnswer()}
                     disabled={!canCheck}
                     className="rounded-2xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
                   >
-                    KIỂM TRA
+                    {isChecking ? "ĐANG KIỂM TRA..." : "KIỂM TRA"}
                   </button>
                 ) : (
                   <button

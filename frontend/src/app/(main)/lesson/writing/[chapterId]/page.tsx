@@ -4,19 +4,19 @@ import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import CheckpointWritingExercise from "@/features/frontend/lesson/components/exercises/CheckpointWritingExercise";
-import { AiFeedbackDto } from "@/features/frontend/lesson/types/lesson";
+import { lessonService } from "@/features/frontend/lesson/services/lessonService";
+import {
+  AiFeedbackDto,
+  WritingTopicDto,
+  WritingTopicType,
+} from "@/features/frontend/lesson/types/lesson";
 
-interface WritingTopicDto {
-  id: string;
-  chapterId: string;
-  promptTitle: string;
-  promptText: string;
-}
 interface WritingChapterPageProps {
   params: Promise<{
     chapterId?: string;
   }>;
 }
+
 export default function WritingChapterPage({
   params,
 }: WritingChapterPageProps) {
@@ -24,7 +24,12 @@ export default function WritingChapterPage({
   const resolvedParams = React.use(params);
   const chapterId: string = resolvedParams?.chapterId ?? "unknown";
 
+  const [topicType, setTopicType] = useState<WritingTopicType>(
+    WritingTopicType.Weekly,
+  );
   const [topic, setTopic] = useState<WritingTopicDto | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [hearts, setHearts] = useState(3);
   const [score, setScore] = useState(0);
 
@@ -32,22 +37,22 @@ export default function WritingChapterPage({
     let mounted = true;
 
     const load = async () => {
-      try {
-        const response = await fetch(
-          `/api/app/writing-topic/by-chapter?chapterId=${chapterId}`,
-        );
-        const data = await response.json();
+      setIsLoading(true);
+      setLoadError(null);
+      setTopic(null);
 
+      try {
+        const data = await lessonService.getAvailableWritingTopic(
+          chapterId,
+          topicType,
+        );
         if (!mounted) return;
-        setTopic(data[0] ?? null);
+        setTopic(data);
       } catch {
         if (!mounted) return;
-        setTopic({
-          id: "mock-writing-1",
-          chapterId,
-          promptTitle: "Describe your learning routine",
-          promptText: "Write about how you practice English every day.",
-        });
+        setLoadError("Chưa có đề bài cho lựa chọn này.");
+      } finally {
+        if (mounted) setIsLoading(false);
       }
     };
 
@@ -56,7 +61,13 @@ export default function WritingChapterPage({
     return () => {
       mounted = false;
     };
-  }, [chapterId]);
+  }, [chapterId, topicType]);
+
+  const handleTopicTypeChange = (type: WritingTopicType) => {
+    setTopicType(type);
+    setScore(0);
+    setHearts(3);
+  };
 
   const handleSubmitted = (feedback: AiFeedbackDto) => {
     if ((feedback.score ?? 0) >= 80) {
@@ -85,16 +96,45 @@ export default function WritingChapterPage({
         </div>
 
         <div className="rounded-2xl border bg-white p-4">
-          {topic ? (
-            <CheckpointWritingExercise
-              topic={topic}
-              onSubmitted={handleSubmitted}
-            />
-          ) : (
-            <p className="text-sm text-slate-500">
-              Không có đề writing cho chapter này.
-            </p>
-          )}
+          <div className="inline-flex rounded-full border border-slate-200 bg-slate-50 p-1 text-sm font-semibold text-slate-600">
+            <button
+              type="button"
+              onClick={() => handleTopicTypeChange(WritingTopicType.Weekly)}
+              className={`rounded-full px-3 py-1.5 transition ${
+                topicType === WritingTopicType.Weekly
+                  ? "bg-indigo-600 text-white shadow-sm"
+                  : "hover:bg-slate-100"
+              }`}
+            >
+              Đề tuần
+            </button>
+            <button
+              type="button"
+              onClick={() => handleTopicTypeChange(WritingTopicType.Monthly)}
+              className={`rounded-full px-3 py-1.5 transition ${
+                topicType === WritingTopicType.Monthly
+                  ? "bg-indigo-600 text-white shadow-sm"
+                  : "hover:bg-slate-100"
+              }`}
+            >
+              Đề tháng
+            </button>
+          </div>
+
+          <div className="mt-4">
+            {isLoading ? (
+              <div className="h-24 animate-pulse rounded-2xl bg-slate-100" />
+            ) : loadError || !topic ? (
+              <p className="text-sm text-slate-500">
+                {loadError ?? "Không có đề writing cho chapter này."}
+              </p>
+            ) : (
+              <CheckpointWritingExercise
+                topic={topic}
+                onSubmitted={handleSubmitted}
+              />
+            )}
+          </div>
         </div>
 
         <div className="rounded-2xl border bg-white p-4 text-sm text-slate-600">

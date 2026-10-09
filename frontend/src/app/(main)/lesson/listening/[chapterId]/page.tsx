@@ -10,34 +10,31 @@ import {
   AiFeedbackDto,
   ExerciseType,
   ListeningPassageClientDto,
+  SectionType,
   SentenceExerciseDto,
 } from "@/features/frontend/lesson/types/lesson";
 
 type ListeningMode = "passage" | "dialogue";
 
-const dialogueQuestions: SentenceExerciseDto[] = [
+const mockDialogueQuestions: SentenceExerciseDto[] = [
   {
     id: "listen-page-dialogue-1",
     lessonId: "chapter-listening-demo",
-    sectionType: 1,
+    sectionType: SectionType.Dialogue,
     exerciseType: ExerciseType.ListenChoose,
     dialogueGroupId: "chapter-listening-demo",
     orderInGroup: 1,
-    promptText: "Nghe và chọn câu đúng.",
     audioUrl: "/audio/checkpoint-dialogue-1.mp3",
     listenOptions: ["Let's meet after class.", "I am at the library."],
-    correctSentence: "Let's meet after class.",
   },
   {
     id: "listen-page-dialogue-2",
     lessonId: "chapter-listening-demo",
-    sectionType: 1,
+    sectionType: SectionType.Dialogue,
     exerciseType: ExerciseType.TranslateFromVietnamese,
     dialogueGroupId: "chapter-listening-demo",
     orderInGroup: 2,
-    promptText: "Dịch câu tiếng Việt.",
     vietnameseTranslation: "Chúng ta gặp nhau sau giờ học.",
-    correctSentence: "We will meet after class.",
     shuffledWords: ["We", "will", "meet", "after", "class."],
   },
 ];
@@ -50,6 +47,9 @@ export default function ListeningChapterPage() {
 
   const [listeningPassage, setListeningPassage] =
     useState<ListeningPassageClientDto | null>(null);
+  const [dialogueQuestions, setDialogueQuestions] = useState<
+    SentenceExerciseDto[]
+  >([]);
   const [listeningMode, setListeningMode] = useState<ListeningMode>("passage");
   const [hearts, setHearts] = useState(3);
   const [score, setScore] = useState(0);
@@ -84,6 +84,29 @@ export default function ListeningChapterPage() {
     };
 
     load();
+
+    return () => {
+      mounted = false;
+    };
+  }, [chapterId]);
+
+  useEffect(() => {
+    let mounted = true;
+
+    const loadDialogue = async () => {
+      try {
+        const dialogue = await lessonService.getDialogueByChapter(chapterId);
+        if (!mounted) return;
+        setDialogueQuestions(
+          dialogue.length > 0 ? dialogue : mockDialogueQuestions,
+        );
+      } catch {
+        if (!mounted) return;
+        setDialogueQuestions(mockDialogueQuestions);
+      }
+    };
+
+    loadDialogue();
 
     return () => {
       mounted = false;
@@ -159,8 +182,9 @@ export default function ListeningChapterPage() {
                 onQuestionIncorrect={handleIncorrect}
                 onEssaySubmitted={handleEssaySubmitted}
               />
-            ) : (
+            ) : listeningMode === "dialogue" && dialogueQuestions.length > 0 ? (
               <DialogueListenExercise
+                key={chapterId}
                 questions={dialogueQuestions}
                 onQuestionResult={(isCorrect) => {
                   if (isCorrect) handleCorrect();
@@ -170,6 +194,8 @@ export default function ListeningChapterPage() {
                   // dialogue component already tracks completion state internally.
                 }}
               />
+            ) : (
+              <p className="text-sm text-slate-500">Đang tải dữ liệu...</p>
             )}
           </div>
         </div>

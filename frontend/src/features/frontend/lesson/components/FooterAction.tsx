@@ -1,19 +1,19 @@
 interface FooterActionProps {
   canCheck: boolean;
+  isChecking: boolean;
   isChecked: boolean;
   resultType: "correct" | "incorrect" | null;
   onCheck: () => void;
   onContinue: () => void;
-  correctAnswer?: string;
 }
 
 export function FooterAction({
   canCheck,
+  isChecking,
   isChecked,
   resultType,
   onCheck,
   onContinue,
-  correctAnswer,
 }: FooterActionProps) {
   if (!isChecked) {
     return (
@@ -29,7 +29,7 @@ export function FooterAction({
                 : "cursor-not-allowed bg-slate-300"
             }`}
           >
-            KIỂM TRA
+            {isChecking ? "ĐANG KIỂM TRA..." : "KIỂM TRA"}
           </button>
         </div>
       </footer>
@@ -48,7 +48,7 @@ export function FooterAction({
         >
           {resultType === "correct"
             ? "✅ Chúc mừng! Đáp án của bạn chính xác."
-            : `❌ Sai rồi! Đáp án đúng là: ${correctAnswer ?? "đang cập nhật"}`}
+            : "❌ Sai rồi! Hãy xem lại bài học và thử câu tiếp theo."}
         </div>
 
         <button

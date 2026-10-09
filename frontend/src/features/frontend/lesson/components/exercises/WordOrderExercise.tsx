@@ -2,50 +2,65 @@
 
 import { useMemo } from "react";
 
-import { LessonQuestion } from "../../types/lesson";
+import { SentenceExerciseDto } from "../../types/lesson";
 
 interface WordOrderExerciseProps {
-  question: LessonQuestion;
-  selectedAnswer: string | null;
-  onAnswerChange: (value: string) => void;
+  question: SentenceExerciseDto;
+  selectedWords: string[];
+  onWordsChange: (words: string[]) => void;
   isChecked: boolean;
 }
 
 export function WordOrderExercise({
   question,
-  selectedAnswer,
-  onAnswerChange,
+  selectedWords,
+  onWordsChange,
   isChecked,
 }: WordOrderExerciseProps) {
   const wordBank = useMemo(
-    () => question.wordBank ?? question.correctAnswer.split(" "),
-    [question.correctAnswer, question.wordBank],
+    () => question.shuffledWords ?? [],
+    [question.shuffledWords],
   );
 
-  const selectedWords = useMemo(
-    () => (selectedAnswer ? selectedAnswer.split(" ").filter(Boolean) : []),
-    [selectedAnswer],
-  );
+  // Trừ đa tập hợp (multiset) để xử lý đúng khi wordBank có từ trùng nhau
+  const availableWords = useMemo(() => {
+    const remaining = new Map<string, number>();
+    wordBank.forEach((word) => {
+      remaining.set(word, (remaining.get(word) ?? 0) + 1);
+    });
+    selectedWords.forEach((word) => {
+      remaining.set(word, (remaining.get(word) ?? 0) - 1);
+    });
 
-  const availableWords = wordBank.filter(
-    (word) => !selectedWords.includes(word),
-  );
+    const used = new Map<string, number>();
+    return wordBank.filter((word) => {
+      const alreadyUsed = used.get(word) ?? 0;
+      const stillAvailable = (remaining.get(word) ?? 0) + alreadyUsed;
+      if (
+        alreadyUsed <
+        wordBank.filter((w) => w === word).length -
+          selectedWords.filter((w) => w === word).length
+      ) {
+        used.set(word, alreadyUsed + 1);
+        return true;
+      }
+      return false;
+    });
+  }, [wordBank, selectedWords]);
 
   const appendWord = (word: string) => {
     if (isChecked) return;
-    onAnswerChange([...selectedWords, word].join(" "));
+    onWordsChange([...selectedWords, word]);
   };
 
   const removeWordAt = (index: number) => {
     if (isChecked) return;
-    onAnswerChange(
-      selectedWords.filter((_, itemIndex) => itemIndex !== index).join(" "),
-    );
+    onWordsChange(selectedWords.filter((_, itemIndex) => itemIndex !== index));
   };
 
   const resetWords = () => {
     if (isChecked) return;
-    onAnswerChange("");
+    onWordsChange([]);
   };
 
   return (
@@ -65,7 +80,8 @@ export function WordOrderExercise({
                 key={`${word}-${index}`}
                 type="button"
                 onClick={() => removeWordAt(index)}
-                className="rounded-full border border-indigo-300 bg-white px-3 py-2 text-sm font-semibold text-indigo-700 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+                disabled={isChecked}
+                className="rounded-full border border-indigo-300 bg-white px-3 py-2 text-sm font-semibold text-indigo-700 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md disabled:cursor-not-allowed"
               >
                 {word}
               </button>
@@ -75,9 +91,9 @@ export function WordOrderExercise({
       </div>
 
       <div className="flex flex-wrap gap-2">
-        {availableWords.map((word) => (
+        {availableWords.map((word, index) => (
           <button
-            key={word}
+            key={`${word}-${index}`}
             type="button"
             onClick={() => appendWord(word)}
             disabled={isChecked}
@@ -92,7 +108,8 @@ export function WordOrderExercise({
         <button
           type="button"
           onClick={resetWords}
-          className="rounded-full border border-slate-200 bg-white px-3 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-600 hover:bg-slate-50"
+          disabled={isChecked}
+          className="rounded-full border border-slate-200 bg-white px-3 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed"
         >
           Reset
         </button>
