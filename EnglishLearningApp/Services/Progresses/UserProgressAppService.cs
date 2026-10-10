@@ -1,11 +1,12 @@
-using System;
-using System.Linq;
-using System.Threading.Tasks;
+using EnglishLearningApp.Dtos.Progresses;
 using EnglishLearningApp.Entities;
 using EnglishLearningApp.Entities.Content;
 using EnglishLearningApp.Entities.Progress;
 using EnglishLearningApp.Services;
 using Microsoft.AspNetCore.Authorization;
+using System;
+using System.Linq;
+using System.Threading.Tasks;
 using Volo.Abp.Domain.Repositories;
 using Volo.Abp.Users;
 
@@ -74,6 +75,16 @@ namespace EnglishLearningApp.AppServices.Progresses
             var completedCount = await AsyncExecuter.CountAsync(query);
 
             return (double)completedCount / lessonIds.Count * 100;
+        }
+        [AllowAnonymous] // hoặc bỏ dòng này nếu muốn bắt buộc đăng nhập, tuỳ policy hiện tại của app
+        public async Task<List<UserProgressDto>> GetMyProgressAsync()
+        {
+            var userId = _currentUser.GetId();
+            var queryable = await _progressRepo.GetQueryableAsync();
+            var query = queryable.Where(x => x.UserId == userId);
+
+            var progressList = await AsyncExecuter.ToListAsync(query);
+            return ObjectMapper.Map<List<UserProgress>, List<UserProgressDto>>(progressList);
         }
     }
 }

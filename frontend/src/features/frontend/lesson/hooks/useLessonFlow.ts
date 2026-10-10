@@ -13,6 +13,7 @@ import {
   VocabularyDto,
   VocabularyQuizDto,
 } from "../types/lesson";
+import { reviewService } from "../../review/services/reviewService";
 
 const shuffleItems = <T>(items: T[]) => {
   const next = [...items];
@@ -63,7 +64,7 @@ export function useLessonFlow(lessonId: string) {
   const [resultType, setResultType] = useState<"correct" | "incorrect" | null>(
     null,
   );
-
+  const [showPassiveRecall, setShowPassiveRecall] = useState(false);
   const [hearts, setHearts] = useState(DEFAULT_HEARTS);
   const [correctAnswers, setCorrectAnswers] = useState(0);
   const [isCompleted, setIsCompleted] = useState(false);
@@ -335,6 +336,8 @@ export function useLessonFlow(lessonId: string) {
     const xpEarned =
       correctAnswers * XP_PER_CORRECT + hearts * XP_PER_HEART_LEFT;
 
+    // Lưu ý: xpEarned/accuracyPercent chỉ hiển thị tạm trên CompleteScreen,
+    // KHÔNG được lưu lại server - backend hiện không có cơ chế lưu XP/kết quả
     setSummary({ xpEarned, accuracyPercent, elapsedSeconds });
     setIsCompleted(true);
     setSelectedPart(null);
@@ -342,18 +345,29 @@ export function useLessonFlow(lessonId: string) {
     resetCurrentState();
 
     try {
-      await lessonService.submitLessonResult({
-        lessonId: lesson.id,
-        correctAnswers,
-        totalQuestions: totalAnswered,
-        xpEarned,
-        heartsLeft: hearts,
-        accuracyPercent,
-        elapsedSeconds,
-      });
+      let wasCompletedBefore = false;
+      try {
+        const chapterProgress = await lessonService.getProgressByChapter(
+          lesson.chapterId,
+        );
+        wasCompletedBefore = chapterProgress.some(
+          (p) => p.lessonId === lesson.id && p.isCompleted,
+        );
+      } catch {
+        wasCompletedBefore = false;
+      }
+
+      const tasks: Promise<unknown>[] = [
+        lessonService.markLessonCompleted(lesson.id),
+      ];
+
+      if (!wasCompletedBefore) {
+        tasks.push(reviewService.initReview(lesson.id));
+      }
+
+      await Promise.all(tasks);
     } catch {
       // Không chặn UI nếu submit lỗi - người dùng đã thấy summary rồi
-      // Có thể thêm retry/log sau nếu cần
     }
   };
 
@@ -366,7 +380,11 @@ export function useLessonFlow(lessonId: string) {
     }));
 
     if (selectedPart === "comprehensive") {
-      finalizeLesson();
+      // Không gọi finalizeLesson() ngay - chuyển sang màn Ôn nhanh trước
+      setSelectedPart(null);
+      setCurrentIndex(0);
+      resetCurrentState();
+      setShowPassiveRecall(true);
       return;
     }
 
@@ -378,6 +396,12 @@ export function useLessonFlow(lessonId: string) {
     setSelectedPart(null);
     setCurrentIndex(0);
     resetCurrentState();
+  };
+
+  // Thêm handler mới - gọi khi màn Ôn nhanh xong (hoặc bị bỏ qua)
+  const handlePassiveRecallComplete = () => {
+    setShowPassiveRecall(false);
+    finalizeLesson();
   };
 
   // ===== VOCABULARY SUB-FLOW =====
@@ -477,5 +501,7 @@ export function useLessonFlow(lessonId: string) {
     confirmExit,
     cancelExit,
     recordAttemptResult,
+    showPassiveRecall,
+    handlePassiveRecallComplete,
   };
 }

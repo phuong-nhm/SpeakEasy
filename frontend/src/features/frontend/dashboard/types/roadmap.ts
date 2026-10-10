@@ -1,25 +1,46 @@
 export type LessonStatus = "completed" | "unlocked" | "locked";
 
-export interface LessonDto {
+// ===== RAW DTO (khớp backend) =====
+export interface LevelDto {
   id: string;
-  title: string;
-  order: number;
-  isCompleted: boolean;
-  isLocked: boolean;
-  totalQuestions: number;
+  name: string;
+  description?: string;
 }
 
 export interface ChapterDto {
   id: string;
+  levelId: string;
   title: string;
-  description: string;
-  order: number;
-  lessons: LessonDto[];
+  orderIndex: number;
 }
 
-export interface LevelDto {
+export interface UserProgressDto {
   id: string;
+  lessonId: string;
+  isCompleted: boolean;
+  completedAt?: string;
+}
+
+export interface PagedResultDto<T> {
+  totalCount: number;
+  items: T[];
+}
+
+// ===== VIEW MODEL (FE tự ráp + tính unlock, dùng để render UI) =====
+export interface RoadmapLessonView {
+  id: string;
+  chapterId: string;
   title: string;
-  levelNumber: number;
-  chapters: ChapterDto[];
+  orderIndex: number;
+  lessonType: number;
+  status: LessonStatus;
+}
+
+export interface RoadmapChapterView {
+  id: string;
+  levelId: string;
+  title: string;
+  orderIndex: number;
+  lessons: RoadmapLessonView[];
+  status: LessonStatus;
 }

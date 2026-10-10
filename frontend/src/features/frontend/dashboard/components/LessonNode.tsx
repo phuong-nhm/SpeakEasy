@@ -2,19 +2,19 @@
 
 import { useRouter } from "next/navigation";
 
-import { LessonDto } from "../types/roadmap";
+import { RoadmapLessonView } from "../types/roadmap";
 
 interface LessonNodeProps {
-  lesson: LessonDto;
+  lesson: RoadmapLessonView;
   alignRight?: boolean;
 }
 
 export function LessonNode({ lesson, alignRight = false }: LessonNodeProps) {
   const router = useRouter();
 
-  const isCompleted = lesson.isCompleted;
-  const isLocked = lesson.isLocked;
-  const isUnlocked = !isCompleted && !isLocked;
+  const isCompleted = lesson.status === "completed";
+  const isLocked = lesson.status === "locked";
+  const isUnlocked = lesson.status === "unlocked";
 
   const stateClasses = isCompleted
     ? "border-emerald-200 bg-emerald-50 text-emerald-700 shadow-emerald-100 hover:bg-emerald-100"
@@ -28,11 +28,11 @@ export function LessonNode({ lesson, alignRight = false }: LessonNodeProps) {
     <button
       type="button"
       onClick={() => {
-        if (!lesson.isLocked) {
+        if (!isLocked) {
           router.push(`/lesson/${lesson.id}`);
         }
       }}
-      disabled={lesson.isLocked}
+      disabled={isLocked}
       className={`group flex w-full max-w-[420px] items-center justify-between rounded-2xl border p-3 text-left shadow-sm transition-all duration-200 ${stateClasses} ${alignRight ? "ml-auto" : "mr-auto"}`}
     >
       <div className="flex items-center gap-3">
@@ -50,9 +50,6 @@ export function LessonNode({ lesson, alignRight = false }: LessonNodeProps) {
 
         <div>
           <p className="text-sm font-bold leading-5">{lesson.title}</p>
-          <p className="mt-1 text-[11px] font-medium uppercase tracking-[0.14em] opacity-80">
-            {lesson.totalQuestions} câu hỏi
-          </p>
         </div>
       </div>
 

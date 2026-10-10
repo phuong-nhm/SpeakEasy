@@ -198,21 +198,185 @@ thay đổi nhỏ
 <p>{topic.promptTitle}</p>
 <div>{topic.promptText}</div>  
 chỗ checkpoint writting á 
--------------------------------------------------
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+# TODO - Mở rộng sau: Unlock Chapter theo Checkpoint (Hướng B)
 
-🔴 Cần sửa chắc chắn (do hook đổi API):
+## Bối cảnh hiện tại (đã chọn Hướng A để làm trước)
 
-WordOrderExercise.tsx — dùng handleSelectWords thay vì handleSelectAnswer
-FillInBlankExercise.tsx — dùng handleSelectText + cần displaySentence/blankIndex thay vì questionText
-AnswerQuestionExercise.tsx — dùng handleSelectText, field promptText
-TranslateExercise.tsx — dùng handleSelectWords, field vietnameseTranslation + shuffledWords
-DialogueListenExercise.tsx — dùng handleSelectSentence (Part A) + handleSelectWords (Part B), gọi submitSentenceAnswer theo dialogueGroupId/orderInGroup
-FooterAction.tsx — nút Check giờ gọi async handleCheckAnswer, cần loading state (isChecking), và không còn hiển thị correctAnswer trong feedback nữa
-LessonScreen.tsx — orchestrator chính, switch theo exerciseType (number enum giờ, không phải string), render đúng field mới
-VocabIntroCard.tsx — field vocabularies lấy từ hook mới (nếu tên field thay đổi)
-VocabFlashcardQuiz.tsx / VocabMatchingGame.tsx — đổi sang dùng quizBatch (VocabularyQuizDto) thay vì matching pair cũ
+Đang dùng rule đơn giản để mở khóa Chapter: Chapter tiếp theo mở khi TOÀN BỘ
+Lesson của Chapter hiện tại đã `IsCompleted = true` (dựa vào `UserProgressDto[]`
+theo `LessonId`). Checkpoint vẫn tồn tại như 1 màn ôn tập/kiểm tra riêng (có
+pass/fail, PASS_PERCENT = 80%), nhưng KHÔNG bắt buộc phải pass mới mở được
+Chapter mới.
 
-🟡 Có thể cần sửa nhẹ (field/type đổi nhưng logic không đổi nhiều): 10. MatchingGameExercise.tsx — có khi bỏ hẳn (vì Part 3 giờ không còn MatchingGame, đã thống nhất) 11. HeaderBar.tsx — chỉ hiển thị hearts/progress, có thể không cần sửa 12. CompleteScreen.tsx / VictoryModal.tsx — hiển thị summary, kiểm tra field name có đổi không
+## Vấn đề của Hướng A
 
-🟢 Không liên quan lesson flow chính (Checkpoint/Listening Passage riêng): 13. CheckpointWritingExercise.tsx, ListeningExercise.tsx, PassageListeningExercise.tsx, AiFeedbackCard.tsx, GrammarReferenceCard.tsx — đã nối hoặc thuộc flow khác, để sau
-là giờ mấy cái này xong hết rồi đúng hog còn cái nào bạn chưa check hoặc chưa sửa hog, có mấy cái bạn bảo hog liên quan nhưng khi qua phần khác có phải làm hog nếu phải làm thì đợi qua phần khác làm còn hog nếu cần làm thì làm luôn để mốt qua phần khác cho khỏe nha
+- `unlock-checkpoint` API (hiện là route mock Next.js, không lưu DB) trở nên
+  dư thừa - vì checkpoint không còn là điều kiện bắt buộc.
+- Trải nghiệm học hơi lỏng: user có thể bỏ qua checkpoint hoàn toàn, học xong
+  Lesson là tự động mở Chapter kế mà không cần "qua ải" checkpoint.
+
+## Hướng B (mục tiêu sau này): Bắt buộc pass Checkpoint mới mở Chapter mới
+
+### Lý do cần đổi
+
+## Lưu ý hiện trạng (bổ sung)
+
+File `src/app/api/app/chapter/[id]/unlock-checkpoint/route.ts` HIỆN TẠI không
+ảnh hưởng gì tới logic unlock thật (Hướng A dùng UserProgress, không đọc kết
+quả từ route này). `CheckpointChapterPage` vẫn gọi fetch tới nó khi pass
+checkpoint, nhưng response `{ unlocked: true }` không được dùng để quyết định
+gì cả - chỉ là gọi cho có, không gây hại, không cần xoá.
+Giữ nguyên file này tới khi làm Hướng B - lúc đó đổi route.ts giả này thành
+gọi API backend thật (`complete-checkpoint`), không cần sửa lại
+`CheckpointChapterPage` từ đầu.
+
+2 entity Progress hiện có đều KHÔNG tận dụng được cho mục đích này:
+
+- `UserProgress` (Entities/Progress/UserProgress.cs) - chỉ theo `LessonId`,
+  không có `ChapterId`, không có khái niệm checkpoint.
+- `UserLessonReview` (Entities/Progress/UserLessonReview.cs) - dùng cho Spaced
+  Repetition (chu kỳ ôn tập 3h/1d/3d/1w/2w/1m), hoàn toàn khác mục đích,
+  không liên quan unlock Chapter.
+
+→ Bắt buộc phải thêm entity/bảng DB mới mới lưu được trạng thái "user đã pass
+checkpoint của chapter nào chưa".
+
+### Việc cần làm khi chuyển sang Hướng B
+
+**1. Backend - thêm entity mới**, ví dụ:
+
+```csharp
+// Entities/Progress/UserChapterProgress.cs
+public class UserChapterProgress : AuditedEntity<Guid>
+{
+    public Guid UserId { get; set; }
+    public Guid ChapterId { get; set; }
+    public bool IsCheckpointPassed { get; set; }
+    public DateTime? CheckpointPassedAt { get; set; }
+    public int? BestAccuracyPercent { get; set; } // tuỳ chọn - lưu điểm cao nhất
+}
+```
+
+- Cần migration DB mới (EF Core migration) để tạo bảng.
+
+**2. Backend - DTO + AppService mới:**
+
+- `UserChapterProgressDto` (EntityDto, có `ChapterId`, `IsCheckpointPassed`,
+  `CheckpointPassedAt`)
+- AppService method mới, ví dụ:
+  - `POST /api/app/user-chapter-progress/complete-checkpoint` - nhận
+    `chapterId` + kết quả (accuracyPercent), ghi `IsCheckpointPassed = true`
+    nếu đạt PASS_PERCENT, lưu vào DB thật (không phải mock nữa)
+  - `GET /api/app/user-chapter-progress/my-progress` - trả về
+    `List<UserChapterProgressDto>` của user hiện tại, để FE biết chapter nào
+    đã pass checkpoint
+
+**3. Frontend - sửa lại:**
+
+- `CheckpointChapterPage.tsx` - đổi route `unlock-checkpoint` (mock cũ) sang
+  gọi API thật `complete-checkpoint` ở trên
+- `roadmapService.ts` - thêm hàm `getMyChapterProgress()` gọi
+  `GET /api/app/user-chapter-progress/my-progress`
+- Rule unlock Chapter đổi lại thành:
+
+---
+
+Câu hỏi còn thiếu trước khi chốt: Rule unlock (Hướng A) hiện chỉ áp dụng trong 1 Level (Chapter 2 mở khi Chapter 1 xong). Vậy Level 2 có cần Level 1 xong hết mới mở không, hay mọi Level đều hiển thị, chỉ là Chapter/Lesson bên trong bị khóa thôi? Mình tạm code theo hướng “mọi Level đều hiện ra chọn được, chỉ khóa ở Chapter/Lesson”, báo mình biết nếu bạn muốn khác.
+thứ nhất là làm lại level, thứ 2 là cải thiện quả gọi tất cả lesson của tất cả chapter, vì làm vậy là chắc chắn ối dồi ôi
+
+# TODO - Tối ưu: load toàn bộ Lesson của mọi Chapter trong 1 Level
+
+## Hiện trạng (useRoadmap.ts)
+
+Khi chọn 1 Level, code đang:
+
+1. Gọi `roadmapService.getChaptersByLevel(levelId)` -> lấy hết Chapter
+2. Gọi `Promise.all(chapters.map(chapter => getLessonsByChapter(chapter.id)))`
+   -> tức là N chapter = N request riêng, bắn song song cùng lúc
+
+Lý do phải load hết (không chỉ load Lesson của Chapter đang chọn): cần biết
+TOÀN BỘ Lesson của Chapter trước đã complete chưa thì mới tính được Chapter
+sau có unlock hay không (rule Hướng A đã chốt).
+
+## Vấn đề
+
+Nếu 1 Level có nhiều Chapter (vd 10-20 chapter), mỗi lần đổi Level sẽ bắn
+10-20 request `by-chapter/{chapterId}` cùng lúc - tốn nhiều round-trip,
+dễ bị rate-limit hoặc chậm nếu mạng yếu.
+
+## Hướng tối ưu (làm sau)
+
+Thêm 1 method mới bên backend, kiểu:
+
+```csharp
+// LessonAppService
+public async Task<List<LessonDto>> GetListByLevelAsync(Guid levelId)
+{
+    // join Lesson -> Chapter -> Where ChapterId in (chapters thuộc levelId)
+    // trả về TẤT CẢ lesson của mọi chapter trong level đó, 1 lần gọi duy nhất
+}
+```
+
+Route gợi ý: `GET /api/app/lesson/by-level/{levelId}`
+
+Sau đó sửa `useRoadmap.ts`:
+
+- Bỏ `Promise.all(chapters.map(...))`
+- Thay bằng 1 lần gọi `roadmapService.getLessonsByLevel(levelId)`
+- Tự group lại theo `chapterId` ở FE (dùng `reduce` gom thành
+  `Record<string, LessonDto[]>` như code hiện tại đang làm thủ công)
+
+Lợi ích: 1 Level chỉ còn tốn đúng 1 request lấy Chapter + 1 request lấy hết
+Lesson (thay vì 1 + N), không đổi logic tính unlock ở FE, chỉ đổi cách lấy
+dữ liệu thô.
+
+---
+
+Trước khi sửa, có 1 điểm cần hỏi: LessonNode.tsx dùng lesson.totalQuestions để hiển thị “X câu hỏi” — nhưng RoadmapLessonView (type mới mình viết) không có field này, vì backend LessonDto thật cũng không có. Để có con số này thật sự chính xác, phải gọi thêm GET /lesson/lesson-content/{lessonId} cho từng lesson rồi đếm sentences.length — rất tốn, không hợp lý tí nào cho màn hình roadmap tổng quan. nhớ hiển thị số lượng câu hỏi trong kia nữa nha phần lessonnode.tsx á
+
+cái vocacbmatching game cũng vậy cũng cần tối ưu gọi api lấy dữ liệu về rồi gọi so sánh chứ hogn gọi api nhiều lần vậy tốn api lắm
+
+--------------------------------------------------==================-------------------------------------------------------------------------------------------=============================--------------------------------------------
+Xong hết rồi làm
+
+# TODO - Leaderboard: tính năng chưa hoàn thiện, đang chạy mock
+
+## Hiện trạng
+
+- Frontend (`leaderboardService.ts`, `types/leaderboard.ts`, `LeaderboardTabs.tsx`,
+  `mockLeaderboardData.ts`) đã được code sẵn (từ 1 lần nhờ AI khác làm), nhưng
+  CHƯA TỪNG hoàn thiện - `USE_MOCK = true`, chưa nối API thật.
+- Backend KHÔNG CÓ gì cho tính năng này: không Entity lưu XP, không AppService
+  Leaderboard, không khái niệm "bạn bè" (Friendship/UserConnection) ở đâu cả.
+- Phát hiện thêm: lúc trước nhầm tưởng `POST /api/app/lesson` là API "nộp kết
+  quả bài học kèm XP" - thực ra đó chỉ là `LessonAppService.CreateAsync` dùng
+  cho Admin CMS tạo Lesson mới, không liên quan XP. Đã xoá lệnh gọi sai này
+  khỏi `finalizeLesson()` (useLessonFlow.ts), xoá luôn `submitLessonResult`
+  khỏi lessonService.ts và types/lesson.ts.
+- Hệ quả: hiện tại KHÔNG CÓ NƠI NÀO lưu lại XP/kết quả mỗi lần học Lesson ở
+  backend. `xpEarned`/`accuracyPercent` trên `CompleteScreen` chỉ là số tính
+  tạm ở client cho người học xem ngay lúc đó, mất đi sau khi rời trang.
+
+## Việc cần làm nếu muốn làm Leaderboard thật (ưu tiên sau, không gấp)
+
+1. Quyết định có cần lưu XP vĩnh viễn không, hay chỉ cần theo tuần:
+   - Thêm field/bảng lưu XP mỗi lần hoàn thành Lesson (gắn với finalizeLesson
+     ở FE - cần gọi thêm 1 API mới sau khi có backend)
+   - Cần cách tính "XP tuần này" - có thể lưu kèm timestamp rồi query theo
+     khoảng thời gian, hoặc có cơ chế snapshot/reset theo tuần (cron job)
+2. AppService mới để tính rank (sắp theo XP giảm dần, giới hạn top N, tìm vị
+   trí currentUser trong danh sách)
+3. Nếu muốn có tab "Bạn bè" - cần làm thêm cả hệ thống kết bạn (Entity
+   Friendship/UserConnection, API gửi/chấp nhận lời mời kết bạn, API lấy danh
+   sách bạn bè) - đây là 1 mảng tính năng xã hội riêng, không chỉ là mở rộng
+   Leaderboard.
+4. Khi backend sẵn sàng, chỉ cần đổi `USE_MOCK = false` trong
+   `leaderboardService.ts` và sửa lại field cho khớp response thật (frontend
+   UI, LeaderboardTabs.tsx không cần đổi gì nếu DTO giữ nguyên shape).
+
+## Quyết định hiện tại
+
+Không ưu tiên làm - đây là tính năng gamification/giữ chân người dùng, không
+phải tính năng cốt lõi để học (khác Lesson/Vocabulary/Grammar/Checkpoint).
+Giữ nguyên mock cho tới khi các phần cốt lõi ổn định.
