@@ -10,13 +10,18 @@ export function DashboardRoadmap() {
   const {
     levels,
     selectedLevel,
+    selectedLevelId,
+    chapters,
     selectedChapter,
+    selectedChapterId,
     loading,
+    loadingLevelDetail,
+    error,
     setSelectedLevelId,
     setSelectedChapterId,
   } = useRoadmap();
 
-  if (loading || !selectedLevel || !selectedChapter) {
+  if (loading || !selectedLevel) {
     return (
       <div className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
         <div className="animate-pulse space-y-4">
@@ -32,19 +37,32 @@ export function DashboardRoadmap() {
     );
   }
 
-  const completedLessons = selectedLevel.chapters
-    .flatMap((chapter) => chapter.lessons)
-    .filter((lesson) => lesson.isCompleted).length;
-  const totalLessons = selectedLevel.chapters.flatMap(
-    (chapter) => chapter.lessons,
+  if (error) {
+    return (
+      <div className="rounded-3xl border border-rose-200 bg-white p-6 text-center shadow-sm">
+        <p className="text-sm font-semibold text-rose-600">{error}</p>
+      </div>
+    );
+  }
+
+  const selectedLevelIndex = levels.findIndex(
+    (level) => level.id === selectedLevel.id,
+  );
+
+  const allLessons = chapters.flatMap((chapter) => chapter.lessons);
+  const completedLessons = allLessons.filter(
+    (lesson) => lesson.status === "completed",
   ).length;
-  const progressPercent = Math.round((completedLessons / totalLessons) * 100);
+  const totalLessons = allLessons.length;
+  const progressPercent =
+    totalLessons === 0
+      ? 0
+      : Math.round((completedLessons / totalLessons) * 100);
 
   return (
     <div className="space-y-6">
       <HeaderStats
-        levelNumber={selectedLevel.levelNumber}
-        title={selectedLevel.title}
+        title={selectedLevel.name}
         progress={progressPercent}
         completed={completedLessons}
         total={totalLessons}
@@ -61,8 +79,8 @@ export function DashboardRoadmap() {
         </div>
 
         <div className="flex flex-wrap gap-3">
-          {levels.map((level) => {
-            const isActive = selectedLevel.id === level.id;
+          {levels.map((level, index) => {
+            const isActive = selectedLevelId === level.id;
 
             return (
               <button
@@ -75,10 +93,7 @@ export function DashboardRoadmap() {
                     : "border-slate-200 bg-slate-50 text-slate-700 hover:border-indigo-200 hover:bg-indigo-50"
                 }`}
               >
-                <div className="text-[10px] font-semibold uppercase tracking-[0.2em] opacity-80">
-                  Level {level.levelNumber}
-                </div>
-                <div className="mt-1 text-sm font-bold">{level.title}</div>
+                <div className="mt-1 text-sm font-bold">{level.name}</div>
               </button>
             );
           })}
@@ -90,37 +105,50 @@ export function DashboardRoadmap() {
           <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500">
             Chapters
           </p>
-          {selectedLevel.chapters.length > 4 && (
+          {chapters.length > 4 && (
             <span className="rounded-full bg-slate-100 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-600">
               Scroll to explore
             </span>
           )}
         </div>
 
-        <div className="max-h-[420px] overflow-y-auto pr-1">
-          <div
-            className={`grid gap-4 ${
-              selectedLevel.chapters.length > 3
-                ? "md:grid-cols-2 xl:grid-cols-3"
-                : "md:grid-cols-2"
-            }`}
-          >
-            {selectedLevel.chapters.map((chapter) => (
-              <ChapterCard
-                key={chapter.id}
-                chapter={chapter}
-                isSelected={selectedChapter.id === chapter.id}
-                onClick={() => setSelectedChapterId(chapter.id)}
+        {loadingLevelDetail ? (
+          <div className="grid gap-4 py-4 md:grid-cols-2 xl:grid-cols-3">
+            {[1, 2, 3].map((item) => (
+              <div
+                key={item}
+                className="h-24 animate-pulse rounded-2xl bg-slate-100"
               />
             ))}
           </div>
-        </div>
+        ) : (
+          <div className="max-h-[420px] overflow-y-auto pr-1">
+            <div
+              className={`grid gap-4 ${
+                chapters.length > 3
+                  ? "md:grid-cols-2 xl:grid-cols-3"
+                  : "md:grid-cols-2"
+              }`}
+            >
+              {chapters.map((chapter) => (
+                <ChapterCard
+                  key={chapter.id}
+                  chapter={chapter}
+                  isSelected={selectedChapterId === chapter.id}
+                  onClick={() => setSelectedChapterId(chapter.id)}
+                />
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-[1.6fr_0.9fr]">
-        <RoadmapTree chapter={selectedChapter} />
-        <DailyQuestWidget />
-      </div>
+      {selectedChapter && (
+        <div className="grid gap-6 xl:grid-cols-[1.6fr_0.9fr]">
+          <RoadmapTree chapter={selectedChapter} />
+          <DailyQuestWidget />
+        </div>
+      )}
     </div>
   );
 }

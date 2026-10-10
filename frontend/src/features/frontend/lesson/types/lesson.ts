@@ -125,23 +125,23 @@ export interface GrammarNoteDto {
 }
 
 // ===== LESSON SUBMIT =====
-export interface LessonSubmitRequest {
-  lessonId: string;
-  correctAnswers: number;
-  totalQuestions: number;
-  xpEarned: number;
-  heartsLeft: number;
-  accuracyPercent: number;
-  elapsedSeconds: number;
-}
+// export interface LessonSubmitRequest {
+//   lessonId: string;
+//   correctAnswers: number;
+//   totalQuestions: number;
+//   xpEarned: number;
+//   heartsLeft: number;
+//   accuracyPercent: number;
+//   elapsedSeconds: number;
+// }
 
-export interface LessonSubmitResponse {
-  success: boolean;
-  xpEarned: number;
-  accuracyPercent: number;
-  lessonsCompleted: number;
-  streakUpdated: boolean;
-}
+// export interface LessonSubmitResponse {
+//   success: boolean;
+//   xpEarned: number;
+//   accuracyPercent: number;
+//   lessonsCompleted: number;
+//   streakUpdated: boolean;
+// }
 
 // ===== LISTENING PASSAGE (giữ nguyên, đã confirm trước đó) =====
 export type ListeningOptionKey = "A" | "B" | "C" | "D";
@@ -222,4 +222,26 @@ export interface UserWritingDto {
   userContent: string;
   feedback: AiFeedbackDto;
   creationTime: string;
+}
+// ===== MATCHING GAME (Passive Recall) =====
+export interface MatchingItemDto {
+  vocabularyId: string;
+  text: string;
+}
+
+export interface MatchingGameDto {
+  wordColumn: MatchingItemDto[];
+  meaningColumn: MatchingItemDto[];
+  isPassiveRecall: boolean;
+  sourceLessonId?: string;
+  sourceLessonTitle?: string;
+}
+
+export interface MatchingPairAnswerDto {
+  wordVocabularyId: string;
+  meaningVocabularyId: string;
+}
+
+export interface CheckMatchingAnswerRequest {
+  userPairs: MatchingPairAnswerDto[];
 }

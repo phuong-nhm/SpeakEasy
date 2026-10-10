@@ -4,7 +4,6 @@ import Link from "next/link";
 import { BookOpenCheck, Gamepad2, User } from "lucide-react";
 
 interface HeaderStatsProps {
-  levelNumber: number;
   title: string;
   progress: number;
   completed: number;
@@ -12,7 +11,6 @@ interface HeaderStatsProps {
 }
 
 export function HeaderStats({
-  levelNumber,
   title,
   progress,
   completed,
@@ -22,10 +20,7 @@ export function HeaderStats({
     <div className="rounded-3xl border border-indigo-100 bg-gradient-to-r from-indigo-600 to-violet-600 p-6 text-white shadow-lg shadow-indigo-200/60">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-indigo-100">
-            Level {levelNumber}
-          </p>
-          <h1 className="mt-2 text-3xl font-black">{title}</h1>
+          <h1 className="text-3xl font-black">{title}</h1>
         </div>
 
         <div className="flex items-center gap-3">
@@ -45,7 +40,6 @@ export function HeaderStats({
         />
       </div>
 
-      {/* Phase 4/5 quick actions: Review / Games / Profile */}
       <div className="mt-4 grid gap-3 sm:grid-cols-3">
         <Link
           href="/review"

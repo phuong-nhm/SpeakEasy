@@ -16,6 +16,7 @@ import { HeaderBar } from "./HeaderBar";
 import { VocabFlashcardQuiz } from "./VocabFlashcardQuiz";
 import { VocabIntroCard } from "./VocabIntroCard";
 import { VocabMatchingGame } from "./VocabMatchingGame";
+import { PassiveRecallGame } from "./PassiveRecallGame";
 
 interface LessonScreenProps {
   lessonId: string;
@@ -85,6 +86,8 @@ export function LessonScreen({ lessonId }: LessonScreenProps) {
     isCompleted,
     summary,
     totalQuestions,
+    showPassiveRecall,
+    handlePassiveRecallComplete,
   } = useLessonFlow(lessonId);
 
   const renderExercise = () => {
@@ -415,7 +418,16 @@ export function LessonScreen({ lessonId }: LessonScreenProps) {
       </main>
 
       {renderFooter()}
-
+      {showPassiveRecall && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4">
+          <div className="w-full max-w-lg rounded-[28px] border border-amber-200 bg-white p-6 shadow-2xl">
+            <PassiveRecallGame
+              lessonId={lessonId}
+              onComplete={handlePassiveRecallComplete}
+            />
+          </div>
+        </div>
+      )}
       {isCompleted && summary && (
         <CompleteScreen
           xpEarned={summary.xpEarned}

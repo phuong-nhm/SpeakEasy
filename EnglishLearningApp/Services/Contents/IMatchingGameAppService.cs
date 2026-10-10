@@ -15,5 +15,6 @@ namespace EnglishLearningApp.AppServices.Contents
         Task<MatchingGameDto> GetGameForSummaryAsync(Guid currentLessonId);
 
         Task<bool> CheckAnswerAsync(CheckMatchingAnswerDto input);
+        Task<MatchingGameDto> GetGameForChapterAsync(Guid chapterId, int? count = null);
     }
 }

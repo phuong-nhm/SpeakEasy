@@ -3,8 +3,6 @@ import {
   CheckSentenceAnswerRequest,
   GrammarNoteDto,
   LessonContentDto,
-  LessonSubmitRequest,
-  LessonSubmitResponse,
   ListeningPassageClientDto,
   SentenceExerciseDto,
   SubmitListeningEssayRequest,
@@ -17,8 +15,10 @@ import {
   UserWritingDto,
   WritingTopicDto,
   WritingTopicType,
+  CheckMatchingAnswerRequest,
+  MatchingGameDto,
 } from "../types/lesson";
-
+import { UserProgressDto } from "../../dashboard/types/roadmap";
 export const lessonService = {
   // ===== LESSON CONTENT (gộp Lesson + Vocabularies + Sentences) =====
   getLessonContent: async (lessonId: string): Promise<LessonContentDto> => {
@@ -28,14 +28,14 @@ export const lessonService = {
     );
   },
 
-  submitLessonResult: async (
-    payload: LessonSubmitRequest,
-  ): Promise<LessonSubmitResponse> => {
-    return apiClient<LessonSubmitResponse>("/api/app/lesson", {
-      method: "POST",
-      body: JSON.stringify(payload),
-    });
-  },
+  // submitLessonResult: async (
+  //   payload: LessonSubmitRequest,
+  // ): Promise<LessonSubmitResponse> => {
+  //   return apiClient<LessonSubmitResponse>("/api/app/lesson", {
+  //     method: "POST",
+  //     body: JSON.stringify(payload),
+  //   });
+  // },
 
   // ===== VOCABULARY =====
   getVocabularyByLesson: async (lessonId: string): Promise<VocabularyDto[]> => {
@@ -145,5 +145,48 @@ export const lessonService = {
       method: "POST",
       body: JSON.stringify(input),
     });
+  },
+  markLessonCompleted: async (lessonId: string): Promise<void> => {
+    return apiClient<void>(
+      `/api/app/user-progress/mark-lesson-completed/${lessonId}`,
+      { method: "POST" },
+    );
+  },
+  getProgressByChapter: async (
+    chapterId: string,
+  ): Promise<UserProgressDto[]> => {
+    return apiClient<UserProgressDto[]>(
+      `/api/app/user-progress/progress-by-chapter/${chapterId}`,
+      { method: "GET" },
+    );
+  },
+
+  // ===== MATCHING GAME (Passive Recall) =====
+  getMatchingGameForSummary: async (
+    currentLessonId: string,
+  ): Promise<MatchingGameDto> => {
+    return apiClient<MatchingGameDto>(
+      `/api/app/matching-game/game-for-summary/${currentLessonId}`,
+      { method: "GET" },
+    );
+  },
+
+  checkMatchingAnswer: async (
+    input: CheckMatchingAnswerRequest,
+  ): Promise<boolean> => {
+    return apiClient<boolean>("/api/app/matching-game/check-answer", {
+      method: "POST",
+      body: JSON.stringify(input),
+    });
+  },
+  getMatchingGameForChapter: async (
+    chapterId: string,
+    count?: number,
+  ): Promise<MatchingGameDto> => {
+    const query = count ? `?count=${count}` : "";
+    return apiClient<MatchingGameDto>(
+      `/api/app/matching-game/game-for-chapter/${chapterId}${query}`,
+      { method: "GET" },
+    );
   },
 };

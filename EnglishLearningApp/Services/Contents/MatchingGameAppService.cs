@@ -18,7 +18,8 @@ namespace EnglishLearningApp.AppServices.Contents
     public class MatchingGameAppService : EnglishLearningAppAppService, IMatchingGameAppService
     {
         private const int PassiveRecallVocabCount = 5;
-
+        private const int GameHubDefaultCount = 8;
+        private const int GameHubMaxCount = 12;
         private readonly IRepository<Vocabulary, Guid> _vocabRepo;
         private readonly IRepository<Lesson, Guid> _lessonRepo;
         private readonly IRepository<UserLessonReview, Guid> _reviewRepo;
@@ -106,7 +107,28 @@ namespace EnglishLearningApp.AppServices.Contents
             var allCorrect = input.UserPairs.All(p => p.WordVocabularyId == p.MeaningVocabularyId);
             return Task.FromResult(allCorrect);
         }
+        public async Task<MatchingGameDto> GetGameForChapterAsync(Guid chapterId, int? count = null)
+        {
+            var lessonQueryable = await _lessonRepo.GetQueryableAsync();
+            var lessonIds = await AsyncExecuter.ToListAsync(
+                lessonQueryable.Where(x => x.ChapterId == chapterId).Select(x => x.Id));
 
+            if (!lessonIds.Any())
+            {
+                throw new UserFriendlyException(L["NotEnoughVocabularyForMatchingGame"]);
+            }
+
+            var vocabQueryable = await _vocabRepo.GetQueryableAsync();
+            var vocabs = await AsyncExecuter.ToListAsync(
+                vocabQueryable.Where(x => lessonIds.Contains(x.LessonId)));
+
+            var takeCount = Math.Min(count ?? GameHubDefaultCount, GameHubMaxCount);
+
+            var random = new Random();
+            var picked = vocabs.OrderBy(_ => random.Next()).Take(takeCount).ToList();
+
+            return BuildGameDto(picked, isPassiveRecall: false, sourceLessonId: null, sourceLessonTitle: null);
+        }
         private MatchingGameDto BuildGameDto(
             List<Vocabulary> vocabs,
             bool isPassiveRecall,

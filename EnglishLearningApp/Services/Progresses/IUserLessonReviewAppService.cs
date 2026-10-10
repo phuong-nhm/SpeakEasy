@@ -10,5 +10,6 @@ namespace EnglishLearningApp.AppServices.Progresses
         Task InitReviewAsync(Guid lessonId);
         Task<DueReviewSummaryDto> GetDueReviewsAsync();
         Task CompleteReviewAsync(CompleteReviewDto input);
+
     }
 }
