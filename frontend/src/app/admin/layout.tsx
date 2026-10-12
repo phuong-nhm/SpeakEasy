@@ -1,8 +1,10 @@
 "use client";
 
-import React from "react";
+import React, { useEffect } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+
+import { useAuth } from "@/features/frontend/auth/hooks/useAuth";
 
 export default function AdminLayout({
   children,
@@ -10,6 +12,34 @@ export default function AdminLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const router = useRouter();
+  const { isAuthenticated, isAdmin, isManager, isInitialized } = useAuth();
+  console.log({ isAuthenticated, isAdmin, isManager, isInitialized });
+  // currentUser === null lúc đầu khi đang chờ syncAuthState load xong (F5 trang)
+  // -> chỉ redirect khi đã load xong (currentUser !== undefined nghĩa là đã check)
+
+  useEffect(() => {
+    if (!isInitialized) return;
+
+    if (!isAuthenticated) {
+      router.replace("/login");
+      return;
+    }
+
+    if (!isAdmin && !isManager) {
+      router.replace("/dashboard");
+    }
+  }, [isInitialized, isAuthenticated, isAdmin, isManager, router]);
+
+  if (!isInitialized || !isAuthenticated || (!isAdmin && !isManager)) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-slate-100">
+        <p className="text-sm text-slate-500">
+          Đang kiểm tra quyền truy cập...
+        </p>
+      </div>
+    );
+  }
 
   // Danh sách Navigation Sidebar khớp 10 màn hình yêu cầu
   const navItems = [
@@ -29,14 +59,14 @@ export default function AdminLayout({
     {
       group: "NHÓM 2: VẬN HÀNH & AI",
       items: [
-        { name: "8. Lịch sử Viết Học viên", href: "/admin/student-writings" },
+        { name: "9. Lịch sử Viết Học viên", href: "/admin/student-writings" },
       ],
     },
     {
       group: "NHÓM 3: HỆ THỐNG (ABP IDENTITY)",
       items: [
-        { name: "9. Quản lý User", href: "/admin/users" },
-        { name: "10. Quản lý Role & Quyền", href: "/admin/roles" },
+        { name: "10. Quản lý User", href: "/admin/users" },
+        { name: "11. Quản lý Role & Quyền", href: "/admin/roles" },
       ],
     },
   ];

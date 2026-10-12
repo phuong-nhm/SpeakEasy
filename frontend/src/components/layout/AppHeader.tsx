@@ -17,8 +17,12 @@ const navItems = [
 
 export function AppHeader() {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const { isAuthenticated, currentUser, logout } = useAuth();
+  const { isAuthenticated, currentUser, isAdmin, isManager, logout } =
+    useAuth();
   const pathname = usePathname();
+
+  const canAccessAdmin = isAdmin || isManager;
+  const isInAdminArea = pathname?.startsWith("/admin") ?? false;
 
   const displayName = currentUser
     ? [currentUser.surname, currentUser.name].filter(Boolean).join(" ").trim()
@@ -133,13 +137,24 @@ export function AppHeader() {
                     >
                       Hồ sơ của tôi
                     </Link>
-                    <Link
-                      href="/admin"
-                      onClick={() => setIsDropdownOpen(false)}
-                      className="block rounded-lg px-3 py-2 text-sm font-medium text-indigo-600 hover:bg-indigo-50"
-                    >
-                      Trang quản trị
-                    </Link>
+                    {canAccessAdmin &&
+                      (isInAdminArea ? (
+                        <Link
+                          href="/dashboard"
+                          onClick={() => setIsDropdownOpen(false)}
+                          className="block rounded-lg px-3 py-2 text-sm font-medium text-emerald-600 hover:bg-emerald-50"
+                        >
+                          ← Quay lại trang học viên
+                        </Link>
+                      ) : (
+                        <Link
+                          href="/admin"
+                          onClick={() => setIsDropdownOpen(false)}
+                          className="block rounded-lg px-3 py-2 text-sm font-medium text-indigo-600 hover:bg-indigo-50"
+                        >
+                          Trang quản trị
+                        </Link>
+                      ))}
                     <button
                       type="button"
                       onClick={() => {

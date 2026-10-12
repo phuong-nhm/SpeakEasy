@@ -1,10 +1,10 @@
 "use client";
 
-import { ChapterDto } from "../types/roadmap";
+import { RoadmapChapterView } from "../types/roadmap";
 import { LessonNode } from "./LessonNode";
 
 interface RoadmapTreeProps {
-  chapter: ChapterDto;
+  chapter: RoadmapChapterView;
 }
 
 export function RoadmapTree({ chapter }: RoadmapTreeProps) {

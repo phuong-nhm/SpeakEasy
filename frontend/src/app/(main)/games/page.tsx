@@ -1,5 +1,5 @@
 import React from "react";
-import MatchingGameClient from "../../../components/MatchingGameClient";
+import MatchingGameClient from "../../../features/frontend/review/components/MatchingGameClient";
 
 export default function GamesPage() {
   return (
