@@ -69,11 +69,12 @@ namespace EnglishLearningApp.AppServices.Contents
         [Authorize(EnglishLearningAppPermissions.ContentManagement.Create)]
         public async Task<VocabularyDto> CreateAsync(CreateUpdateVocabularyDto input)
         {
+            await GenerateMediaIfMissingAsync(input);
+
             var vocab = ObjectMapper.Map<CreateUpdateVocabularyDto, Vocabulary>(input);
             await _vocabRepo.InsertAsync(vocab);
             return ObjectMapper.Map<Vocabulary, VocabularyDto>(vocab);
         }
-
         // Nhập hàng loạt - Admin CMS paste JSON danh sách từ vựng đã soạn sẵn.
         // Item nào chưa có AudioUrl sẽ được tự động sinh audio qua Gemini TTS trước khi lưu.
         [Authorize(EnglishLearningAppPermissions.ContentManagement.Create)]
@@ -126,20 +127,40 @@ namespace EnglishLearningApp.AppServices.Contents
 
             return ObjectMapper.Map<List<Vocabulary>, List<VocabularyDto>>(vocabs);
         }
-
         [Authorize(EnglishLearningAppPermissions.ContentManagement.Update)]
         public async Task<VocabularyDto> UpdateAsync(Guid id, CreateUpdateVocabularyDto input)
         {
+            await GenerateMediaIfMissingAsync(input);
+
             var vocab = await _vocabRepo.GetAsync(id);
             ObjectMapper.Map(input, vocab);
             await _vocabRepo.UpdateAsync(vocab);
             return ObjectMapper.Map<Vocabulary, VocabularyDto>(vocab);
         }
-
         [Authorize(EnglishLearningAppPermissions.ContentManagement.Delete)]
         public async Task DeleteAsync(Guid id)
         {
             await _vocabRepo.DeleteAsync(id);
+        }
+        private async Task GenerateMediaIfMissingAsync(CreateUpdateVocabularyDto input)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(input.AudioUrl))
+                {
+                    input.AudioUrl = await _audioService.GenerateAudioUrlAsync(input.Word);
+                }
+                if (string.IsNullOrWhiteSpace(input.ImageUrl))
+                {
+                    input.ImageUrl = await _imageService.GenerateImageUrlAsync(
+                        input.Word, input.Meaning, input.WordType, input.ImageHint);
+                }
+            }
+            catch (Exception ex)
+            {
+                // Lỗi sinh media không chặn việc tạo/sửa Vocabulary - log lại, để URL rỗng
+                Logger.LogWarning(ex, "Không sinh được audio/ảnh cho từ '{Word}'", input.Word);
+            }
         }
     }
 }

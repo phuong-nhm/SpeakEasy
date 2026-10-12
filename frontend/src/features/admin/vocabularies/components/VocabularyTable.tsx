@@ -1,7 +1,7 @@
 import {
   VocabularyDto,
   WordTypeLabels,
-} from "@/features/admin/vocabularies/types/vocabulary"; // Điều chỉnh đường dẫn file type cho đúng project của bạn
+} from "@/features/admin/vocabularies/types/vocabulary";
 
 interface VocabularyTableProps {
   isLoading: boolean;
@@ -37,8 +37,8 @@ export function VocabularyTable({
               <th className="px-6 py-3.5">Từ (Word)</th>
               <th className="px-6 py-3.5">Loại từ</th>
               <th className="px-6 py-3.5">Nghĩa (Meaning)</th>
-              <th className="px-6 py-3.5">Hình ảnh</th>
-              <th className="px-6 py-3.5">Âm thanh</th>
+              <th className="px-6 py-3.5 text-center">Hình ảnh</th>
+              <th className="px-6 py-3.5 text-center">Âm thanh</th>
               <th className="px-6 py-3.5 text-right">Thao tác</th>
             </tr>
           </thead>
@@ -56,28 +56,26 @@ export function VocabularyTable({
                 <td className="px-6 py-4 font-medium text-slate-600">
                   {vocab.meaning}
                 </td>
-                <td className="px-6 py-4 text-xs max-w-[150px] truncate">
+                <td className="px-6 py-4 text-center">
                   {vocab.imageUrl ? (
-                    <span
-                      className="text-blue-600 hover:underline cursor-pointer"
-                      title={vocab.imageUrl}
-                    >
-                      {vocab.imageUrl}
-                    </span>
+                    <img
+                      src={vocab.imageUrl}
+                      alt={vocab.word}
+                      className="mx-auto h-10 w-10 rounded-md border border-slate-200 object-cover"
+                    />
                   ) : (
-                    <span className="text-slate-400">Chưa có</span>
+                    <span className="text-xs text-slate-400">Chưa có</span>
                   )}
                 </td>
-                <td className="px-6 py-4 text-xs max-w-[150px] truncate">
+                <td className="px-6 py-4 text-center">
                   {vocab.audioUrl ? (
-                    <span
-                      className="text-blue-600 hover:underline cursor-pointer"
-                      title={vocab.audioUrl}
-                    >
-                      {vocab.audioUrl}
-                    </span>
+                    <audio
+                      controls
+                      src={vocab.audioUrl}
+                      className="mx-auto h-8 w-36"
+                    />
                   ) : (
-                    <span className="text-slate-400">Chưa có</span>
+                    <span className="text-xs text-slate-400">Chưa có</span>
                   )}
                 </td>
                 <td className="px-6 py-4 text-right space-x-2">

@@ -1,18 +1,22 @@
 import React from "react";
+import { AuthGuard } from "@/features/frontend/auth/components/AuthGuard";
 import { BottomNav } from "@/components/layout/BottomNav";
 import { ChatWidget } from "@/features/frontend/chat/components/ChatWidget";
+
 export default function MainLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-800">
-      <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 pb-24 sm:px-6 lg:px-8 md:pb-6">
-        {children}
-      </main>
-      <BottomNav />
-      <ChatWidget />
-    </div>
+    <AuthGuard>
+      <div className="min-h-screen bg-slate-50 text-slate-800">
+        <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 pb-24 sm:px-6 lg:px-8 md:pb-6">
+          {children}
+        </main>
+        <BottomNav />
+        <ChatWidget />
+      </div>
+    </AuthGuard>
   );
 }

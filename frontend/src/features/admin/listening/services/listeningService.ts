@@ -1,8 +1,15 @@
-import { apiClient } from "@/lib/apiClient";
+import { apiClient, resolveMediaUrl } from "@/lib/apiClient";
 import {
   CreateUpdateListeningPassageDto,
   ListeningPassageDto,
 } from "@/features/admin/listening/types/listening";
+
+const normalizePassage = (
+  passage: ListeningPassageDto,
+): ListeningPassageDto => ({
+  ...passage,
+  audioUrl: resolveMediaUrl(passage.audioUrl),
+});
 
 export const listeningService = {
   generateAudioFromTranscript: async (transcript: string): Promise<string> => {
@@ -25,9 +32,10 @@ export const listeningService = {
       return [];
     }
 
-    return apiClient<ListeningPassageDto[]>(
+    const data = await apiClient<ListeningPassageDto[]>(
       `/api/app/listening-passage/by-level/${levelId}`,
     );
+    return data.map(normalizePassage);
   },
 
   getByChapterId: async (chapterId: string): Promise<ListeningPassageDto[]> => {
@@ -35,28 +43,37 @@ export const listeningService = {
       return [];
     }
 
-    return apiClient<ListeningPassageDto[]>(
+    const data = await apiClient<ListeningPassageDto[]>(
       `/api/app/listening-passage/by-chapter/${chapterId}`,
     );
+    return data.map(normalizePassage);
   },
 
   create: async (
     input: CreateUpdateListeningPassageDto,
   ): Promise<ListeningPassageDto> => {
-    return apiClient<ListeningPassageDto>("/api/app/listening-passage", {
-      method: "POST",
-      body: JSON.stringify(input),
-    });
+    const data = await apiClient<ListeningPassageDto>(
+      "/api/app/listening-passage",
+      {
+        method: "POST",
+        body: JSON.stringify(input),
+      },
+    );
+    return normalizePassage(data);
   },
 
   update: async (
     id: string,
     input: CreateUpdateListeningPassageDto,
   ): Promise<ListeningPassageDto> => {
-    return apiClient<ListeningPassageDto>(`/api/app/listening-passage/${id}`, {
-      method: "PUT",
-      body: JSON.stringify(input),
-    });
+    const data = await apiClient<ListeningPassageDto>(
+      `/api/app/listening-passage/${id}`,
+      {
+        method: "PUT",
+        body: JSON.stringify(input),
+      },
+    );
+    return normalizePassage(data);
   },
 
   delete: async (id: string): Promise<void> => {

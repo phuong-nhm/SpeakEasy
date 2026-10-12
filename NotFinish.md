@@ -380,3 +380,7 @@ Xong hết rồi làm
 Không ưu tiên làm - đây là tính năng gamification/giữ chân người dùng, không
 phải tính năng cốt lõi để học (khác Lesson/Vocabulary/Grammar/Checkpoint).
 Giữ nguyên mock cho tới khi các phần cốt lõi ổn định.
+-------=====================================--------------------------------------------------------------------------------------------------=================================================================------------------------
+ok 4 cái bạn bảo tôi chỉ mới thêm export function decodeJwtRoles(token: string): string[] { try { const payload = JSON.parse(atob(token.split(".")[1])); const role = payload["role"] ?? payload["roles"] ?? []; return Array.isArray(role) ? role : [role]; } catch { return []; } }
+Vào apiclient thôi nha 3 cái kia chưa làm nha nhớ nha
+còn về role thì giờ có 2 vấn đề, thứ nhất nên quyết định sẽ có bao nhiêu role bao gồm bên admin và bên client, thứ 2 là hiện tại hình như bên đăng kí chưa set role hay sao á, nên có gì bạn cũng giúp tôi phần đó luôn nha mình giải quyết từng cái nha

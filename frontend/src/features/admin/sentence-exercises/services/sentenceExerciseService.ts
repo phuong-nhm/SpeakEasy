@@ -1,4 +1,4 @@
-import { API_BASE_URL, apiClient } from "@/lib/apiClient";
+import { API_BASE_URL, apiClient, resolveMediaUrl } from "@/lib/apiClient";
 import {
   SentenceExerciseDto,
   CreateUpdateSentenceExerciseDto,
@@ -13,27 +13,11 @@ const API_BASE_ORIGIN = (() => {
   }
 })();
 
-const normalizeAudioUrl = (audioUrl?: string): string | undefined => {
-  if (!audioUrl) {
-    return undefined;
-  }
-
-  if (/^https?:\/\//i.test(audioUrl)) {
-    return audioUrl;
-  }
-
-  if (audioUrl.startsWith("/")) {
-    return `${API_BASE_URL}${audioUrl}`;
-  }
-
-  return `${API_BASE_URL}/${audioUrl}`;
-};
-
 const normalizeExercise = (
   exercise: SentenceExerciseDto,
 ): SentenceExerciseDto => ({
   ...exercise,
-  audioUrl: normalizeAudioUrl(exercise.audioUrl),
+  audioUrl: resolveMediaUrl(exercise.audioUrl),
 });
 
 const toRelativeAudioUrl = (audioUrl?: string): string | undefined => {

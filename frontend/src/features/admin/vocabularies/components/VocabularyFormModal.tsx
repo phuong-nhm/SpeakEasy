@@ -129,9 +129,13 @@ export function VocabularyFormModal({
               type="text"
               value={imageUrl}
               onChange={(e) => setImageUrl(e.target.value)}
-              placeholder="https://..."
+              placeholder="Để trống để AI tự tạo ảnh"
               className="w-full rounded-lg border border-slate-300 bg-slate-50 px-3 py-2 text-sm text-slate-700 transition-colors placeholder:text-slate-400 focus:border-indigo-500 focus:bg-white focus:outline-none"
             />
+            <p className="mt-1 text-xs text-slate-400">
+              Để trống nếu muốn hệ thống tự tạo ảnh bằng AI dựa theo từ vựng (và
+              gợi ý ngữ cảnh bên dưới nếu có).
+            </p>
           </div>
 
           <div>
@@ -142,9 +146,12 @@ export function VocabularyFormModal({
               type="text"
               value={audioUrl}
               onChange={(e) => setAudioUrl(e.target.value)}
-              placeholder="https://..."
+              placeholder="Để trống để AI tự tạo audio"
               className="w-full rounded-lg border border-slate-300 bg-slate-50 px-3 py-2 text-sm text-slate-700 transition-colors placeholder:text-slate-400 focus:border-indigo-500 focus:bg-white focus:outline-none"
             />
+            <p className="mt-1 text-xs text-slate-400">
+              Để trống nếu muốn hệ thống tự tạo audio phát âm bằng AI.
+            </p>
           </div>
 
           <div>

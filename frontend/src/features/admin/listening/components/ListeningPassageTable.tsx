@@ -76,13 +76,28 @@ export function ListeningPassageTable({
                   </div>
                 </td>
 
-                <td className="max-w-xs px-6 py-4 font-medium text-slate-800">
-                  <div className="max-w-[260px] truncate">{passage.title}</div>
-                  {passage.audioUrl ? (
-                    <p className="mt-1 max-w-[260px] truncate text-[11px] text-slate-400">
-                      Audio: {passage.audioUrl}
-                    </p>
-                  ) : null}
+                <td className="max-w-xs px-6 py-4">
+                  <div className="max-w-[260px] truncate font-medium text-slate-800">
+                    {passage.title}
+                  </div>
+                  <div className="mt-2">
+                    {passage.audioUrl ? (
+                      <audio
+                        controls
+                        src={passage.audioUrl}
+                        preload="none"
+                        className="h-8 w-[220px]"
+                        style={{
+                          transform: "scale(0.9)",
+                          transformOrigin: "left",
+                        }}
+                      />
+                    ) : (
+                      <span className="text-[11px] italic text-slate-400">
+                        Chưa có audio
+                      </span>
+                    )}
+                  </div>
                 </td>
 
                 <td className="max-w-xl px-6 py-4 text-slate-500">

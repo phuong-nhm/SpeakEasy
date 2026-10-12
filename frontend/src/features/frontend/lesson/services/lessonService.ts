@@ -1,4 +1,4 @@
-import { apiClient } from "@/lib/apiClient";
+import { apiClient, resolveMediaUrl } from "@/lib/apiClient";
 import {
   CheckSentenceAnswerRequest,
   GrammarNoteDto,
@@ -19,13 +19,49 @@ import {
   MatchingGameDto,
 } from "../types/lesson";
 import { UserProgressDto } from "../../dashboard/types/roadmap";
+const normalizeVocabulary = (vocab: VocabularyDto): VocabularyDto => ({
+  ...vocab,
+  imageUrl: resolveMediaUrl(vocab.imageUrl),
+  audioUrl: resolveMediaUrl(vocab.audioUrl),
+});
+
+const normalizeVocabularyQuiz = (
+  quiz: VocabularyQuizDto,
+): VocabularyQuizDto => ({
+  ...quiz,
+  imageUrl: resolveMediaUrl(quiz.imageUrl),
+  audioUrl: resolveMediaUrl(quiz.audioUrl),
+});
+
+const normalizeSentenceExercise = (
+  exercise: SentenceExerciseDto,
+): SentenceExerciseDto => ({
+  ...exercise,
+  audioUrl: resolveMediaUrl(exercise.audioUrl),
+});
+
+const normalizeLessonContent = (
+  content: LessonContentDto,
+): LessonContentDto => ({
+  ...content,
+  vocabularies: content.vocabularies.map(normalizeVocabulary),
+  sentences: content.sentences.map(normalizeSentenceExercise),
+});
+
+const normalizePassage = (
+  passage: ListeningPassageClientDto,
+): ListeningPassageClientDto => ({
+  ...passage,
+  audioUrl: resolveMediaUrl(passage.audioUrl) ?? passage.audioUrl,
+});
 export const lessonService = {
   // ===== LESSON CONTENT (gộp Lesson + Vocabularies + Sentences) =====
   getLessonContent: async (lessonId: string): Promise<LessonContentDto> => {
-    return apiClient<LessonContentDto>(
+    const data = await apiClient<LessonContentDto>(
       `/api/app/lesson/lesson-content/${lessonId}`,
       { method: "GET" },
     );
+    return normalizeLessonContent(data);
   },
 
   // submitLessonResult: async (
@@ -39,19 +75,21 @@ export const lessonService = {
 
   // ===== VOCABULARY =====
   getVocabularyByLesson: async (lessonId: string): Promise<VocabularyDto[]> => {
-    return apiClient<VocabularyDto[]>(
+    const data = await apiClient<VocabularyDto[]>(
       `/api/app/vocabulary/by-lesson/${lessonId}`,
       { method: "GET" },
     );
+    return data.map(normalizeVocabulary);
   },
 
   getVocabularyQuizBatch: async (
     lessonId: string,
   ): Promise<VocabularyQuizDto[]> => {
-    return apiClient<VocabularyQuizDto[]>(
+    const data = await apiClient<VocabularyQuizDto[]>(
       `/api/app/vocabulary/quiz-batch/${lessonId}`,
       { method: "GET" },
     );
+    return data.map(normalizeVocabularyQuiz);
   },
 
   // ===== SENTENCE EXERCISE =====
@@ -67,29 +105,31 @@ export const lessonService = {
   getDialogueByChapter: async (
     chapterId: string,
   ): Promise<SentenceExerciseDto[]> => {
-    return apiClient<SentenceExerciseDto[]>(
+    const data = await apiClient<SentenceExerciseDto[]>(
       `/api/app/sentence-exercise/for-dialogue/${chapterId}`,
       { method: "GET" },
     );
+    return data.map(normalizeSentenceExercise);
   },
 
   getCheckpointExercises: async (
     chapterId: string,
   ): Promise<SentenceExerciseDto[]> => {
-    return apiClient<SentenceExerciseDto[]>(
+    const data = await apiClient<SentenceExerciseDto[]>(
       `/api/app/sentence-exercise/for-checkpoint/${chapterId}?count=20`,
       { method: "GET" },
     );
+    return data.map(normalizeSentenceExercise);
   },
-
   // ===== LISTENING PASSAGE =====
   getPassageByChapter: async (
     chapterId: string,
   ): Promise<ListeningPassageClientDto> => {
-    return apiClient<ListeningPassageClientDto>(
+    const data = await apiClient<ListeningPassageClientDto>(
       `/api/app/listening-passage/by-chapter/${chapterId}`,
       { method: "GET" },
     );
+    return normalizePassage(data);
   },
 
   submitMultipleChoice: async (

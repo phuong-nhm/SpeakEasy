@@ -4,6 +4,12 @@
 export const API_BASE_URL = (
   process.env.NEXT_PUBLIC_API_BASE_URL || "https://localhost:44326"
 ).replace(/\/+$/, "");
+export function resolveMediaUrl(url?: string | null): string | undefined {
+  if (!url) return undefined;
+  if (/^https?:\/\//i.test(url)) return url;
+  const path = url.startsWith("/") ? url : `/${url}`;
+  return `${API_BASE_URL}${path}`;
+}
 const TOKEN_KEY = "auth_token";
 
 export function getToken(): string | null {
@@ -87,4 +93,13 @@ export async function apiClient<T>(
   }
 
   return res.json();
+}
+export function decodeJwtRoles(token: string): string[] {
+  try {
+    const payload = JSON.parse(atob(token.split(".")[1]));
+    const role = payload["role"] ?? payload["roles"] ?? [];
+    return Array.isArray(role) ? role : [role];
+  } catch {
+    return [];
+  }
 }
