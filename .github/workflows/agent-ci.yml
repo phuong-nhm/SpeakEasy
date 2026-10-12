@@ -53,7 +53,7 @@ jobs:
         uses: aquasecurity/trivy-action@master
         with:
           scan-type: 'fs'
-          scan-ref: 'agent'
+          scan-ref: 'english-agent'
           severity: 'CRITICAL,HIGH'
           exit-code: '0'
 
