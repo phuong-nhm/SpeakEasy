@@ -1,6 +1,13 @@
 "use client";
 
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type FormEvent,
+  type KeyboardEvent,
+  type ChangeEvent,
+} from "react";
 import { useChatStream } from "@/features/frontend/chat/hooks/useChatStream";
 
 function TypingDots() {
@@ -41,22 +48,56 @@ function TypingDots() {
 }
 
 export function ChatPanel() {
-  const { messages, isStreaming, error, sendMessage } = useChatStream();
+  const { messages, isStreaming, error, toolStatus, sendMessage } =
+    useChatStream();
   const [input, setInput] = useState("");
   const [expanded, setExpanded] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const TOOL_CONFIG: Record<string, { label: string; icon: string }> = {
+    get_levels: { label: "Đang tải danh sách cấp độ...", icon: "📚" },
+    get_chapters: { label: "Đang tra cứu các chương học...", icon: "📖" },
+    get_lessons: { label: "Đang tìm kiếm bài học...", icon: "📝" },
+  };
 
   useEffect(() => {
     scrollRef.current?.scrollTo({
       top: scrollRef.current.scrollHeight,
       behavior: "smooth",
     });
-  }, [messages]);
+  }, [messages, toolStatus]);
+
+  // 💡 Đã dọn sạch chữ thừa và chỉnh giới hạn lên 160px (~5-6 dòng)
+  const handleInputResize = (e: ChangeEvent<HTMLTextAreaElement>) => {
+    const value = e.target.value;
+    setInput(value);
+
+    const textarea = textareaRef.current;
+    if (textarea) {
+      textarea.style.height = "auto"; // Reset lại chiều cao để tính toán chính xác
+      textarea.style.height = `${Math.min(textarea.scrollHeight, 160)}px`;
+    }
+  };
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
+    if (!input.trim() || isStreaming) return;
     sendMessage(input);
     setInput("");
+
+    // Reset lại chiều cao textarea về mặc định sau khi gửi
+    if (textareaRef.current) {
+      textareaRef.current.style.height = "auto";
+    }
+  };
+
+  // 💡 Cho phép bấm Enter để gửi, Shift + Enter để xuống dòng
+  const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSubmit(e);
+    }
   };
 
   return (
@@ -129,13 +170,33 @@ export function ChatPanel() {
           return (
             <div
               key={m.id}
-              className={`max-w-[85%] rounded-xl px-3 py-2 text-sm leading-relaxed ${
+              className={`max-w-[85%] rounded-xl px-3 py-2 text-sm leading-relaxed break-words whitespace-pre-wrap ${
                 m.role === "user"
                   ? "ml-auto bg-[#1B3A4B] text-white"
                   : "border border-[#1B3A4B]/10 bg-white text-[#1B3A4B]"
               }`}
             >
-              {isPendingAssistant ? <TypingDots /> : m.content}
+              {isPendingAssistant ? (
+                toolStatus ? (
+                  (() => {
+                    const toolInfo = TOOL_CONFIG[toolStatus] || {
+                      label: `Đang xử lý (${toolStatus})...`,
+                      icon: "⚙️",
+                    };
+
+                    return (
+                      <div className="flex items-center gap-2 text-xs text-amber-600 font-medium animate-pulse">
+                        <span>{toolInfo.icon}</span>
+                        <span>{toolInfo.label}</span>
+                      </div>
+                    );
+                  })()
+                ) : (
+                  <TypingDots />
+                )
+              ) : (
+                m.content
+              )}
             </div>
           );
         })}
@@ -144,18 +205,22 @@ export function ChatPanel() {
 
       <form
         onSubmit={handleSubmit}
-        className="flex gap-2 border-t border-[#1B3A4B]/10 p-3"
+        className="flex items-end gap-2 border-t border-[#1B3A4B]/10 p-3 bg-white/50"
       >
-        <input
+        <textarea
+          ref={textareaRef}
           value={input}
-          onChange={(e) => setInput(e.target.value)}
+          onChange={handleInputResize}
+          onKeyDown={handleKeyDown}
           placeholder="Nhập câu hỏi..."
-          className="flex-1 rounded-lg border border-[#1B3A4B]/15 bg-white px-3 py-2 text-sm text-[#1B3A4B] outline-none focus:border-[#1B3A4B]/40"
+          rows={1}
+          // 💡 Đã đổi max-h-[120px] thành max-h-[160px] để bung đủ khoảng 5-6 dòng
+          className="flex-1 resize-none rounded-lg border border-[#1B3A4B]/15 bg-white px-3 py-2 text-sm text-[#1B3A4B] outline-none focus:border-[#1B3A4B]/40 max-h-[160px] overflow-y-auto leading-relaxed"
         />
         <button
           type="submit"
-          disabled={isStreaming}
-          className="rounded-lg bg-[#1B3A4B] px-3 py-2 text-sm font-medium text-[#F2C879] disabled:opacity-50"
+          disabled={isStreaming || !input.trim()}
+          className="rounded-lg bg-[#1B3A4B] px-3 py-2 text-sm font-medium text-[#F2C879] disabled:opacity-50 transition-opacity"
         >
           Gửi
         </button>

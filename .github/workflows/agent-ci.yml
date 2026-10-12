@@ -1,0 +1,65 @@
+name: CI AI Agent
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'english-agent/**'
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.12', '3.13', '3.14']
+    defaults:
+      run:
+        working-directory: english-agent
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Cache pip dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ hashFiles('english-agent/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-${{ matrix.python-version }}-
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          pip install flake8 safety
+
+      # ----------------------------------------------------
+      # SECURITY SCAN 1: Quét lỗ hổng thư viện Python bằng Safety
+      # ----------------------------------------------------
+      - name: Audit Python packages with Safety
+        run: safety check
+        continue-on-error: true
+
+      # ----------------------------------------------------
+      # SECURITY SCAN 2: Quét mã nguồn & secrets bằng Trivy
+      # ----------------------------------------------------
+      - name: Run Trivy Security Scan (Agent)
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: 'agent'
+          severity: 'CRITICAL,HIGH'
+          exit-code: '0'
+
+      - name: Lint code with flake8
+        run: |
+          # Stop the build if there are Python syntax errors or undefined names
+          flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+          # Exit-zero treats all errors as warnings for flexibility during development
+          flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics

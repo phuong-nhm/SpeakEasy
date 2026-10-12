@@ -128,3 +128,11 @@ agent-service/
 4. Xử lý lỗi
 5. Log
 6. Deploy
+
+## Phải làm để production
+
+Cái cách "giả lập" này chỉ dùng tạm để test local.
+
+Nếu sau này đưa hệ thống lên chạy thật (production), bắt buộc phải xóa cái verify_signature=False đi và cấu hình lấy Public Key (hoặc JWKS endpoint) từ bên ABP/OpenIddict .NET sang để FastAPI kiểm tra chữ ký đàng hoàng.
+
+Nếu không, kẻ xấu có thể tự chế ra một cái token giả, nhét một cái sub bất kỳ vào, và Python sẽ tin sái cổ, dẫn đến việc bị lộ dữ liệu hoặc mạo danh tài khoản!

@@ -1,0 +1,47 @@
+# ==========================================
+# STAGE 1: Builder (Cài đặt thư viện Python)
+# ==========================================
+FROM python:3.11-slim AS builder
+
+WORKDIR /app
+
+# Cài đặt các công cụ build hệ thống cần thiết (nếu có thư viện nào yêu cầu biên dịch C)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+# Tạo môi trường ảo riêng trong stage này để gom thư viện cho sạch
+RUN python -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
+# Copy file requirements.txt trước để tận dụng layer caching
+COPY requirements.txt .
+
+# Cài đặt các thư viện Python (LangChain, LangGraph, GenAI,...) vào môi trường ảo
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt
+
+
+# ==========================================
+# STAGE 2: Final Image (Môi trường chạy tối ưu)
+# ==========================================
+FROM python:3.11-slim AS final
+
+WORKDIR /app
+
+# Tạo user riêng để chạy ứng dụng cho bảo mật (không chạy quyền root)
+RUN groupadd --system --gid 1001 appgroup && \
+    useradd --system --uid 1001 --gid appgroup appuser
+
+# "Bốc" nguyên cục môi trường ảo đã cài sẵn thư viện từ stage builder sang
+COPY --from=builder /opt/venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
+# Copy toàn bộ mã nguồn của AI Agent vào
+COPY --chown=appuser:appgroup . /app
+
+# Chuyển sang user thường
+USER appuser
+
+# Khởi động agent (bạn thay "main.py" bằng file chạy chính của con agent nhé)
+CMD ["python", "main.py"]
