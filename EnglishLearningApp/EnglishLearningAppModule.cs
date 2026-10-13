@@ -1,4 +1,5 @@
 ﻿using EnglishLearningApp.Data;
+using EnglishLearningApp.Dtos;
 using EnglishLearningApp.Infrastructure;
 using EnglishLearningApp.Localization;
 using EnglishLearningApp.Services;
@@ -9,6 +10,9 @@ using Microsoft.Extensions.Caching.StackExchangeRedis;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.OpenApi.Models;
 using OpenIddict.Validation.AspNetCore;
+using Polly;
+using Polly.Extensions.Http;
+using Polly.Extensions.Http;
 using StackExchange.Redis;
 using System.Threading.RateLimiting;
 using Volo.Abp;
@@ -50,7 +54,6 @@ using Volo.Abp.Swashbuckle;
 using Volo.Abp.TenantManagement;
 using Volo.Abp.TenantManagement.EntityFrameworkCore;
 using Volo.Abp.UI.Navigation.Urls;
-using Volo.Abp.Uow;
 using Volo.Abp.Validation.Localization;
 using Volo.Abp.VirtualFileSystem;
 using ZiggyCreatures.Caching.Fusion;
@@ -173,6 +176,9 @@ public class EnglishLearningAppModule : AbpModule
         ConfigureRedisRateLimiter(context, configuration);
         ConfigureFusionCache(context, configuration);
         ConfigureRateLimiter(context);
+        ConfigureAiHttpClient(context, AiServiceNames.Gemini, "https://generativelanguage.googleapis.com/");
+        ConfigureAiHttpClient(context, AiServiceNames.AzureTts, "https://<your-region>.tts.speech.microsoft.com/");
+        ConfigureAiHttpClient(context, AiServiceNames.Replicate, "https://api.replicate.com/");
 
     }
     private void ConfigureRateLimiter(ServiceConfigurationContext context)
@@ -226,6 +232,26 @@ public class EnglishLearningAppModule : AbpModule
             .WithDistributedCache(
                 new RedisCache(new RedisCacheOptions { Configuration = redisConnectionString })
             );
+    }
+    private void ConfigureAiHttpClient(
+        ServiceConfigurationContext context,
+        string serviceName,
+        string baseAddress,
+        int timeoutSeconds = 10,
+        int handledEventsAllowedBeforeBreaking = 3,
+        int durationOfBreakSeconds = 30)
+    {
+        context.Services.AddHttpClient(serviceName, client =>
+        {
+            client.BaseAddress = new Uri(baseAddress);
+            client.Timeout = TimeSpan.FromSeconds(timeoutSeconds);
+        })
+        .AddPolicyHandler(HttpPolicyExtensions
+            .HandleTransientHttpError()
+            .CircuitBreakerAsync(
+                handledEventsAllowedBeforeBreaking: handledEventsAllowedBeforeBreaking,
+                durationOfBreak: TimeSpan.FromSeconds(durationOfBreakSeconds)
+            ));
     }
     private void ConfigureAuthentication(ServiceConfigurationContext context)
     {
