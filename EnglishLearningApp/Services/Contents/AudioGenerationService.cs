@@ -79,9 +79,6 @@ namespace EnglishLearningApp.Services.Contents
     </speak>
     """;
 
-            _logger.LogInformation("Azure TTS URL: {Url}", url);
-            _logger.LogInformation("Azure TTS Text: {Text}", text);
-            _logger.LogInformation("Azure TTS SSML: {SSML}", ssml);
 
             var content = new StringContent(
                 ssml,
@@ -92,13 +89,6 @@ namespace EnglishLearningApp.Services.Contents
 
             var responseBody = await response.Content.ReadAsStringAsync();
 
-            _logger.LogInformation(
-                "Azure TTS Response Status: {Status}",
-                (int)response.StatusCode);
-
-            _logger.LogInformation(
-                "Azure TTS Response Body: {Body}",
-                responseBody);
 
             if (!response.IsSuccessStatusCode)
             {

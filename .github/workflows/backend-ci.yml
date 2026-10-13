@@ -27,7 +27,8 @@ jobs:
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '9.0.x' # Thay 8.0.x hoặc 9.0.x đúng với bản .NET của bạn
-
+          cache : true
+          cache-dependency-path: 'EnglishLearningApp/**/*.csproj' # Tự động cache các gói NuGet dựa trên các file .csproj trong repo
       - name: Restore dependencies
         run: dotnet restore EnglishLearningApp.sln
         # ----------------------------------------------------

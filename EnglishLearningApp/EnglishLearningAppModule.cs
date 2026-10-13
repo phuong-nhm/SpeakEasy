@@ -1,5 +1,8 @@
 ﻿using EnglishLearningApp.Data;
+using EnglishLearningApp.Dtos;
+using EnglishLearningApp.Infrastructure;
 using EnglishLearningApp.Localization;
+using EnglishLearningApp.Services;
 using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Extensions.DependencyInjection;
@@ -7,7 +10,11 @@ using Microsoft.Extensions.Caching.StackExchangeRedis;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.OpenApi.Models;
 using OpenIddict.Validation.AspNetCore;
+using Polly;
+using Polly.Extensions.Http;
+using Polly.Extensions.Http;
 using StackExchange.Redis;
+using System.Threading.RateLimiting;
 using Volo.Abp;
 using Volo.Abp.Account;
 using Volo.Abp.Account.Web;
@@ -24,6 +31,7 @@ using Volo.Abp.Autofac;
 using Volo.Abp.AutoMapper;
 using Volo.Abp.Emailing;
 using Volo.Abp.EntityFrameworkCore;
+using Volo.Abp.EntityFrameworkCore.PostgreSql;
 using Volo.Abp.FeatureManagement;
 using Volo.Abp.FeatureManagement.EntityFrameworkCore;
 using Volo.Abp.Identity;
@@ -46,12 +54,10 @@ using Volo.Abp.Swashbuckle;
 using Volo.Abp.TenantManagement;
 using Volo.Abp.TenantManagement.EntityFrameworkCore;
 using Volo.Abp.UI.Navigation.Urls;
-using Volo.Abp.Uow;
 using Volo.Abp.Validation.Localization;
 using Volo.Abp.VirtualFileSystem;
 using ZiggyCreatures.Caching.Fusion;
 using ZiggyCreatures.Caching.Fusion.Serialization.NewtonsoftJson;
-using Volo.Abp.EntityFrameworkCore.PostgreSql;
 namespace EnglishLearningApp;
 
 [DependsOn(
@@ -167,16 +173,55 @@ public class EnglishLearningAppModule : AbpModule
         ConfigureCors(context, configuration);
         ConfigureDataProtection(context);
         ConfigureEfCore(context);
-        // ConfigureFusionCache(context, configuration);
+        ConfigureRedisRateLimiter(context, configuration);
+        ConfigureFusionCache(context, configuration);
+        ConfigureRateLimiter(context);
+        ConfigureAiHttpClient(context, AiServiceNames.Gemini, "https://generativelanguage.googleapis.com/");
+        ConfigureAiHttpClient(context, AiServiceNames.AzureTts, "https://<your-region>.tts.speech.microsoft.com/");
+        ConfigureAiHttpClient(context, AiServiceNames.Replicate, "https://api.replicate.com/");
 
+    }
+    private void ConfigureRateLimiter(ServiceConfigurationContext context)
+    {
+        context.Services.AddRateLimiter(options =>
+        {
+            options.OnRejected = async (ctx, token) =>
+            {
+                ctx.HttpContext.Response.StatusCode = 429;
+                await ctx.HttpContext.Response.WriteAsync("Too many requests, please try again later.", token);
+            };
+
+            options.AddPolicy("redis-limiter", httpContext =>
+            {
+                var redisService = httpContext.RequestServices.GetRequiredService<RedisRateLimiterService>();
+
+                string clientId = httpContext.User.Identity?.IsAuthenticated == true
+                    ? httpContext.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
+                    : httpContext.Connection.RemoteIpAddress?.ToString();
+                clientId ??= "unknown";
+
+                string path = httpContext.Request.Path.ToString().ToLower();
+                string partitionKey = $"{clientId}:{path}";
+
+                var endpoint = httpContext.GetEndpoint();
+                var customAttribute = endpoint?.Metadata.GetMetadata<CustomRateLimitAttribute>();
+                int capacity = customAttribute?.Capacity ?? 10;
+                double refillRate = customAttribute?.FillRatePerSecond ?? 2;
+
+                return RateLimitPartition.Get(partitionKey, key =>
+                    new RedisTokenBucketRateLimiter(redisService, partitionKey, capacity, refillRate));
+            });
+        });
+    }
+    private void ConfigureRedisRateLimiter(ServiceConfigurationContext context, IConfiguration configuration)
+    {
+        var redisConnectionString = configuration.GetConnectionString("Redis");
+        context.Services.AddSingleton<IConnectionMultiplexer>(ConnectionMultiplexer.Connect(redisConnectionString));
+        context.Services.AddSingleton<RedisRateLimiterService>();
     }
     private void ConfigureFusionCache(ServiceConfigurationContext context, IConfiguration configuration)
     {
-        string redisConnectionString = configuration.GetConnectionString("Redis") ?? "localhost:6379";
-
-        // 1. Đăng ký Redis Connection
-        context.Services.AddSingleton<IConnectionMultiplexer>(ConnectionMultiplexer.Connect(redisConnectionString));
-
+        var redisConnectionString = configuration.GetConnectionString("Redis");
         // 2. Đăng ký FusionCache (L1 Memory + L2 Redis)
         context.Services.AddFusionCache()
             .WithDefaultEntryOptions(options =>
@@ -187,6 +232,26 @@ public class EnglishLearningAppModule : AbpModule
             .WithDistributedCache(
                 new RedisCache(new RedisCacheOptions { Configuration = redisConnectionString })
             );
+    }
+    private void ConfigureAiHttpClient(
+        ServiceConfigurationContext context,
+        string serviceName,
+        string baseAddress,
+        int timeoutSeconds = 10,
+        int handledEventsAllowedBeforeBreaking = 3,
+        int durationOfBreakSeconds = 30)
+    {
+        context.Services.AddHttpClient(serviceName, client =>
+        {
+            client.BaseAddress = new Uri(baseAddress);
+            client.Timeout = TimeSpan.FromSeconds(timeoutSeconds);
+        })
+        .AddPolicyHandler(HttpPolicyExtensions
+            .HandleTransientHttpError()
+            .CircuitBreakerAsync(
+                handledEventsAllowedBeforeBreaking: handledEventsAllowedBeforeBreaking,
+                durationOfBreak: TimeSpan.FromSeconds(durationOfBreakSeconds)
+            ));
     }
     private void ConfigureAuthentication(ServiceConfigurationContext context)
     {
@@ -397,6 +462,7 @@ public class EnglishLearningAppModule : AbpModule
 
         app.UseUnitOfWork();
         app.UseDynamicClaims();
+        app.UseRateLimiter();
         app.UseAuthorization();
 
         app.UseSwagger();
