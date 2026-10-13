@@ -89,4 +89,4 @@ def get_lessons(chapter_id: str) -> str:
 #     response.raise_for_status()
 #     return "Đã đánh dấu hoàn thành bài học thành công trên hệ thống!"
 if __name__ == "__main__":
-    mcp.run()
+    mcp.run(transport="stdio")
