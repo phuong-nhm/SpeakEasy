@@ -110,11 +110,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Dtos\Storys\" />
-    <Folder Include="Dtos\Progresses\" />
     <Folder Include="Dtos\Writings\" />
     <Folder Include="Services\Writings\" />
-    <Folder Include="Services\Progresses\" />
   </ItemGroup>
   <ItemGroup>
     <Watch Include="**\*" Exclude="wwwroot\uploads\**;bin\**;obj\**" />

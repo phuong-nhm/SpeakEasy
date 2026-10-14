@@ -1,10 +1,9 @@
 ﻿using EnglishLearningApp.Dtos.Socials;
 using EnglishLearningApp.Entities.Social;
-using EnglishLearningApp.Services.Socials;
 using Volo.Abp.Domain.Repositories;
 using Volo.Abp.Users;
 
-namespace EnglishLearningApp.Services.Progresses
+namespace EnglishLearningApp.Services.Socials
 {
     public class NotificationAppService : EnglishLearningAppAppService, INotificationAppService
     {

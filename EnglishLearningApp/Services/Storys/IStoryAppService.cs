@@ -10,5 +10,7 @@ namespace EnglishLearningApp.Services.Storys
         Task<List<StoryDto>> GetListByLevelAsync(Guid levelId);
         Task<PagedResultDto<StoryDto>> GetListForAdminAsync(PagedAndSortedResultRequestDto input);
         Task DeleteAsync(Guid id);
+        Task<StoryDto> CreateAsync(CreateUpdateStoryDto input);
+        Task<StoryDto> UpdateAsync(Guid id, CreateUpdateStoryDto input);
     }
 }

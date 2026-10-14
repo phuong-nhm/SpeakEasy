@@ -2,6 +2,7 @@
 using EnglishLearningApp.Entities.Story;
 using EnglishLearningApp.Permissions;
 using Microsoft.AspNetCore.Authorization;
+using Volo.Abp;
 using Volo.Abp.Application.Dtos;
 using Volo.Abp.Domain.Repositories;
 
@@ -77,6 +78,77 @@ namespace EnglishLearningApp.Services.Storys
             await _storyVocabRepo.DeleteManyAsync(storyVocabIds);
 
             await _storyRepo.DeleteAsync(id);
+        }
+        [Authorize(EnglishLearningAppPermissions.ContentManagement.Create)]
+        public async Task<StoryDto> CreateAsync(CreateUpdateStoryDto input)
+        {
+            if (input.Segments == null || !input.Segments.Any())
+            {
+                throw new UserFriendlyException(L["StoryMustHaveAtLeastOneSegment"]);
+            }
+
+            var story = new Story(
+                GuidGenerator.Create(), input.LevelId, input.Title, input.Genre,
+                input.Length, input.HasImages, input.GenerationSource, input.CreatedForUserId);
+            await _storyRepo.InsertAsync(story);
+
+            var segments = input.Segments
+                .Select(s => new StorySegment(GuidGenerator.Create(), story.Id, s.OrderIndex, s.Content, s.ImageUrl))
+                .ToList();
+            await _segmentRepo.InsertManyAsync(segments);
+
+            if (input.VocabularyIds != null && input.VocabularyIds.Any())
+            {
+                var storyVocabs = input.VocabularyIds.Distinct()
+                    .Select(vocabId => new StoryVocabulary(GuidGenerator.Create(), story.Id, vocabId))
+                    .ToList();
+                await _storyVocabRepo.InsertManyAsync(storyVocabs);
+            }
+
+            return ObjectMapper.Map<Story, StoryDto>(story);
+        }
+
+        // Sửa truyện - thay toàn bộ Segments + StoryVocabulary bằng bộ mới, không sửa CreatedForUserId/GenerationSource
+        [Authorize(EnglishLearningAppPermissions.ContentManagement.Update)]
+        public async Task<StoryDto> UpdateAsync(Guid id, CreateUpdateStoryDto input)
+        {
+            if (input.Segments == null || !input.Segments.Any())
+            {
+                throw new UserFriendlyException(L["StoryMustHaveAtLeastOneSegment"]);
+            }
+
+            var story = await _storyRepo.GetAsync(id);
+            story.LevelId = input.LevelId;
+            story.Title = input.Title;
+            story.Genre = input.Genre;
+            story.Length = input.Length;
+            story.HasImages = input.HasImages;
+            await _storyRepo.UpdateAsync(story);
+
+            var segmentQueryable = await _segmentRepo.GetQueryableAsync();
+            var oldSegmentIds = await AsyncExecuter.ToListAsync(
+                segmentQueryable.Where(x => x.StoryId == id).Select(x => x.Id));
+            await _segmentRepo.DeleteManyAsync(oldSegmentIds);
+
+            var newSegments = input.Segments
+                .Select(s => new StorySegment(GuidGenerator.Create(), story.Id, s.OrderIndex, s.Content, s.ImageUrl))
+                .ToList();
+            await _segmentRepo.InsertManyAsync(newSegments);
+
+            var vocabQueryable = await _storyVocabRepo.GetQueryableAsync();
+            var oldStoryVocabIds = await AsyncExecuter.ToListAsync(
+                vocabQueryable.Where(x => x.StoryId == id).Select(x => x.Id));
+            await _storyVocabRepo.DeleteManyAsync(oldStoryVocabIds);
+
+            if (input.VocabularyIds != null && input.VocabularyIds.Any())
+            {
+                var newStoryVocabs = input.VocabularyIds.Distinct()
+                    .Select(vocabId => new StoryVocabulary(GuidGenerator.Create(), story.Id, vocabId))
+                    .ToList();
+                await _storyVocabRepo.InsertManyAsync(newStoryVocabs);
+            }
+
+            return ObjectMapper.Map<Story, StoryDto>(story);
         }
     }
 }

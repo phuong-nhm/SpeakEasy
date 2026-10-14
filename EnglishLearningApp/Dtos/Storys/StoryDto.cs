@@ -27,4 +27,24 @@ namespace EnglishLearningApp.Dtos.Storys
         public string Content { get; set; }
         public string ImageUrl { get; set; }
     }
+    public class CreateUpdateStoryDto
+    {
+        public Guid LevelId { get; set; }
+        public string Title { get; set; }
+        public StoryGenre Genre { get; set; }
+        public StoryLength Length { get; set; }
+        public bool HasImages { get; set; }
+        public Guid? CreatedForUserId { get; set; } // chỉ có ý nghĩa lúc Create, Update bỏ qua field này
+        public StoryGenerationSource GenerationSource { get; set; } // chỉ có ý nghĩa lúc Create, Update bỏ qua field này
+
+        public List<CreateStorySegmentDto> Segments { get; set; } = new();
+        public List<Guid> VocabularyIds { get; set; } = new();
+    }
+
+    public class CreateStorySegmentDto
+    {
+        public int OrderIndex { get; set; }
+        public string Content { get; set; }
+        public string? ImageUrl { get; set; }
+    }
 }
