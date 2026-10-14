@@ -3,6 +3,7 @@ using EnglishLearningApp.Dtos;
 using EnglishLearningApp.Infrastructure;
 using EnglishLearningApp.Localization;
 using EnglishLearningApp.Services;
+using EnglishLearningApp.Services.UploadFile;
 using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Extensions.DependencyInjection;
@@ -179,7 +180,7 @@ public class EnglishLearningAppModule : AbpModule
         ConfigureAiHttpClient(context, AiServiceNames.Gemini, "https://generativelanguage.googleapis.com/");
         ConfigureAiHttpClient(context, AiServiceNames.AzureTts, "https://<your-region>.tts.speech.microsoft.com/");
         ConfigureAiHttpClient(context, AiServiceNames.Replicate, "https://api.replicate.com/");
-
+        context.Services.AddTransient<ICloudinaryService, CloudinaryService>();
     }
     private void ConfigureRateLimiter(ServiceConfigurationContext context)
     {

@@ -41,7 +41,6 @@ export default function MatchingGameClient() {
 
   const wrongTimeoutRef = useRef<number | null>(null);
 
-  // 1. Load danh sách Level khi vào trang
   useSafeAsyncEffect(async (isMounted) => {
     try {
       const result = await matchingGameService.getLevels();
@@ -55,7 +54,6 @@ export default function MatchingGameClient() {
     }
   }, []);
 
-  // 2. Khi đổi Level -> load Chapter của level đó
   useSafeAsyncEffect(
     async (isMounted) => {
       if (!selectedLevelId) return;
@@ -79,14 +77,12 @@ export default function MatchingGameClient() {
     [selectedLevelId],
   );
 
-  // Dọn timeout khi rời trang
   useEffect(() => {
     return () => {
       if (wrongTimeoutRef.current) window.clearTimeout(wrongTimeoutRef.current);
     };
   }, []);
 
-  // Đếm ngược - chỉ chạy khi đang có game và chưa thắng/hết giờ
   const isVictory = game !== null && matchedIds.size === game.wordColumn.length;
   const isTimeUp = timeLeft === 0;
   const isRunning = game !== null && !isVictory && !isTimeUp;
@@ -180,127 +176,115 @@ export default function MatchingGameClient() {
   const xpEarned = Math.floor(score / 2) + combo * 5;
 
   return (
-    <div>
+    <div className="space-y-6">
       {!game && (
-        <div
-          style={{
-            display: "flex",
-            gap: 12,
-            flexWrap: "wrap",
-            alignItems: "flex-end",
-            marginBottom: 16,
-          }}
-        >
-          <div>
-            <label style={{ display: "block", fontSize: 13, marginBottom: 4 }}>
-              Level
-            </label>
-            <select
-              value={selectedLevelId}
-              onChange={(e) => setSelectedLevelId(e.target.value)}
-              style={{ padding: "8px 12px", minWidth: 160 }}
-            >
-              {levels.map((level) => (
-                <option key={level.id} value={level.id}>
-                  {level.name}
-                </option>
-              ))}
-            </select>
-          </div>
+        <div className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
+          <div className="flex flex-wrap items-end gap-4">
+            <div className="flex flex-col gap-2">
+              <label className="text-sm font-semibold text-slate-600">
+                Level
+              </label>
+              <select
+                className="min-w-[220px] rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-medium text-slate-700 transition focus:border-indigo-500 focus:bg-white focus:outline-none"
+                value={selectedLevelId}
+                onChange={(e) => setSelectedLevelId(e.target.value)}
+              >
+                {levels.map((level) => (
+                  <option key={level.id} value={level.id}>
+                    {level.name}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-          <div>
-            <label style={{ display: "block", fontSize: 13, marginBottom: 4 }}>
-              Chapter
-            </label>
-            <select
-              value={selectedChapterId}
-              onChange={(e) => setSelectedChapterId(e.target.value)}
-              disabled={loadingChapters || chapters.length === 0}
-              style={{ padding: "8px 12px", minWidth: 200 }}
-            >
-              {chapters.map((chapter) => (
-                <option key={chapter.id} value={chapter.id}>
-                  {chapter.title}
-                </option>
-              ))}
-            </select>
-          </div>
+            <div className="flex flex-col gap-2">
+              <label className="text-sm font-semibold text-slate-600">
+                Chapter
+              </label>
+              <select
+                className="min-w-[220px] rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-medium text-slate-700 transition focus:border-indigo-500 focus:bg-white focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+                value={selectedChapterId}
+                onChange={(e) => setSelectedChapterId(e.target.value)}
+                disabled={loadingChapters || chapters.length === 0}
+              >
+                {chapters.map((chapter) => (
+                  <option key={chapter.id} value={chapter.id}>
+                    {chapter.title}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-          <button
-            onClick={handleStart}
-            disabled={!selectedChapterId || isStarting}
-            style={{
-              padding: "8px 16px",
-              background: "#0ea5a4",
-              color: "white",
-              fontWeight: 600,
-            }}
-          >
-            {isStarting ? "Đang tải..." : "Bắt đầu chơi"}
-          </button>
+            <button
+              className="rounded-2xl bg-emerald-600 px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
+              onClick={handleStart}
+              disabled={!selectedChapterId || isStarting}
+            >
+              {isStarting ? "Đang tải..." : "Bắt đầu chơi"}
+            </button>
+          </div>
         </div>
       )}
 
       {loadError && (
-        <div
-          style={{
-            padding: 12,
-            background: "#fff1f0",
-            border: "1px solid #ffa39e",
-            marginBottom: 16,
-          }}
-        >
+        <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700 shadow-sm">
           {loadError}
         </div>
       )}
 
       {game && (
         <>
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginBottom: 12,
-            }}
-          >
-            <div>
-              Score: {score} • Combo: {combo}
+          <div className="flex items-center justify-between gap-4 rounded-3xl border border-slate-200 bg-white px-4 py-4 shadow-sm sm:px-5">
+            <div className="flex flex-wrap items-center gap-5 text-sm text-slate-600">
+              <span>
+                Score: <span className="font-bold text-slate-900">{score}</span>
+              </span>
+              <span>
+                Combo:{" "}
+                <span className="font-bold text-emerald-600">{combo}</span>
+              </span>
             </div>
-            <div>Time: {timeLeft}s</div>
+            <div
+              className={`rounded-full px-4 py-2 text-sm font-bold tabular-nums shadow-sm ${
+                timeLeft <= 10
+                  ? "bg-rose-50 text-rose-700"
+                  : "bg-indigo-50 text-indigo-700"
+              }`}
+            >
+              {timeLeft}s
+            </div>
           </div>
 
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "1fr 1fr",
-              gap: 16,
-            }}
-          >
-            <div style={{ display: "grid", gap: 8 }}>
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="grid gap-3">
               {game.wordColumn.map((word) => {
                 const isMatched = matchedIds.has(word.vocabularyId);
                 const isSelected = selectedWordId === word.vocabularyId;
                 const isWrong = wrongPair?.wordId === word.vocabularyId;
 
+                const tileClass = [
+                  "flex min-h-14 items-center justify-center rounded-2xl border px-4 py-4 text-center text-base font-semibold transition",
+                  isMatched &&
+                    "border-emerald-300 bg-emerald-50 text-emerald-700",
+                  isWrong && "border-rose-300 bg-rose-50 text-rose-700",
+                  isSelected &&
+                    !isMatched &&
+                    !isWrong &&
+                    "border-indigo-300 bg-indigo-50 text-indigo-700",
+                  !isMatched &&
+                    !isWrong &&
+                    !isSelected &&
+                    "border-slate-200 bg-white text-slate-700 hover:border-indigo-200 hover:bg-slate-50",
+                ]
+                  .filter(Boolean)
+                  .join(" ");
+
                 return (
                   <button
                     key={word.vocabularyId}
+                    className={tileClass}
                     onClick={() => handleSelectWord(word)}
                     disabled={isMatched || !isRunning}
-                    style={{
-                      padding: 12,
-                      minHeight: 60,
-                      background: isMatched
-                        ? "#d1fae5"
-                        : isWrong
-                          ? "#fee2e2"
-                          : isSelected
-                            ? "#ede9fe"
-                            : "#f8fafc",
-                      border: "1px solid #ccc",
-                      cursor: isMatched ? "default" : "pointer",
-                    }}
                   >
                     {word.text}
                   </button>
@@ -308,27 +292,29 @@ export default function MatchingGameClient() {
               })}
             </div>
 
-            <div style={{ display: "grid", gap: 8 }}>
+            <div className="grid gap-3">
               {game.meaningColumn.map((meaning) => {
                 const isMatched = matchedIds.has(meaning.vocabularyId);
                 const isWrong = wrongPair?.meaningId === meaning.vocabularyId;
 
+                const tileClass = [
+                  "flex min-h-14 items-center justify-center rounded-2xl border px-4 py-4 text-center text-base font-semibold transition",
+                  isMatched &&
+                    "border-emerald-300 bg-emerald-50 text-emerald-700",
+                  isWrong && "border-rose-300 bg-rose-50 text-rose-700",
+                  !isMatched &&
+                    !isWrong &&
+                    "border-slate-200 bg-white text-slate-700 hover:border-indigo-200 hover:bg-slate-50",
+                ]
+                  .filter(Boolean)
+                  .join(" ");
+
                 return (
                   <button
                     key={meaning.vocabularyId}
+                    className={tileClass}
                     onClick={() => handleSelectMeaning(meaning)}
                     disabled={isMatched || !selectedWordId || !isRunning}
-                    style={{
-                      padding: 12,
-                      minHeight: 60,
-                      background: isMatched
-                        ? "#d1fae5"
-                        : isWrong
-                          ? "#fee2e2"
-                          : "#fff",
-                      border: "1px solid #ccc",
-                      cursor: isMatched ? "default" : "pointer",
-                    }}
                   >
                     {meaning.text}
                   </button>
@@ -338,20 +324,15 @@ export default function MatchingGameClient() {
           </div>
 
           {isVictory && (
-            <div
-              style={{
-                marginTop: 16,
-                padding: 12,
-                background: "#e6ffed",
-                border: "1px solid #8feda3",
-              }}
-            >
-              <h3>Victory!</h3>
-              <p>Bạn ghi được {xpEarned} điểm thưởng</p>
-              <p>Tổng điểm: {score}</p>
+            <div className="rounded-3xl border border-emerald-200 bg-emerald-50 p-5 text-center shadow-sm">
+              <h3 className="text-xl font-black text-slate-900">🎉 Victory!</h3>
+              <p className="mt-2 text-sm text-slate-600">
+                Bạn ghi được {xpEarned} điểm thưởng
+              </p>
+              <p className="mt-1 text-sm text-slate-600">Tổng điểm: {score}</p>
               <button
+                className="mt-4 rounded-2xl bg-indigo-600 px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-indigo-700"
                 onClick={() => setGame(null)}
-                style={{ padding: "8px 12px" }}
               >
                 Chơi chapter khác
               </button>
@@ -359,19 +340,12 @@ export default function MatchingGameClient() {
           )}
 
           {isTimeUp && !isVictory && (
-            <div
-              style={{
-                marginTop: 16,
-                padding: 12,
-                background: "#fff1f0",
-                border: "1px solid #ffa39e",
-              }}
-            >
-              <h3>Hết giờ!</h3>
-              <p>Tổng điểm: {score}</p>
+            <div className="rounded-3xl border border-rose-200 bg-rose-50 p-5 text-center shadow-sm">
+              <h3 className="text-xl font-black text-slate-900">⏱ Hết giờ!</h3>
+              <p className="mt-2 text-sm text-slate-600">Tổng điểm: {score}</p>
               <button
+                className="mt-4 rounded-2xl bg-indigo-600 px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-indigo-700"
                 onClick={() => setGame(null)}
-                style={{ padding: "8px 12px" }}
               >
                 Chơi chapter khác
               </button>

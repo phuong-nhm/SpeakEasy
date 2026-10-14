@@ -39,6 +39,8 @@
         "NotificationFriendRequestContent": "You have a new friend request.",
         "NotificationFriendAcceptedContent": "Your friend request was accepted.",
         "CanOnlyMessageFriends": "You can only send messages to your friends.",
-        "NotificationNewMessageContent": "You have a new message."
+        "NotificationNewMessageContent": "You have a new message.",
+        "NotAllowedToAccessThisConversation": "You are not authorized to access this conversation.",
+        "ThreadIdRequiredForNewConversation": "A thread ID is required to start a new conversation."
     }
 }

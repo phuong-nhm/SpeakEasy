@@ -1,3 +1,4 @@
+// app/review/flashcards/[lessonId]/page.tsx
 import FlashcardReviewClient from "@/components/FlashcardReviewClient";
 
 interface Props {
@@ -8,9 +9,18 @@ export default async function FlashcardsPage({ params }: Props) {
   const { lessonId } = await params;
 
   return (
-    <div style={{ padding: 20 }}>
-      <h1>Flashcard Review</h1>
-      <FlashcardReviewClient lessonId={lessonId} />
+    <div className="min-h-screen bg-slate-50 px-4 py-8">
+      <div className="mx-auto max-w-4xl space-y-6">
+        <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-500">
+            Review
+          </p>
+          <h1 className="mt-1 text-3xl font-black text-slate-900">
+            Flashcard Review
+          </h1>
+        </div>
+        <FlashcardReviewClient lessonId={lessonId} />
+      </div>
     </div>
   );
 }

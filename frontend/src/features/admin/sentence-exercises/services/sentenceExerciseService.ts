@@ -25,24 +25,25 @@ const toRelativeAudioUrl = (audioUrl?: string): string | undefined => {
     return undefined;
   }
 
-  if (audioUrl.startsWith("/")) {
-    return audioUrl;
-  }
-
+  // NẾU LÀ LINK CLOUDINARY HOẶC LINK HTTP KHÁC -> GIỮ NGUYÊN GỐC
   if (/^https?:\/\//i.test(audioUrl)) {
     try {
       const parsed = new URL(audioUrl);
       if (parsed.origin === API_BASE_ORIGIN) {
         return `${parsed.pathname}${parsed.search}${parsed.hash}`;
       }
+      return audioUrl; // Giữ nguyên link Cloudinary, không bóc tách hay thêm dấu /
     } catch {
       return audioUrl;
     }
   }
 
+  if (audioUrl.startsWith("/")) {
+    return audioUrl;
+  }
+
   return `/${audioUrl}`;
 };
-
 const normalizeInputForWrite = (
   input: CreateUpdateSentenceExerciseDto,
 ): CreateUpdateSentenceExerciseDto => ({
