@@ -38,4 +38,6 @@
     public enum StoryReadStatus { NotStarted, InProgress, Completed }
     public enum FriendshipStatus { Pending, Accepted, Declined, Blocked }
     public enum NotificationType { FriendRequest, FriendAccepted, NewMessage, ReviewDue, StoryReady }
+    public enum XpSource { LessonComplete, Checkpoint, Writing, Listening, MatchingGame }
+    public enum ChatRole { User, Assistant }
 }

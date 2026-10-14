@@ -1,10 +1,12 @@
 ﻿using AutoMapper;
+using EnglishLearningApp.Dtos.Agents;
 using EnglishLearningApp.Dtos.Contents;
 using EnglishLearningApp.Dtos.Listenings;
 using EnglishLearningApp.Dtos.Progresses;
 using EnglishLearningApp.Dtos.Socials;
 using EnglishLearningApp.Dtos.Storys;
 using EnglishLearningApp.Dtos.Writings;
+using EnglishLearningApp.Entities.Agents;
 using EnglishLearningApp.Entities.Content;
 using EnglishLearningApp.Entities.Listening;
 using EnglishLearningApp.Entities.Progress;
@@ -106,5 +108,14 @@ public class EnglishLearningAppAutoMapperProfile : Profile
         // ===== NHÓM 7: CHUỖI NGÀY HỌC (Streak) =====
 
         CreateMap<UserStreak, UserStreakDto>();
+        // ===== NHÓM 8: XP =====
+        // UserXpLog không CreateMap trực tiếp - LeaderboardEntryDto/MyXpSummaryDto đều build tay (SUM/GroupBy), không map 1-1 từ entity
+
+        // ===== NHÓM 9: LỊCH SỬ CHAT AGENT =====
+        CreateMap<ChatConversation, ChatConversationDto>();
+        CreateMap<ChatConversation, ChatConversationDetailDto>()
+            .ForMember(dest => dest.Messages, opt => opt.Ignore()); // gán tay trong AppService
+
+        CreateMap<AgentChatMessage, AgentChatMessageDto>();
     }
 }

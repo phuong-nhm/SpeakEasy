@@ -1,4 +1,5 @@
-﻿using EnglishLearningApp.Entities.Content;
+﻿using EnglishLearningApp.Entities.Agents;
+using EnglishLearningApp.Entities.Content;
 using EnglishLearningApp.Entities.Listening;
 using EnglishLearningApp.Entities.Progress;
 using EnglishLearningApp.Entities.Social;
@@ -49,6 +50,9 @@ public class EnglishLearningAppDbContext : AbpDbContext<EnglishLearningAppDbCont
 
     // Progress (thêm vào nhóm Progress đã có sẵn)
     public DbSet<UserStreak> UserStreaks { get; set; }
+    public DbSet<UserXpLog> UserXpLogs { get; set; }
+    public DbSet<ChatConversation> ChatConversations { get; set; }
+    public DbSet<AgentChatMessage> AgentChatMessages { get; set; }
     public EnglishLearningAppDbContext(DbContextOptions<EnglishLearningAppDbContext> options)
         : base(options)
     {
@@ -252,6 +256,26 @@ public class EnglishLearningAppDbContext : AbpDbContext<EnglishLearningAppDbCont
         {
             b.ToTable("AppUserStreaks");
             b.HasIndex(x => x.UserId).IsUnique();
+        });
+        builder.Entity<UserXpLog>(b =>
+        {
+            b.ToTable("AppUserXpLogs");
+            // Query leaderboard sẽ lọc UserId + CreationTime liên tục -> cần index
+            b.HasIndex(x => new { x.UserId, x.CreationTime });
+        });
+
+        builder.Entity<ChatConversation>(b =>
+        {
+            b.ToTable("AppChatConversations");
+            b.Property(x => x.ThreadId).HasMaxLength(128).IsRequired();
+            b.HasIndex(x => x.UserId);
+        });
+
+        builder.Entity<AgentChatMessage>(b =>
+        {
+            b.ToTable("AppAgentChatMessages");
+            b.Property(x => x.Content).IsRequired();
+            b.HasIndex(x => x.ConversationId);
         });
     }
 }

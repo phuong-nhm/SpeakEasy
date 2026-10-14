@@ -37,6 +37,8 @@
         "NotificationFriendRequestContent": "Bạn có lời mời kết bạn mới.",
         "NotificationFriendAcceptedContent": "Lời mời kết bạn của bạn đã được chấp nhận.",
         "CanOnlyMessageFriends": "Bạn chỉ có thể nhắn tin cho bạn bè.",
-        "NotificationNewMessageContent": "Bạn có tin nhắn mới."
+        "NotificationNewMessageContent": "Bạn có tin nhắn mới.",
+        "NotAllowedToAccessThisConversation": "Bạn không có quyền truy cập vào cuộc trò chuyện này.",
+        "ThreadIdRequiredForNewConversation": "Cần phải có mã luồng (thread ID) để bắt đầu cuộc trò chuyện mới."
     }
 }
