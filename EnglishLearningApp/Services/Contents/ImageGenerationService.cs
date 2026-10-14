@@ -1,4 +1,5 @@
 ﻿using EnglishLearningApp.Entities;
+using EnglishLearningApp.Services.UploadFile;
 using System.Text.Json;
 using Volo.Abp;
 using Volo.Abp.DependencyInjection;
@@ -13,16 +14,20 @@ namespace EnglishLearningApp.Services.Contents
         private readonly IConfiguration _configuration;
         private readonly IWebHostEnvironment _env;
         private readonly ILogger<ImageGenerationService> _logger;
+        private readonly ICloudinaryService _cloudinaryService;
         public ImageGenerationService(
     IHttpClientFactory httpClientFactory,
     IConfiguration configuration,
     IWebHostEnvironment env,
-    ILogger<ImageGenerationService> logger)
+    ILogger<ImageGenerationService> logger,
+    ICloudinaryService cloudinaryService
+    )
         {
             _httpClientFactory = httpClientFactory;
             _configuration = configuration;
             _env = env;
             _logger = logger;
+            _cloudinaryService = cloudinaryService;
         }
 
         public async Task<string> GenerateImageUrlAsync(string word, string meaning, WordType wordType, string? imageHint = null)
@@ -157,22 +162,28 @@ namespace EnglishLearningApp.Services.Contents
             return $"{subject} {styleRule} {noTextRule}";
         }
 
+        //private async Task<string> SaveImageFileAsync(byte[] imageBytes, string word)
+        //{
+        //    var wwwRoot = _env.WebRootPath ?? Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
+        //    var uploadDirectory = Path.Combine(wwwRoot, "uploads", "images");
+        //    Directory.CreateDirectory(uploadDirectory);
+
+        //    // Slug hoá từ, chỉ giữ chữ/số, thay khoảng trắng bằng gạch ngang
+        //    var slug = new string(word.ToLowerInvariant()
+        //        .Select(c => char.IsLetterOrDigit(c) ? c : '-')
+        //        .ToArray());
+        //    var fileName = $"{slug}-{Guid.NewGuid():N}.png";
+        //    var filePath = Path.Combine(uploadDirectory, fileName);
+
+        //    await File.WriteAllBytesAsync(filePath, imageBytes);
+
+        //    return $"/uploads/images/{fileName}";
+        //}
         private async Task<string> SaveImageFileAsync(byte[] imageBytes, string word)
         {
-            var wwwRoot = _env.WebRootPath ?? Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
-            var uploadDirectory = Path.Combine(wwwRoot, "uploads", "images");
-            Directory.CreateDirectory(uploadDirectory);
-
-            // Slug hoá từ, chỉ giữ chữ/số, thay khoảng trắng bằng gạch ngang
-            var slug = new string(word.ToLowerInvariant()
-                .Select(c => char.IsLetterOrDigit(c) ? c : '-')
-                .ToArray());
+            var slug = new string(word.ToLowerInvariant().Select(c => char.IsLetterOrDigit(c) ? c : '-').ToArray());
             var fileName = $"{slug}-{Guid.NewGuid():N}.png";
-            var filePath = Path.Combine(uploadDirectory, fileName);
-
-            await File.WriteAllBytesAsync(filePath, imageBytes);
-
-            return $"/uploads/images/{fileName}";
+            return await _cloudinaryService.UploadBytesAsync(imageBytes, fileName, "uploads/images", isAudio: false);
         }
     }
 }

@@ -1,4 +1,5 @@
 ﻿using EnglishLearningApp.Services.Contents;
+using EnglishLearningApp.Services.UploadFile;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using System;
@@ -27,16 +28,19 @@ namespace EnglishLearningApp.Services.Contents
         private readonly IConfiguration _configuration;
         private readonly IWebHostEnvironment _env;
         private readonly ILogger<AudioGenerationService> _logger;
+        private readonly ICloudinaryService _cloudinaryService;
         public AudioGenerationService(
             IHttpClientFactory httpClientFactory,
             IConfiguration configuration,
             IWebHostEnvironment env,
-            ILogger<AudioGenerationService> logger)
+            ILogger<AudioGenerationService> logger,
+            ICloudinaryService cloudinaryService)
         {
             _httpClientFactory = httpClientFactory;
             _configuration = configuration;
             _env = env;
             _logger = logger;
+            _cloudinaryService = cloudinaryService;
         }
         public async Task<string> GenerateAudioUrlAsync(string text)
         {
@@ -208,18 +212,23 @@ namespace EnglishLearningApp.Services.Contents
             return stream.ToArray();
         }
 
+        //private async Task<string> SaveAudioFileAsync(byte[] wavBytes)
+        //{
+        //    var wwwRoot = _env.WebRootPath ?? Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
+        //    var uploadDirectory = Path.Combine(wwwRoot, "uploads", "audio");
+        //    Directory.CreateDirectory(uploadDirectory);
+
+        //    var fileName = $"{Guid.NewGuid()}.wav";
+        //    var filePath = Path.Combine(uploadDirectory, fileName);
+
+        //    await File.WriteAllBytesAsync(filePath, wavBytes);
+
+        //    return $"/uploads/audio/{fileName}";
+        //}
         private async Task<string> SaveAudioFileAsync(byte[] wavBytes)
         {
-            var wwwRoot = _env.WebRootPath ?? Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
-            var uploadDirectory = Path.Combine(wwwRoot, "uploads", "audio");
-            Directory.CreateDirectory(uploadDirectory);
-
             var fileName = $"{Guid.NewGuid()}.wav";
-            var filePath = Path.Combine(uploadDirectory, fileName);
-
-            await File.WriteAllBytesAsync(filePath, wavBytes);
-
-            return $"/uploads/audio/{fileName}";
+            return await _cloudinaryService.UploadBytesAsync(wavBytes, fileName, "uploads/audio", isAudio: true);
         }
         private static readonly string[] Voices =
         {

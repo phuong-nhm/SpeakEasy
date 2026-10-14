@@ -6,7 +6,12 @@ export const API_BASE_URL = (
 ).replace(/\/+$/, "");
 export function resolveMediaUrl(url?: string | null): string | undefined {
   if (!url) return undefined;
-  if (/^https?:\/\//i.test(url)) return url;
+
+  // NẾU ĐÃ LÀ LINK TUYỆT ĐỐI (http:// hoặc https://) -> TRẢ VỀ LUÔN, KHÔNG GẮN LOCALHOST VÀO NỮA
+  if (/^https?:\/\//i.test(url)) {
+    return url;
+  }
+
   const path = url.startsWith("/") ? url : `/${url}`;
   return `${API_BASE_URL}${path}`;
 }

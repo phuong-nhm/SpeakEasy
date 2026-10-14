@@ -1,0 +1,128 @@
+.wrapper {
+  max-width: 560px;
+  margin: 12px auto 0;
+  padding: 0 24px;
+}
+
+.card {
+  background: #fff;
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+  padding: 32px;
+}
+
+.word {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--color-text-main);
+  margin-bottom: 16px;
+}
+
+.optionRow {
+  margin-top: 8px;
+}
+
+.optionLabel {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  padding: 12px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.optionLabel:hover {
+  border-color: #c7d2fe;
+}
+
+.optionLabelSelected {
+  border-color: var(--color-primary);
+  background: var(--color-primary-light);
+}
+
+.optionText {
+  font-size: 15px;
+  color: var(--color-text-main);
+}
+
+.submitButton {
+  margin-top: 20px;
+  padding: 10px 24px;
+  font-size: 14px;
+  font-weight: 600;
+  border: none;
+  border-radius: 8px;
+  background: var(--color-accent);
+  color: #fff;
+  cursor: pointer;
+}
+
+.submitButton:hover:not(:disabled) {
+  background: var(--color-accent-hover);
+}
+
+.submitButton:disabled {
+  background: #cbd5e1;
+  cursor: not-allowed;
+}
+
+.progress {
+  margin-top: 16px;
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+.resultCard {
+  background: #fff;
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+  padding: 32px;
+  text-align: center;
+}
+
+.resultTitle {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--color-text-main);
+  margin-bottom: 8px;
+}
+
+.resultText {
+  font-size: 14px;
+  color: #475569;
+  margin-bottom: 4px;
+}
+
+.resultPass {
+  color: var(--color-accent-hover);
+  font-weight: 600;
+}
+
+.resultFail {
+  color: var(--color-danger);
+  font-weight: 600;
+}
+
+.backButton {
+  margin-top: 16px;
+  padding: 10px 20px;
+  background: var(--color-primary);
+  color: #fff;
+  font-weight: 600;
+  font-size: 14px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.backButton:hover {
+  background: var(--color-primary-hover);
+}
+
+.centerText {
+  text-align: center;
+  padding: 40px 24px;
+  color: var(--color-text-muted);
+}

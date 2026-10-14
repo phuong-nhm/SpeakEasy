@@ -338,48 +338,7 @@ Trước khi sửa, có 1 điểm cần hỏi: LessonNode.tsx dùng lesson.total
 cái vocacbmatching game cũng vậy cũng cần tối ưu gọi api lấy dữ liệu về rồi gọi so sánh chứ hogn gọi api nhiều lần vậy tốn api lắm
 
 --------------------------------------------------==================-------------------------------------------------------------------------------------------=============================--------------------------------------------
-Xong hết rồi làm
 
-# TODO - Leaderboard: tính năng chưa hoàn thiện, đang chạy mock
-
-## Hiện trạng
-
-- Frontend (`leaderboardService.ts`, `types/leaderboard.ts`, `LeaderboardTabs.tsx`,
-  `mockLeaderboardData.ts`) đã được code sẵn (từ 1 lần nhờ AI khác làm), nhưng
-  CHƯA TỪNG hoàn thiện - `USE_MOCK = true`, chưa nối API thật.
-- Backend KHÔNG CÓ gì cho tính năng này: không Entity lưu XP, không AppService
-  Leaderboard, không khái niệm "bạn bè" (Friendship/UserConnection) ở đâu cả.
-- Phát hiện thêm: lúc trước nhầm tưởng `POST /api/app/lesson` là API "nộp kết
-  quả bài học kèm XP" - thực ra đó chỉ là `LessonAppService.CreateAsync` dùng
-  cho Admin CMS tạo Lesson mới, không liên quan XP. Đã xoá lệnh gọi sai này
-  khỏi `finalizeLesson()` (useLessonFlow.ts), xoá luôn `submitLessonResult`
-  khỏi lessonService.ts và types/lesson.ts.
-- Hệ quả: hiện tại KHÔNG CÓ NƠI NÀO lưu lại XP/kết quả mỗi lần học Lesson ở
-  backend. `xpEarned`/`accuracyPercent` trên `CompleteScreen` chỉ là số tính
-  tạm ở client cho người học xem ngay lúc đó, mất đi sau khi rời trang.
-
-## Việc cần làm nếu muốn làm Leaderboard thật (ưu tiên sau, không gấp)
-
-1. Quyết định có cần lưu XP vĩnh viễn không, hay chỉ cần theo tuần:
-   - Thêm field/bảng lưu XP mỗi lần hoàn thành Lesson (gắn với finalizeLesson
-     ở FE - cần gọi thêm 1 API mới sau khi có backend)
-   - Cần cách tính "XP tuần này" - có thể lưu kèm timestamp rồi query theo
-     khoảng thời gian, hoặc có cơ chế snapshot/reset theo tuần (cron job)
-2. AppService mới để tính rank (sắp theo XP giảm dần, giới hạn top N, tìm vị
-   trí currentUser trong danh sách)
-3. Nếu muốn có tab "Bạn bè" - cần làm thêm cả hệ thống kết bạn (Entity
-   Friendship/UserConnection, API gửi/chấp nhận lời mời kết bạn, API lấy danh
-   sách bạn bè) - đây là 1 mảng tính năng xã hội riêng, không chỉ là mở rộng
-   Leaderboard.
-4. Khi backend sẵn sàng, chỉ cần đổi `USE_MOCK = false` trong
-   `leaderboardService.ts` và sửa lại field cho khớp response thật (frontend
-   UI, LeaderboardTabs.tsx không cần đổi gì nếu DTO giữ nguyên shape).
-
-## Quyết định hiện tại
-
-Không ưu tiên làm - đây là tính năng gamification/giữ chân người dùng, không
-phải tính năng cốt lõi để học (khác Lesson/Vocabulary/Grammar/Checkpoint).
-Giữ nguyên mock cho tới khi các phần cốt lõi ổn định.
 -------=====================================--------------------------------------------------------------------------------------------------=================================================================------------------------
 ok 4 cái bạn bảo tôi chỉ mới thêm export function decodeJwtRoles(token: string): string[] { try { const payload = JSON.parse(atob(token.split(".")[1])); const role = payload["role"] ?? payload["roles"] ?? []; return Array.isArray(role) ? role : [role]; } catch { return []; } }
 Vào apiclient thôi nha 3 cái kia chưa làm nha nhớ nha

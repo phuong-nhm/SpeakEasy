@@ -23,19 +23,23 @@ const toRelativeMediaUrl = (url?: string): string | undefined => {
     return undefined;
   }
 
-  if (url.startsWith("/")) {
-    return url;
-  }
-
+  // NẾU LÀ LINK CLOUDINARY HOẶC BẤT KỲ LINK HTTP NÀO KHÁC -> TRẢ VỀ LUÔN, KHÔNG ĐỔI GÌ CẢ
   if (/^https?:\/\//i.test(url)) {
     try {
       const parsed = new URL(url);
+      // Nếu là domain của .NET local thì bóc path ra cho gọn
       if (parsed.origin === API_BASE_ORIGIN) {
         return `${parsed.pathname}${parsed.search}${parsed.hash}`;
       }
+      // NẾU LÀ DOMAIN KHÁC (như res.cloudinary.com) -> GIỮ NGUYÊN GỐC KHÔNG ĐỤNG CHẠM
+      return url;
     } catch {
       return url;
     }
+  }
+
+  if (url.startsWith("/")) {
+    return url;
   }
 
   return `/${url}`;

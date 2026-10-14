@@ -76,72 +76,94 @@ export default function QuizReviewClient({ lessonId }: Props) {
     }
   };
 
-  if (loading) return <div>Đang tải...</div>;
+  if (loading)
+    return (
+      <div className="rounded-3xl border border-slate-200 bg-white p-8 text-center text-sm text-slate-500 shadow-sm">
+        Đang tải...
+      </div>
+    );
 
-  if (!items.length) return <div>Không có câu hỏi ôn tập.</div>;
+  if (!items.length)
+    return (
+      <div className="rounded-3xl border border-slate-200 bg-white p-8 text-center text-sm text-slate-500 shadow-sm">
+        Không có câu hỏi ôn tập.
+      </div>
+    );
 
   if (index >= items.length) {
     const percent = Math.round((correctCount / items.length) * 100);
+    const passed = percent >= PASS_PERCENT;
     return (
-      <div>
-        <h3>Kết thúc Quiz</h3>
-        <p>
-          Đúng {correctCount}/{items.length} ({percent}%)
-        </p>
-        <p>
-          {percent >= PASS_PERCENT
-            ? "✅ Đạt yêu cầu, chu kỳ ôn tập sẽ dời sang mốc xa hơn."
-            : "❌ Chưa đạt, chu kỳ ôn tập sẽ quay lại từ đầu."}
-        </p>
-        <button
-          onClick={() => router.push("/review")}
-          style={{ padding: "8px 12px", marginTop: 12 }}
-        >
-          Về trang Ôn tập
-        </button>
+      <div className="mx-auto max-w-2xl px-4">
+        <div className="rounded-3xl border border-slate-200 bg-white p-6 text-center shadow-sm">
+          <h3 className="text-2xl font-black text-slate-900">Kết thúc Quiz</h3>
+          <p className="mt-2 text-sm text-slate-600">
+            Đúng {correctCount}/{items.length} ({percent}%)
+          </p>
+          <p
+            className={`mt-1 text-sm font-semibold ${
+              passed ? "text-emerald-600" : "text-rose-600"
+            }`}
+          >
+            {passed
+              ? "✅ Đạt yêu cầu, chu kỳ ôn tập sẽ dời sang mốc xa hơn."
+              : "❌ Chưa đạt, chu kỳ ôn tập sẽ quay lại từ đầu."}
+          </p>
+          <button
+            className="mt-5 rounded-2xl bg-indigo-600 px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-indigo-700"
+            onClick={() => router.push("/review")}
+          >
+            Về trang Ôn tập
+          </button>
+        </div>
       </div>
     );
   }
 
   return (
-    <div style={{ maxWidth: 720, marginTop: 12 }}>
-      <div style={{ border: "1px solid #ddd", padding: 24, borderRadius: 8 }}>
-        <h3 style={{ marginBottom: 8 }}>{current.word}</h3>
+    <div className="mx-auto max-w-2xl px-4">
+      <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+        <div className="rounded-3xl border border-violet-200 bg-violet-50 p-5 shadow-sm">
+          <h3 className="text-2xl font-black text-slate-900">{current.word}</h3>
+        </div>
 
         {(["A", "B"] as const).map((key) => {
           const label = key === "A" ? current.optionA : current.optionB;
+          const isSelected = selected === key;
 
           return (
-            <div key={key} style={{ marginTop: 8 }}>
-              <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            <div key={key} className="mt-3">
+              <label
+                className={`flex cursor-pointer items-center gap-3 rounded-2xl border px-4 py-4 text-left transition ${
+                  isSelected
+                    ? "border-indigo-300 bg-indigo-50"
+                    : "border-slate-200 bg-white hover:border-indigo-200 hover:bg-slate-50"
+                }`}
+              >
                 <input
                   type="radio"
-                  checked={selected === key}
+                  checked={isSelected}
                   onChange={() => setSelected(key)}
                   name="choice"
                   disabled={isSubmitting}
                 />
-                <span>{label}</span>
+                <span className="text-sm font-medium text-slate-700">
+                  {label}
+                </span>
               </label>
             </div>
           );
         })}
 
-        <div style={{ marginTop: 12 }}>
-          <button
-            onClick={submit}
-            disabled={!selected || isSubmitting}
-            style={{
-              padding: "8px 12px",
-              background: "#0ea5a4",
-              color: "white",
-            }}
-          >
-            Nộp
-          </button>
-        </div>
+        <button
+          className="mt-5 rounded-2xl bg-emerald-600 px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
+          onClick={submit}
+          disabled={!selected || isSubmitting}
+        >
+          Nộp
+        </button>
 
-        <div style={{ marginTop: 12, fontSize: 13, color: "#666" }}>
+        <div className="mt-4 text-center text-sm font-medium text-slate-500">
           {index + 1}/{items.length}
         </div>
       </div>

@@ -56,7 +56,7 @@ export default function FlashcardReviewClient({ lessonId }: Props) {
       // không chặn UI nếu lỗi submit
     } finally {
       setIsSubmitting(false);
-      setIndex(items.length); // chuyển sang màn hoàn thành
+      setIndex(items.length);
     }
   };
 
@@ -82,66 +82,89 @@ export default function FlashcardReviewClient({ lessonId }: Props) {
     }
   };
 
-  if (loading) return <div>Đang tải...</div>;
+  if (loading)
+    return (
+      <div className="rounded-3xl border border-slate-200 bg-white p-8 text-center text-sm text-slate-500 shadow-sm">
+        Đang tải...
+      </div>
+    );
 
-  if (!items.length) return <div>Không có từ vựng để ôn tập.</div>;
+  if (!items.length)
+    return (
+      <div className="rounded-3xl border border-slate-200 bg-white p-8 text-center text-sm text-slate-500 shadow-sm">
+        Không có từ vựng để ôn tập.
+      </div>
+    );
 
   if (index >= items.length) {
     const percent = Math.round((rememberedCount / items.length) * 100);
+    const passed = percent >= PASS_PERCENT;
     return (
-      <div>
-        <h3>Hoàn thành ôn tập</h3>
-        <p>
-          Bạn nhớ {rememberedCount}/{items.length} từ ({percent}%)
-        </p>
-        <p>
-          {percent >= PASS_PERCENT
-            ? "✅ Đạt yêu cầu, chu kỳ ôn tập sẽ dời sang mốc xa hơn."
-            : "❌ Chưa đạt, chu kỳ ôn tập sẽ quay lại từ đầu."}
-        </p>
-        <button
-          onClick={() => router.push("/review")}
-          style={{ padding: "8px 12px", marginTop: 12 }}
-        >
-          Về trang Ôn tập
-        </button>
+      <div className="mx-auto max-w-2xl px-4">
+        <div className="rounded-3xl border border-slate-200 bg-white p-6 text-center shadow-sm">
+          <h3 className="text-2xl font-black text-slate-900">
+            Hoàn thành ôn tập
+          </h3>
+          <p className="mt-2 text-sm text-slate-600">
+            Bạn nhớ {rememberedCount}/{items.length} từ ({percent}%)
+          </p>
+          <p
+            className={`mt-1 text-sm font-semibold ${
+              passed ? "text-emerald-600" : "text-rose-600"
+            }`}
+          >
+            {passed
+              ? "✅ Đạt yêu cầu, chu kỳ ôn tập sẽ dời sang mốc xa hơn."
+              : "❌ Chưa đạt, chu kỳ ôn tập sẽ quay lại từ đầu."}
+          </p>
+          <button
+            className="mt-5 rounded-2xl bg-indigo-600 px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-indigo-700"
+            onClick={() => router.push("/review")}
+          >
+            Về trang Ôn tập
+          </button>
+        </div>
       </div>
     );
   }
 
   return (
-    <div style={{ maxWidth: 720, marginTop: 12 }}>
-      <div style={{ border: "1px solid #ddd", padding: 24, borderRadius: 8 }}>
-        <h3 style={{ marginBottom: 8 }}>{current.word}</h3>
-        {showBack && <p style={{ color: "#444" }}>{current.meaning}</p>}
-        <div style={{ marginTop: 12, display: "flex", gap: 8 }}>
+    <div className="mx-auto max-w-2xl px-4">
+      <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+        <div className="rounded-3xl border border-indigo-200 bg-indigo-50 p-5 shadow-sm">
+          <h3 className="text-2xl font-black text-slate-900">{current.word}</h3>
+          {showBack && (
+            <p className="mt-3 text-base font-medium text-slate-700">
+              {current.meaning}
+            </p>
+          )}
+        </div>
+
+        <div className="mt-5 flex flex-wrap justify-center gap-3">
           <button
+            className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-indigo-200 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
             onClick={() => setShowBack((s) => !s)}
-            style={{ padding: "8px 12px" }}
             disabled={isSubmitting}
           >
             {showBack ? "Ẩn" : "Hiện nghĩa"}
           </button>
           <button
+            className="rounded-2xl bg-emerald-600 px-4 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
             onClick={onRemembered}
-            style={{
-              padding: "8px 12px",
-              background: "#0ea5a4",
-              color: "white",
-            }}
             disabled={isSubmitting}
           >
             Tôi nhớ
           </button>
           <button
+            className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
             onClick={onSkip}
-            style={{ padding: "8px 12px", background: "#eee" }}
             disabled={isSubmitting}
           >
             Bỏ qua
           </button>
         </div>
-        <div style={{ marginTop: 12, fontSize: 13, color: "#666" }}>
+
+        <div className="mt-4 text-center text-sm font-medium text-slate-500">
           {index + 1}/{items.length}
         </div>
       </div>
