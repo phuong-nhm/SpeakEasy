@@ -30,6 +30,13 @@
         "ImportListCannotBeEmpty": "Danh sách import không được để trống.",
         "DuplicateLessonIdInGrammarNote": "Danh sách chứa LessonId trùng nhau, mỗi Lesson chỉ được 1 GrammarNote.",
         "GrammarNoteAlreadyExistsForLesson": "Lesson '{0}' đã có GrammarNote trong hệ thống.",
-        "MissingFormulaForGrammarFormType": "GrammarNote Lesson '{0}' thiếu Formula cho FormType '{1}'."
+        "MissingFormulaForGrammarFormType": "GrammarNote Lesson '{0}' thiếu Formula cho FormType '{1}'.",
+        "CannotFriendYourself": "Bạn không thể gửi lời mời kết bạn cho chính mình.",
+        "FriendshipAlreadyExists": "Đã tồn tại quan hệ bạn bè (hoặc lời mời) giữa bạn và người này.",
+        "NotAllowedToRespondThisRequest": "Bạn không có quyền phản hồi lời mời kết bạn này.",
+        "NotificationFriendRequestContent": "Bạn có lời mời kết bạn mới.",
+        "NotificationFriendAcceptedContent": "Lời mời kết bạn của bạn đã được chấp nhận.",
+        "CanOnlyMessageFriends": "Bạn chỉ có thể nhắn tin cho bạn bè.",
+        "NotificationNewMessageContent": "Bạn có tin nhắn mới."
     }
 }

@@ -2,10 +2,14 @@
 using EnglishLearningApp.Dtos.Contents;
 using EnglishLearningApp.Dtos.Listenings;
 using EnglishLearningApp.Dtos.Progresses;
+using EnglishLearningApp.Dtos.Socials;
+using EnglishLearningApp.Dtos.Storys;
 using EnglishLearningApp.Dtos.Writings;
 using EnglishLearningApp.Entities.Content;
 using EnglishLearningApp.Entities.Listening;
 using EnglishLearningApp.Entities.Progress;
+using EnglishLearningApp.Entities.Social;
+using EnglishLearningApp.Entities.Story;
 using EnglishLearningApp.Entities.Writing;
 
 namespace EnglishLearningApp.ObjectMapping;
@@ -79,5 +83,28 @@ public class EnglishLearningAppAutoMapperProfile : Profile
         CreateMap<ListeningQuestion, ListeningQuestionDto>();
         CreateMap<ListeningQuestion, ListeningQuestionClientDto>();
         CreateMap<CreateUpdateListeningQuestionDto, ListeningQuestion>();
+        // ===== NHÓM 5: TRUYỆN (Story) =====
+
+        // Story: dùng chung cho cả StoryDto và StoryDetailDto (kế thừa StoryDto).
+        // AutoMapper không tự map sang lớp con, nên phải khai riêng từng map.
+        CreateMap<Story, StoryDto>();
+        CreateMap<Story, StoryDetailDto>()
+            .ForMember(dest => dest.Segments, opt => opt.Ignore())       // gán tay trong AppService (query riêng theo OrderIndex)
+            .ForMember(dest => dest.VocabularyIds, opt => opt.Ignore()); // gán tay trong AppService
+
+        CreateMap<StorySegment, StorySegmentDto>();
+
+        // ===== NHÓM 6: BẠN BÈ, THÔNG BÁO, NHẮN TIN (Social) =====
+
+        CreateMap<Friendship, FriendshipDto>();
+        // FriendDto không CreateMap vì build tay trong AppService (cần join thêm UserName từ IdentityUser)
+
+        CreateMap<Notification, NotificationDto>();
+
+        CreateMap<Message, MessageDto>();
+
+        // ===== NHÓM 7: CHUỖI NGÀY HỌC (Streak) =====
+
+        CreateMap<UserStreak, UserStreakDto>();
     }
 }

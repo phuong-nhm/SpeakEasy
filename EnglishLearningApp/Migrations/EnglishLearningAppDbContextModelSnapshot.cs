@@ -438,6 +438,276 @@ namespace EnglishLearningApp.Migrations
                     b.ToTable("AppUserProgresses", (string)null);
                 });
 
+            modelBuilder.Entity("EnglishLearningApp.Entities.Progress.UserStreak", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreationTime")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("CreationTime");
+
+                    b.Property<Guid?>("CreatorId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("CreatorId");
+
+                    b.Property<int>("CurrentStreak")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("LastModificationTime")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("LastModificationTime");
+
+                    b.Property<Guid?>("LastModifierId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("LastModifierId");
+
+                    b.Property<DateTime?>("LastStudyDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("LongestStreak")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId")
+                        .IsUnique();
+
+                    b.ToTable("AppUserStreaks", (string)null);
+                });
+
+            modelBuilder.Entity("EnglishLearningApp.Entities.Social.Friendship", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("AddresseeId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreationTime")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("CreationTime");
+
+                    b.Property<Guid?>("CreatorId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("CreatorId");
+
+                    b.Property<DateTime?>("LastModificationTime")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("LastModificationTime");
+
+                    b.Property<Guid?>("LastModifierId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("LastModifierId");
+
+                    b.Property<Guid>("RequesterId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("RespondedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RequesterId", "AddresseeId")
+                        .IsUnique();
+
+                    b.ToTable("AppFriendships", (string)null);
+                });
+
+            modelBuilder.Entity("EnglishLearningApp.Entities.Social.Message", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("CreationTime")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("CreationTime");
+
+                    b.Property<Guid?>("CreatorId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("CreatorId");
+
+                    b.Property<bool>("IsRead")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("ReceiverId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("SenderId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SenderId", "ReceiverId");
+
+                    b.ToTable("AppMessages", (string)null);
+                });
+
+            modelBuilder.Entity("EnglishLearningApp.Entities.Social.Notification", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)");
+
+                    b.Property<DateTime>("CreationTime")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("CreationTime");
+
+                    b.Property<Guid?>("CreatorId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("CreatorId");
+
+                    b.Property<bool>("IsRead")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid?>("RelatedEntityId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId", "IsRead");
+
+                    b.ToTable("AppNotifications", (string)null);
+                });
+
+            modelBuilder.Entity("EnglishLearningApp.Entities.Story.Story", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("CreatedForUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("GenerationSource")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Genre")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("HasImages")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("Length")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("LevelId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("AppStories", (string)null);
+                });
+
+            modelBuilder.Entity("EnglishLearningApp.Entities.Story.StorySegment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("ImageUrl")
+                        .HasColumnType("text");
+
+                    b.Property<int>("OrderIndex")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("StoryId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("StoryId");
+
+                    b.ToTable("AppStorySegments", (string)null);
+                });
+
+            modelBuilder.Entity("EnglishLearningApp.Entities.Story.StoryVocabulary", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("StoryId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("VocabularyId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("StoryId", "VocabularyId")
+                        .IsUnique();
+
+                    b.ToTable("AppStoryVocabularies", (string)null);
+                });
+
+            modelBuilder.Entity("EnglishLearningApp.Entities.Story.UserStoryProgress", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreationTime")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("CreationTime");
+
+                    b.Property<Guid?>("CreatorId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("CreatorId");
+
+                    b.Property<DateTime?>("LastModificationTime")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("LastModificationTime");
+
+                    b.Property<Guid?>("LastModifierId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("LastModifierId");
+
+                    b.Property<DateTime?>("ReadAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("StoryId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId", "StoryId")
+                        .IsUnique();
+
+                    b.ToTable("AppUserStoryProgresses", (string)null);
+                });
+
             modelBuilder.Entity("EnglishLearningApp.Entities.Writing.UserWriting", b =>
                 {
                     b.Property<Guid>("Id")
@@ -2264,6 +2534,28 @@ namespace EnglishLearningApp.Migrations
                     b.Navigation("Passage");
                 });
 
+            modelBuilder.Entity("EnglishLearningApp.Entities.Story.StorySegment", b =>
+                {
+                    b.HasOne("EnglishLearningApp.Entities.Story.Story", "Story")
+                        .WithMany("Segments")
+                        .HasForeignKey("StoryId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Story");
+                });
+
+            modelBuilder.Entity("EnglishLearningApp.Entities.Story.StoryVocabulary", b =>
+                {
+                    b.HasOne("EnglishLearningApp.Entities.Story.Story", "Story")
+                        .WithMany("StoryVocabularies")
+                        .HasForeignKey("StoryId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Story");
+                });
+
             modelBuilder.Entity("Volo.Abp.AuditLogging.AuditLogAction", b =>
                 {
                     b.HasOne("Volo.Abp.AuditLogging.AuditLog", null)
@@ -2434,6 +2726,13 @@ namespace EnglishLearningApp.Migrations
             modelBuilder.Entity("EnglishLearningApp.Entities.Listening.ListeningPassage", b =>
                 {
                     b.Navigation("Questions");
+                });
+
+            modelBuilder.Entity("EnglishLearningApp.Entities.Story.Story", b =>
+                {
+                    b.Navigation("Segments");
+
+                    b.Navigation("StoryVocabularies");
                 });
 
             modelBuilder.Entity("Volo.Abp.AuditLogging.AuditLog", b =>

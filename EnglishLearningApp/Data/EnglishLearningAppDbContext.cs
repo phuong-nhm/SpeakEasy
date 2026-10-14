@@ -1,6 +1,8 @@
 ﻿using EnglishLearningApp.Entities.Content;
 using EnglishLearningApp.Entities.Listening;
 using EnglishLearningApp.Entities.Progress;
+using EnglishLearningApp.Entities.Social;
+using EnglishLearningApp.Entities.Story;
 using EnglishLearningApp.Entities.Writing;
 using Microsoft.EntityFrameworkCore;
 using Volo.Abp.AuditLogging.EntityFrameworkCore;
@@ -34,6 +36,19 @@ public class EnglishLearningAppDbContext : AbpDbContext<EnglishLearningAppDbCont
     public DbSet<UserLessonReview> UserLessonReviews { get; set; }
     public DbSet<GrammarNote> GrammarNotes { get; set; }
     public DbSet<GrammarStructureItem> GrammarStructureItems { get; set; }
+    // Story
+    public DbSet<Story> Stories { get; set; }
+    public DbSet<StorySegment> StorySegments { get; set; }
+    public DbSet<StoryVocabulary> StoryVocabularies { get; set; }
+    public DbSet<UserStoryProgress> UserStoryProgresses { get; set; }
+
+    // Social
+    public DbSet<Friendship> Friendships { get; set; }
+    public DbSet<Notification> Notifications { get; set; }
+    public DbSet<Message> Messages { get; set; }
+
+    // Progress (thêm vào nhóm Progress đã có sẵn)
+    public DbSet<UserStreak> UserStreaks { get; set; }
     public EnglishLearningAppDbContext(DbContextOptions<EnglishLearningAppDbContext> options)
         : base(options)
     {
@@ -183,6 +198,60 @@ public class EnglishLearningAppDbContext : AbpDbContext<EnglishLearningAppDbCont
             b.HasIndex(x => new { x.UserId, x.LessonId }).IsUnique();
             // Query "bài nào đến hạn ôn tập" sẽ dùng cột này liên tục -> nên có index
             b.HasIndex(x => x.NextReviewTime);
+        });
+        builder.Entity<Story>(b =>
+        {
+            b.ToTable("AppStories");
+            b.Property(x => x.Title).HasMaxLength(256).IsRequired();
+
+            b.HasMany(x => x.Segments)
+                .WithOne(x => x.Story)
+                .HasForeignKey(x => x.StoryId)
+                .IsRequired();
+        });
+
+        builder.Entity<StorySegment>(b =>
+        {
+            b.ToTable("AppStorySegments");
+            b.Property(x => x.Content).IsRequired();
+        });
+
+        builder.Entity<StoryVocabulary>(b =>
+        {
+            b.ToTable("AppStoryVocabularies");
+            b.HasIndex(x => new { x.StoryId, x.VocabularyId }).IsUnique();
+        });
+
+        builder.Entity<UserStoryProgress>(b =>
+        {
+            b.ToTable("AppUserStoryProgresses");
+            b.HasIndex(x => new { x.UserId, x.StoryId }).IsUnique();
+        });
+
+        builder.Entity<Friendship>(b =>
+        {
+            b.ToTable("AppFriendships");
+            b.HasIndex(x => new { x.RequesterId, x.AddresseeId }).IsUnique();
+        });
+
+        builder.Entity<Notification>(b =>
+        {
+            b.ToTable("AppNotifications");
+            b.Property(x => x.Content).HasMaxLength(512).IsRequired();
+            b.HasIndex(x => new { x.UserId, x.IsRead }); // không unique, để query nhanh "chưa đọc"
+        });
+
+        builder.Entity<Message>(b =>
+        {
+            b.ToTable("AppMessages");
+            b.Property(x => x.Content).IsRequired();
+            b.HasIndex(x => new { x.SenderId, x.ReceiverId }); // không unique, để query hội thoại nhanh
+        });
+
+        builder.Entity<UserStreak>(b =>
+        {
+            b.ToTable("AppUserStreaks");
+            b.HasIndex(x => x.UserId).IsUnique();
         });
     }
 }

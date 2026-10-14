@@ -110,6 +110,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Folder Include="Dtos\Storys\" />
     <Folder Include="Dtos\Progresses\" />
     <Folder Include="Dtos\Writings\" />
     <Folder Include="Services\Writings\" />
