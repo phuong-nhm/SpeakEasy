@@ -32,4 +32,10 @@
         Phrase,
         Other
     }
+    public enum StoryGenre { Cartoon, Romance, Adventure, SliceOfLife, Mystery, Fantasy, Other }
+    public enum StoryLength { Short, Medium, Long }
+    public enum StoryGenerationSource { ByCurrentLevel, ByChosenLevel, ByCustomVocabSet }
+    public enum StoryReadStatus { NotStarted, InProgress, Completed }
+    public enum FriendshipStatus { Pending, Accepted, Declined, Blocked }
+    public enum NotificationType { FriendRequest, FriendAccepted, NewMessage, ReviewDue, StoryReady }
 }

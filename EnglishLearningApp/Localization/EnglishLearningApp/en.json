@@ -32,6 +32,13 @@
         "GrammarNoteAlreadyExistsForLesson": "Lesson '{0}' already has a GrammarNote in the system.",
         "MissingFormulaForGrammarFormType": "GrammarNote for Lesson '{0}' is missing Formula for FormType '{1}'.",
         "Permission:StudentWritings": "Student Writings",
-        "Permission:View": "View"
+        "Permission:View": "View",
+        "CannotFriendYourself": "You cannot send a friend request to yourself.",
+        "FriendshipAlreadyExists": "A friendship already exists between you and this user.",
+        "NotAllowedToRespondThisRequest": "You are not allowed to respond to this friend request.",
+        "NotificationFriendRequestContent": "You have a new friend request.",
+        "NotificationFriendAcceptedContent": "Your friend request was accepted.",
+        "CanOnlyMessageFriends": "You can only send messages to your friends.",
+        "NotificationNewMessageContent": "You have a new message."
     }
 }
