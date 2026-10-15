@@ -11,7 +11,8 @@ EXPOSE 443
 # ==========================================
 FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 WORKDIR /src
-
+RUN dotnet tool install -g Volo.Abp.Cli --version 9.0.2
+ENV PATH="${PATH}:/root/.dotnet/tools"
 # 1. Copy NuGet.Config và file .csproj vào đúng cấu trúc để cache
 COPY ["NuGet.Config", "./"]
 COPY ["EnglishLearningApp/EnglishLearningApp.csproj", "EnglishLearningApp/"]
@@ -22,6 +23,7 @@ RUN dotnet restore "EnglishLearningApp/EnglishLearningApp.csproj"
 # 3. Copy toàn bộ code Backend và tiến hành Publish
 COPY EnglishLearningApp/ EnglishLearningApp/
 WORKDIR "/src/EnglishLearningApp"
+RUN abp install-libs
 RUN dotnet dev-certs https -ep openiddict.pfx -p "ceba0031-571f-4a0a-a181-58c30632a9ce"
 RUN dotnet publish "EnglishLearningApp.csproj" -c Release -o /app/publish /p:UseAppHost=false
 
