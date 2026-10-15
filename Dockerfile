@@ -22,7 +22,7 @@ RUN dotnet restore "EnglishLearningApp/EnglishLearningApp.csproj"
 # 3. Copy toàn bộ code Backend và tiến hành Publish
 COPY EnglishLearningApp/ EnglishLearningApp/
 WORKDIR "/src/EnglishLearningApp"
-RUN dotnet dev-certs https -ep openiddict.pfx -p "123456"
+RUN dotnet dev-certs https -ep openiddict.pfx -p "ceba0031-571f-4a0a-a181-58c30632a9ce"
 RUN dotnet publish "EnglishLearningApp.csproj" -c Release -o /app/publish /p:UseAppHost=false
 
 # ==========================================
