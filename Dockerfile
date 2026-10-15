@@ -11,6 +11,9 @@ EXPOSE 443
 # ==========================================
 FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 WORKDIR /src
+RUN apt-get update && apt-get install -y curl && \
+    curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
+    apt-get install -y nodejs
 RUN dotnet tool install -g Volo.Abp.Cli --version 9.0.2
 ENV PATH="${PATH}:/root/.dotnet/tools"
 # 1. Copy NuGet.Config và file .csproj vào đúng cấu trúc để cache
