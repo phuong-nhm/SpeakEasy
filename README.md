@@ -2,18 +2,18 @@
 
 ## About this solution
 
-This is a minimalist, non-layered startup solution with the ABP Framework. All the fundamental ABP modules are already installed. 
+This is a minimalist, non-layered startup solution with the ABP Framework. All the fundamental ABP modules are already installed.
 
 ### Pre-requirements
 
-* [.NET 9.0+ SDK](https://dotnet.microsoft.com/download/dotnet)
-* [Node v20.11+](https://nodejs.org/en)
+- [.NET 9.0+ SDK](https://dotnet.microsoft.com/download/dotnet)
+- [Node v20.11+](https://nodejs.org/en)
 
 ### Configurations
 
 The solution comes with a default configuration that works out of the box. However, you may consider to change the following configuration before running your solution:
 
-* Check the `ConnectionStrings` in `appsettings.json` files under the `EnglishLearningApp` project and change it if you need.
+- Check the `ConnectionStrings` in `appsettings.json` files under the `EnglishLearningApp` project and change it if you need.
 
 ### Before running the application
 
@@ -49,9 +49,9 @@ abp install-libs
 
 The application needs to connect to a database. Run the following command in the `EnglishLearningApp` directory to migrate the database and seed the initial data:
 
-````bash
+```bash
 dotnet run --migrate-database
-````
+```
 
 This command will create and seed the initial database. Then you can run the application with any IDE that supports .NET.
 
@@ -63,4 +63,6 @@ Deploying an ABP application is not different than deploying any .NET or ASP.NET
 
 You can see the following resources to learn more about your solution and the ABP Framework:
 
-* [Application (Single Layer) Startup Template](https://docs.abp.io/en/abp/latest/Startup-Templates/Application-Single-Layer)
+- [Application (Single Layer) Startup Template](https://docs.abp.io/en/abp/latest/Startup-Templates/Application-Single-Layer)
+  ....
+  fixbug
