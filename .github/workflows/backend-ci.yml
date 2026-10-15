@@ -9,6 +9,13 @@ on:
       - 'EnglishLearningApp.sln'
       - 'NuGet.Config'
       - '.github/workflows/backend-ci.yml'
+  push:
+    branches: [ "main" ]
+    paths:
+      - 'EnglishLearningApp/**'
+      - 'EnglishLearningApp.sln'
+      - 'NuGet.Config'
+      - '.github/workflows/**'
 
 jobs:
   build-and-test:
@@ -97,3 +104,14 @@ jobs:
           labels: ${{steps.meta.outputs.labels}}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+  deploy-to-render:
+    needs: docker-build-push
+    runs-on: ubuntu-latest
+    environment: production # Bắt buộc phải qua cổng duyệt (Required Reviewers) trên GitHub
+    steps:
+      - name: Trigger Render Deploy Hook
+        run: |
+          echo "Docker image successfully built and pushed to GHCR."
+          echo "Triggering Render deployment..."
+          curl -X POST "${{ secrets.RENDER_DEPLOY_HOOK_URL }}"
+          echo "Deployment webhook sent successfully!"
