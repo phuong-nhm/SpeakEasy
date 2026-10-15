@@ -37,3 +37,5 @@ app.add_middleware(
 )
 
 app.include_router(chat_router)
+
+# fix bug
