@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Extensions.DependencyInjection;
 using Microsoft.Extensions.Caching.StackExchangeRedis;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.OpenApi.Models;
+using Microsoft.AspNetCore.HttpOverrides;
 using OpenIddict.Validation.AspNetCore;
 using Polly;
 using Polly.Extensions.Http;
@@ -181,6 +182,14 @@ public class EnglishLearningAppModule : AbpModule
         ConfigureAiHttpClient(context, AiServiceNames.AzureTts, "https://<your-region>.tts.speech.microsoft.com/");
         ConfigureAiHttpClient(context, AiServiceNames.Replicate, "https://api.replicate.com/");
         context.Services.AddTransient<ICloudinaryService, CloudinaryService>();
+        context.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+    // Render là proxy bên ngoài, không nằm trong mạng nội bộ biết trước
+    // nên cần clear 2 danh sách này để middleware chấp nhận header từ Render
+    options.KnownNetworks.Clear();
+    options.KnownProxies.Clear();
+});
     }
     private void ConfigureRateLimiter(ServiceConfigurationContext context)
     {
@@ -435,7 +444,7 @@ public class EnglishLearningAppModule : AbpModule
     {
         var app = context.GetApplicationBuilder();
         var env = context.GetEnvironment();
-
+        app.UseForwardedHeaders();
         if (env.IsDevelopment())
         {
             app.UseDeveloperExceptionPage();
@@ -450,6 +459,7 @@ public class EnglishLearningAppModule : AbpModule
 
         app.UseCorrelationId();
         app.MapAbpStaticAssets();
+
         app.UseRouting();
         app.UseCors();
         app.UseAuthentication();
