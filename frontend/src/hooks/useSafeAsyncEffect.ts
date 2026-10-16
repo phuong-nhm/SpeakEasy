@@ -15,7 +15,7 @@ export function useSafeAsyncEffect(
         void effect(isMounted);
       }
     });
-
+    // test
     // 2. Chặn Memory Leak khi unmount
     return () => {
       mounted = false;
