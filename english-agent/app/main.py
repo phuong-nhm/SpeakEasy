@@ -38,4 +38,4 @@ app.add_middleware(
 
 app.include_router(chat_router)
 
-# test deploy agent ai
+# test deploy agent ai ci/cd
