@@ -123,3 +123,7 @@ jobs:
               --resource-group english-eps \
               --image ghcr.io/${{ github.repository_owner }}/english-learning-agent:$SHORT_SHA \
               --revision-suffix $SHORT_SHA
+            az containerapp ingress update \
+              --name english-learning-ai-agent \
+              --resource-group english-eps \
+              --target-port 8000
