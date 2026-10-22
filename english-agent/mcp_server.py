@@ -247,7 +247,7 @@ def get_writing_detail(writing_id: str) -> str:
         writing_id: Mã định danh (ID) của bài viết.
     """
     config = ensure_config()
-    access_token = config.get("configurable", {}),get("access_token")
+    access_token = config.get("configurable", {}).get("access_token")
     headers = {"Authorization": f"Bearer {access_token}"} if access_token else {}
     
     response = requests.get(f"{BACKEND_URL}/api/app/user-writing/detail/{writing_id}", headers=headers, verify=False)
