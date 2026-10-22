@@ -190,6 +190,7 @@ public class EnglishLearningAppModule : AbpModule
     options.KnownNetworks.Clear();
     options.KnownProxies.Clear();
 });
+        ConfigureResponseCompression(context);
     }
     private void ConfigureRateLimiter(ServiceConfigurationContext context)
     {
@@ -242,6 +243,22 @@ public class EnglishLearningAppModule : AbpModule
             .WithDistributedCache(
                 new RedisCache(new RedisCacheOptions { Configuration = redisConnectionString })
             );
+    }
+    private void ConfigureResponseCompression(ServiceConfigurationContext context)
+    {
+        context.Services.AddResponseCompression(options =>
+        {
+            options.EnableForHttps = true; // bắt buộc bật nếu app chạy HTTPS (production thường vậy)
+            options.Providers.Add<Microsoft.AspNetCore.ResponseCompression.BrotliCompressionProvider>();
+            options.Providers.Add<Microsoft.AspNetCore.ResponseCompression.GzipCompressionProvider>();
+            options.MimeTypes = Microsoft.AspNetCore.ResponseCompression.ResponseCompressionDefaults.MimeTypes
+                .Concat(new[] { "application/json" }); // đảm bảo JSON response (API trả về) được nén
+        });
+
+        context.Services.Configure<Microsoft.AspNetCore.ResponseCompression.BrotliCompressionProviderOptions>(options =>
+        {
+            options.Level = System.IO.Compression.CompressionLevel.Fastest;
+        });
     }
     private void ConfigureAiHttpClient(
         ServiceConfigurationContext context,
@@ -444,6 +461,7 @@ public class EnglishLearningAppModule : AbpModule
     {
         var app = context.GetApplicationBuilder();
         var env = context.GetEnvironment();
+        app.UseResponseCompression();
         app.UseForwardedHeaders();
         if (env.IsDevelopment())
         {
