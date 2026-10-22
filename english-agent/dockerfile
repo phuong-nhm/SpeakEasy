@@ -31,12 +31,19 @@ WORKDIR /app
 
 # Tạo user riêng để chạy ứng dụng cho bảo mật (không chạy quyền root)
 RUN groupadd --system --gid 1001 appgroup && \
-    useradd --system --uid 1001 --gid appgroup appuser
+    useradd --system --uid 1001 --gid appgroup --create-home appuser
 
 # "Bốc" nguyên cục môi trường ảo đã cài sẵn thư viện từ stage builder sang
 COPY --from=builder /opt/venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
+# TẠO THƯ MỤC NLTK_DATA VÀ PHÂN QUYỀN CHO APPUSER NGAY TỪ ĐẦU
+RUN mkdir -p /app/nltk_data && chown -R appuser:appgroup /app/nltk_data
 
+# Cố định biến môi trường để NLTK biết đường chui vào thư mục này đọc/ghi
+ENV NLTK_DATA=/app/nltk_data
+
+# Tải trước gói punkt của NLTK ngay tại lúc build (chạy với quyền root ở stage này hoàn toàn OK)
+RUN python -c "import nltk; nltk.download('punkt', download_dir='/app/nltk_data')"
 # Copy toàn bộ mã nguồn của AI Agent vào
 COPY --chown=appuser:appgroup . /app
 
