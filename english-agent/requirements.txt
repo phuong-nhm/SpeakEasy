@@ -3,7 +3,7 @@ langchain_core==1.6.13
 langchain_google_genai==4.4.2
 langchain_mcp_adapters==0.3.2
 langgraph==1.2.16
-mcp==2.3.0
+mcp>=1.24.0,<2.0.0
 nltk==3.10.3
 pydantic==2.14.1
 PyJWT==2.15.1
