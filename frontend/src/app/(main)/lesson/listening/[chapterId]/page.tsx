@@ -51,7 +51,6 @@ export default function ListeningChapterPage() {
     SentenceExerciseDto[]
   >([]);
   const [listeningMode, setListeningMode] = useState<ListeningMode>("passage");
-  const [hearts, setHearts] = useState(3);
   const [score, setScore] = useState(0);
 
   useEffect(() => {
@@ -115,20 +114,16 @@ export default function ListeningChapterPage() {
 
   const handleModeChange = (mode: ListeningMode) => {
     setListeningMode(mode);
-    setHearts(3);
     setScore(0);
   };
 
   const handleCorrect = () => setScore((value) => value + 1);
-  const handleIncorrect = () => setHearts((value) => Math.max(0, value - 1));
 
   const handleEssaySubmitted = (feedback: AiFeedbackDto) => {
     if ((feedback.score ?? 0) >= 80) {
       setScore((value) => value + 1);
       return;
     }
-
-    setHearts((value) => Math.max(0, value - 1));
   };
 
   return (
@@ -136,12 +131,7 @@ export default function ListeningChapterPage() {
       <main className="mx-auto max-w-3xl space-y-6 px-4">
         <div className="rounded-2xl border bg-white p-4">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <h2 className="text-lg font-bold">
-              Listening — Chapter {chapterId}
-            </h2>
-            <div className="text-sm font-semibold text-slate-700">
-              Hearts: {"❤️".repeat(hearts)}
-            </div>
+            <h2 className="text-lg font-bold">Listening</h2>
           </div>
           <p className="mt-2 text-sm text-slate-600">
             Chọn dạng bài nghe bạn muốn luyện.
@@ -179,7 +169,6 @@ export default function ListeningChapterPage() {
               <PassageListeningExercise
                 passage={listeningPassage}
                 onQuestionCorrect={handleCorrect}
-                onQuestionIncorrect={handleIncorrect}
                 onEssaySubmitted={handleEssaySubmitted}
               />
             ) : listeningMode === "dialogue" && dialogueQuestions.length > 0 ? (
@@ -188,7 +177,6 @@ export default function ListeningChapterPage() {
                 questions={dialogueQuestions}
                 onQuestionResult={(isCorrect) => {
                   if (isCorrect) handleCorrect();
-                  else handleIncorrect();
                 }}
                 onComplete={() => {
                   // dialogue component already tracks completion state internally.

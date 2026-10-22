@@ -34,7 +34,9 @@ public class EnglishLearningAppDbContext : AbpDbContext<EnglishLearningAppDbCont
 
     // Nhóm Progress
     public DbSet<UserProgress> UserProgresses { get; set; }
+
     public DbSet<UserLessonReview> UserLessonReviews { get; set; }
+    public DbSet<UserLessonPartProgress> UserLessonPartProgresses { get; set; }
     public DbSet<GrammarNote> GrammarNotes { get; set; }
     public DbSet<GrammarStructureItem> GrammarStructureItems { get; set; }
     // Story
@@ -53,6 +55,7 @@ public class EnglishLearningAppDbContext : AbpDbContext<EnglishLearningAppDbCont
     public DbSet<UserXpLog> UserXpLogs { get; set; }
     public DbSet<ChatConversation> ChatConversations { get; set; }
     public DbSet<AgentChatMessage> AgentChatMessages { get; set; }
+
     public EnglishLearningAppDbContext(DbContextOptions<EnglishLearningAppDbContext> options)
         : base(options)
     {
@@ -202,6 +205,12 @@ public class EnglishLearningAppDbContext : AbpDbContext<EnglishLearningAppDbCont
             b.HasIndex(x => new { x.UserId, x.LessonId }).IsUnique();
             // Query "bài nào đến hạn ôn tập" sẽ dùng cột này liên tục -> nên có index
             b.HasIndex(x => x.NextReviewTime);
+        });
+        builder.Entity<UserLessonPartProgress>(b =>
+        {
+            b.ToTable("AppUserLessonPartProgresses");
+            // Mỗi user chỉ có 1 dòng part-progress cho 1 lesson
+            b.HasIndex(x => new { x.UserId, x.LessonId }).IsUnique();
         });
         builder.Entity<Story>(b =>
         {

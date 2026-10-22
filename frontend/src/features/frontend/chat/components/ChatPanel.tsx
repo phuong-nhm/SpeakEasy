@@ -9,7 +9,7 @@ import {
   type ChangeEvent,
 } from "react";
 import { useChatStream } from "@/features/frontend/chat/hooks/useChatStream";
-
+import ReactMarkdown from "react-markdown";
 function TypingDots() {
   return (
     <span className="flex items-center gap-1.5 py-1.5">
@@ -195,7 +195,48 @@ export function ChatPanel() {
                   <TypingDots />
                 )
               ) : (
-                m.content
+                <ReactMarkdown
+                  components={{
+                    h1: ({ children }) => (
+                      <h1 className="mb-1 mt-2 text-base font-bold">
+                        {children}
+                      </h1>
+                    ),
+                    h2: ({ children }) => (
+                      <h2 className="mb-1 mt-2 text-[15px] font-bold">
+                        {children}
+                      </h2>
+                    ),
+                    h3: ({ children }) => (
+                      <h3 className="mb-1 mt-2 text-sm font-bold">
+                        {children}
+                      </h3>
+                    ),
+                    p: ({ children }) => (
+                      <p className="mb-1.5 last:mb-0">{children}</p>
+                    ),
+                    ul: ({ children }) => (
+                      <ul className="mb-1.5 ml-4 list-disc space-y-0.5">
+                        {children}
+                      </ul>
+                    ),
+                    ol: ({ children }) => (
+                      <ol className="mb-1.5 ml-4 list-decimal space-y-2">
+                        {children}
+                      </ol>
+                    ),
+                    li: ({ children }) => (
+                      <li className="leading-snug pl-1 [&>p]:inline [&>p]:m-0">
+                        {children}
+                      </li>
+                    ),
+                    strong: ({ children }) => (
+                      <strong className="font-semibold">{children}</strong>
+                    ),
+                  }}
+                >
+                  {m.content}
+                </ReactMarkdown>
               )}
             </div>
           );

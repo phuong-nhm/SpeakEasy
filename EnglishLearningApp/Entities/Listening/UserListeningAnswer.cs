@@ -8,12 +8,12 @@ namespace EnglishLearningApp.Entities.Listening
         public Guid QuestionId { get; set; } // FK -> ListeningQuestion
 
         // Dùng khi MultipleChoice
-        public string SelectedOptionKey { get; set; } // "A"/"B"/"C"/"D"
+        public string? SelectedOptionKey { get; set; } // "A"/"B"/"C"/"D"
         public bool? IsCorrect { get; set; }
 
         // Dùng khi Essay — chấm bằng AI Grading Agent giống UserWriting
-        public string UserContent { get; set; }
-        public string AiFeedbackJson { get; set; }
+        public string? UserContent { get; set; }
+        public string? AiFeedbackJson { get; set; }
 
         protected UserListeningAnswer() { }
 

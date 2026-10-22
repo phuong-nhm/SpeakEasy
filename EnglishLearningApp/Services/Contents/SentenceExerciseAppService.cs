@@ -43,14 +43,14 @@ namespace EnglishLearningApp.AppServices.Contents
             }
             query = query.OrderBy(x => x.DialogueGroupId).ThenBy(x => x.OrderInGroup);
             var list = await AsyncExecuter.ToListAsync(query);
-            return list.Select(BuildDto).ToList();
+            return list.Select(x => SentenceExerciseDtoBuilder.Build(x, ObjectMapper)).ToList();
         }
 
         [AllowAnonymous]
         public async Task<SentenceExerciseDto> GetShuffledSentenceAsync(Guid exerciseId)
         {
             var exercise = await _sentenceRepo.GetAsync(exerciseId);
-            return BuildDto(exercise);
+            return SentenceExerciseDtoBuilder.Build(exercise, ObjectMapper);
         }
 
         [Authorize]
@@ -110,7 +110,7 @@ namespace EnglishLearningApp.AppServices.Contents
 
             var exercise = ObjectMapper.Map<CreateUpdateSentenceExerciseDto, SentenceExercise>(input);
             await _sentenceRepo.InsertAsync(exercise);
-            return BuildDto(exercise);
+            return SentenceExerciseDtoBuilder.Build(exercise, ObjectMapper);
         }
 
         // Nhập hàng loạt - validate đủ field bắt buộc theo ExerciseType trước, rồi tự sinh audio
@@ -143,7 +143,7 @@ namespace EnglishLearningApp.AppServices.Contents
 
             await _sentenceRepo.InsertManyAsync(exercises);
 
-            return exercises.Select(BuildDto).ToList();
+            return exercises.Select(x => SentenceExerciseDtoBuilder.Build(x, ObjectMapper)).ToList();
         }
 
         [Authorize(EnglishLearningAppPermissions.ContentManagement.Update)]
@@ -154,7 +154,7 @@ namespace EnglishLearningApp.AppServices.Contents
             var exercise = await _sentenceRepo.GetAsync(id);
             ObjectMapper.Map(input, exercise);
             await _sentenceRepo.UpdateAsync(exercise);
-            return BuildDto(exercise);
+            return SentenceExerciseDtoBuilder.Build(exercise, ObjectMapper);
         }
 
         [Authorize(EnglishLearningAppPermissions.ContentManagement.Delete)]
@@ -165,21 +165,18 @@ namespace EnglishLearningApp.AppServices.Contents
         [AllowAnonymous]
         public async Task<List<SentenceExerciseDto>> GetForDialogueAsync(Guid chapterId)
         {
-            // Lấy tất cả LessonId thuộc Chapter này
             var lessonQueryable = await _lessonRepo.GetQueryableAsync();
             var lessonIds = await AsyncExecuter.ToListAsync(
                 lessonQueryable.Where(x => x.ChapterId == chapterId).Select(x => x.Id));
 
             var queryable = await _sentenceRepo.GetQueryableAsync();
             var query = queryable
-                .Where(x => lessonIds.Contains(x.LessonId)
-                    && x.ExerciseType == ExerciseType.ListenChoose
-                    && x.DialogueGroupId != null)
+                .Where(x => lessonIds.Contains(x.LessonId) && x.DialogueGroupId != null)
                 .OrderBy(x => x.DialogueGroupId)
                 .ThenBy(x => x.OrderInGroup);
 
             var all = await AsyncExecuter.ToListAsync(query);
-            return all.Select(BuildDto).ToList();
+            return all.Select(x => SentenceExerciseDtoBuilder.Build(x, ObjectMapper)).ToList();
         }
         // MỚI: gom validate theo ExerciseType vào 1 chỗ, Create/CreateMany/Update dùng chung
         private void ValidateInput(CreateUpdateSentenceExerciseDto input)
@@ -200,59 +197,7 @@ namespace EnglishLearningApp.AppServices.Contents
             }
         }
 
-        private SentenceExerciseDto BuildDto(SentenceExercise exercise)
-        {
-            var dto = ObjectMapper.Map<SentenceExercise, SentenceExerciseDto>(exercise);
-            var random = new Random();
 
-            switch (exercise.ExerciseType)
-            {
-                case ExerciseType.FillInBlank:
-                    {
-                        var words = exercise.CorrectSentence.Split(' ');
-                        var blankIndex = random.Next(words.Length);
-                        var displayWords = (string[])words.Clone();
-                        displayWords[blankIndex] = "_____";
-
-                        dto.DisplaySentence = string.Join(" ", displayWords);
-                        dto.BlankIndex = blankIndex;
-                        break;
-                    }
-
-                case ExerciseType.AnswerQuestion:
-                    {
-                        dto.PromptText = exercise.PromptText;
-                        break;
-                    }
-
-                case ExerciseType.TranslateFromVietnamese:
-                    {
-                        dto.VietnameseTranslation = exercise.VietnameseTranslation;
-                        dto.ShuffledWords = exercise.CorrectSentence.Split(' ').OrderBy(_ => random.Next()).ToList();
-                        dto.DialogueGroupId = exercise.DialogueGroupId; // MỚI
-                        dto.OrderInGroup = exercise.OrderInGroup;       // MỚI
-                        break;
-                    }
-
-                // MỚI: bước A trong Dialogue - nghe rồi chọn đúng câu vừa nghe
-                case ExerciseType.ListenChoose:
-                    {
-                        var options = new List<string> { exercise.CorrectSentence, exercise.DistractorSentence };
-                        dto.ListenOptions = options.OrderBy(_ => random.Next()).ToList(); // xáo trộn, không lộ câu nào đúng
-                        dto.DialogueGroupId = exercise.DialogueGroupId;
-                        dto.OrderInGroup = exercise.OrderInGroup;
-                        break;
-                    }
-
-                default: // WordOrder
-                    {
-                        dto.ShuffledWords = exercise.CorrectSentence.Split(' ').OrderBy(_ => random.Next()).ToList();
-                        break;
-                    }
-            }
-
-            return dto;
-        }
         [AllowAnonymous]
         public async Task<List<SentenceExerciseDto>> GetForCheckpointAsync(Guid chapterId, int count = 20)
         {
@@ -271,7 +216,7 @@ namespace EnglishLearningApp.AppServices.Contents
             var random = new Random();
             var picked = all.OrderBy(_ => random.Next()).Take(count).ToList();
 
-            return picked.Select(BuildDto).ToList();
+            return picked.Select(x => SentenceExerciseDtoBuilder.Build(x, ObjectMapper)).ToList();
         }
     }
 }

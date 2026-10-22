@@ -13,6 +13,8 @@ import { listeningService } from "@/features/admin/listening/services/listeningS
 import { useSafeAsyncEffect } from "@/hooks/useSafeAsyncEffect";
 
 export function useAdminListening() {
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [isImportSubmitting, setIsImportSubmitting] = useState(false);
   const [levels, setLevels] = useState<LevelDto[]>([]);
   const [selectedLevelId, setSelectedLevelId] = useState<string>("");
   const [chapters, setChapters] = useState<ChapterDto[]>([]);
@@ -92,6 +94,27 @@ export function useAdminListening() {
       }
     },
     [selectedLevelId, refreshKey],
+  );
+  const openImportModal = useCallback(() => {
+    setIsImportModalOpen(true);
+  }, []);
+
+  const closeImportModal = useCallback(() => {
+    setIsImportModalOpen(false);
+  }, []);
+
+  const handleImport = useCallback(
+    async (items: CreateUpdateListeningPassageDto[]) => {
+      setIsImportSubmitting(true);
+      try {
+        await listeningService.createMany(items);
+        closeImportModal();
+        refetchPassages();
+      } finally {
+        setIsImportSubmitting(false);
+      }
+    },
+    [closeImportModal, refetchPassages],
   );
 
   const visiblePassages = useMemo(() => {
@@ -203,5 +226,10 @@ export function useAdminListening() {
     handleGenerateAudio,
     handleSubmit,
     handleDelete,
+    isImportModalOpen,
+    isImportSubmitting,
+    openImportModal,
+    closeImportModal,
+    handleImport,
   };
 }

@@ -83,9 +83,7 @@ export default function WritingChapterPage({
       <main className="mx-auto max-w-3xl space-y-6 px-4">
         <div className="rounded-2xl border bg-white p-4">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <h2 className="text-lg font-bold">
-              Writing AI — Chapter {chapterId}
-            </h2>
+            <h2 className="text-lg font-bold">Writing AI</h2>
             <div className="text-sm font-semibold text-slate-700">
               Hearts: {"❤️".repeat(hearts)}
             </div>

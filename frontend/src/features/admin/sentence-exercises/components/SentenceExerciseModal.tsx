@@ -227,28 +227,41 @@ export function SentenceExerciseModal({
             </div>
           )}
 
-          {/* Vietnamese Translation */}
-          {formData.exerciseType === ExerciseType.TranslateFromVietnamese && (
-            <div>
-              <label className="mb-1 block text-sm font-medium text-slate-700">
-                Bản dịch tiếng Việt gợi ý{" "}
-                <span className="text-rose-500">*</span>
-              </label>
-              <input
-                type="text"
-                required
-                value={formData.vietnameseTranslation}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    vietnameseTranslation: e.target.value,
-                  })
-                }
-                placeholder="Ví dụ: Rất vui được gặp bạn"
-                className="w-full rounded-lg border border-slate-300 bg-slate-50 px-3 py-2 text-sm text-slate-700 transition-colors placeholder:text-slate-400 focus:border-indigo-500 focus:bg-white focus:outline-none"
-              />
-            </div>
-          )}
+          {/* Vietnamese Translation - giờ áp dụng cho MỌI dạng bài, không chỉ riêng TranslateFromVietnamese */}
+          <div>
+            <label className="mb-1 block text-sm font-medium text-slate-700">
+              Nghĩa tiếng Việt
+              {formData.exerciseType ===
+                ExerciseType.TranslateFromVietnamese && (
+                <span className="text-rose-500"> *</span>
+              )}
+            </label>
+            <input
+              type="text"
+              required={
+                formData.exerciseType === ExerciseType.TranslateFromVietnamese
+              }
+              value={formData.vietnameseTranslation}
+              onChange={(e) =>
+                setFormData({
+                  ...formData,
+                  vietnameseTranslation: e.target.value,
+                })
+              }
+              placeholder={
+                formData.exerciseType === ExerciseType.TranslateFromVietnamese
+                  ? "Ví dụ: Rất vui được gặp bạn (bắt buộc - hiện trước khi làm bài)"
+                  : "Tùy chọn - hiện ra sau khi người học trả lời xong câu này"
+              }
+              className="w-full rounded-lg border border-slate-300 bg-slate-50 px-3 py-2 text-sm text-slate-700 transition-colors placeholder:text-slate-400 focus:border-indigo-500 focus:bg-white focus:outline-none"
+            />
+            {formData.exerciseType !== ExerciseType.TranslateFromVietnamese && (
+              <p className="mt-1 text-xs text-slate-500">
+                Điền để người học thấy nghĩa ngay sau khi trả lời (khuyến khích
+                điền cho WordOrder để dễ hiểu câu hơn).
+              </p>
+            )}
+          </div>
 
           {/* Correct Sentence Input */}
           <div>

@@ -50,10 +50,12 @@ export const grammarNoteService = {
 
   getByLessonId: async (lessonId: string): Promise<GrammarNoteDto[]> => {
     try {
-      return await apiClient<GrammarNoteDto[]>(
+      const note = await apiClient<GrammarNoteDto>(
         `/api/app/grammar-note/by-lesson/${lessonId}`,
       );
+      return note ? [note] : [];
     } catch {
+      // 404 khi Lesson chưa có GrammarNote nào - không phải lỗi thật, trả mảng rỗng
       return [];
     }
   },

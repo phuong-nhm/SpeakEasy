@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using EnglishLearningApp.Entities;
 
 namespace EnglishLearningApp.Dtos.Contents
 {
@@ -7,6 +8,7 @@ namespace EnglishLearningApp.Dtos.Contents
     {
         public Guid VocabularyId { get; set; }
         public string Text { get; set; }
+        public WordType WordType { get; set; } // MỚI
     }
 
     public class MatchingGameDto

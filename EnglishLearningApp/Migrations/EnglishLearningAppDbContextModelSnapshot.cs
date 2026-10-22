@@ -334,23 +334,18 @@ namespace EnglishLearningApp.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<string>("CorrectOptionKey")
-                        .IsRequired()
                         .HasColumnType("text");
 
                     b.Property<string>("OptionA")
-                        .IsRequired()
                         .HasColumnType("text");
 
                     b.Property<string>("OptionB")
-                        .IsRequired()
                         .HasColumnType("text");
 
                     b.Property<string>("OptionC")
-                        .IsRequired()
                         .HasColumnType("text");
 
                     b.Property<string>("OptionD")
-                        .IsRequired()
                         .HasColumnType("text");
 
                     b.Property<int>("OrderIndex")
@@ -379,7 +374,6 @@ namespace EnglishLearningApp.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<string>("AiFeedbackJson")
-                        .IsRequired()
                         .HasColumnType("text");
 
                     b.Property<DateTime>("CreationTime")
@@ -397,11 +391,9 @@ namespace EnglishLearningApp.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<string>("SelectedOptionKey")
-                        .IsRequired()
                         .HasColumnType("text");
 
                     b.Property<string>("UserContent")
-                        .IsRequired()
                         .HasColumnType("text");
 
                     b.Property<Guid>("UserId")
@@ -410,6 +402,50 @@ namespace EnglishLearningApp.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("AppUserListeningAnswers", (string)null);
+                });
+
+            modelBuilder.Entity("EnglishLearningApp.Entities.Progress.UserLessonPartProgress", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreationTime")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("CreationTime");
+
+                    b.Property<Guid?>("CreatorId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("CreatorId");
+
+                    b.Property<bool>("IsComprehensiveCompleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsGrammarCompleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsVocabularyCompleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime?>("LastModificationTime")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("LastModificationTime");
+
+                    b.Property<Guid?>("LastModifierId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("LastModifierId");
+
+                    b.Property<Guid>("LessonId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId", "LessonId")
+                        .IsUnique();
+
+                    b.ToTable("AppUserLessonPartProgresses", (string)null);
                 });
 
             modelBuilder.Entity("EnglishLearningApp.Entities.Progress.UserLessonReview", b =>

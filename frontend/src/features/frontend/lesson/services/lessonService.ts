@@ -126,7 +126,7 @@ export const lessonService = {
     chapterId: string,
   ): Promise<ListeningPassageClientDto> => {
     const data = await apiClient<ListeningPassageClientDto>(
-      `/api/app/listening-passage/by-chapter/${chapterId}`,
+      `/api/app/listening-passage/for-learner/${chapterId}`,
       { method: "GET" },
     );
     return normalizePassage(data);
@@ -156,7 +156,7 @@ export const lessonService = {
   ): Promise<GrammarNoteDto | null> => {
     try {
       return await apiClient<GrammarNoteDto>(
-        `/api/app/grammar-note/get-by-lesson?lessonId=${encodeURIComponent(lessonId)}`,
+        `/api/app/grammar-note/by-lesson/${encodeURIComponent(lessonId)}`,
         { method: "GET" },
       );
     } catch (error) {
@@ -227,6 +227,29 @@ export const lessonService = {
     return apiClient<MatchingGameDto>(
       `/api/app/matching-game/game-for-chapter/${chapterId}${query}`,
       { method: "GET" },
+    );
+  },
+  getPartProgress: async (lessonId: string) => {
+    return apiClient<{
+      lessonId: string;
+      isVocabularyCompleted: boolean;
+      isGrammarCompleted: boolean;
+      isComprehensiveCompleted: boolean;
+    }>(`/api/app/user-lesson-part-progress/by-lesson/${lessonId}`, {
+      method: "GET",
+    });
+  },
+
+  markPartCompleted: async (
+    lessonId: string,
+    part: 0 | 1 | 2,
+  ): Promise<void> => {
+    return apiClient<void>(
+      "/api/app/user-lesson-part-progress/mark-part-completed",
+      {
+        method: "POST",
+        body: JSON.stringify({ lessonId, part }),
+      },
     );
   },
 };

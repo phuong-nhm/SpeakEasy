@@ -154,6 +154,7 @@ export interface ListeningPassageQuestionDto {
   optionB?: string;
   optionC?: string;
   optionD?: string;
+  correctOptionKey?: ListeningOptionKey;
   orderIndex: number;
 }
 
@@ -227,6 +228,7 @@ export interface UserWritingDto {
 export interface MatchingItemDto {
   vocabularyId: string;
   text: string;
+  wordType: WordType;
 }
 
 export interface MatchingGameDto {
