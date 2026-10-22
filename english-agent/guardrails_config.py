@@ -5,7 +5,7 @@ import nltk
 from guardrails import Guard
 from langchain_google_genai import ChatGoogleGenerativeAI
 from app.config import VALIDATE_MODEL
-from guardrails.hub import ToxicLanguage
+from guardrails_ai.toxic_language import ToxicLanguage
 from guardrails.errors import ValidationError
 
 try:

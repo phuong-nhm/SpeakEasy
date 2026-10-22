@@ -20,7 +20,7 @@ COPY requirements.txt .
 # Cài đặt các thư viện Python (LangChain, LangGraph, GenAI,...) vào môi trường ảo
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
-
+RUN python -m guardrails_ai.toxic_language.post_install
 
 # ==========================================
 # STAGE 2: Final Image (Môi trường chạy tối ưu)
