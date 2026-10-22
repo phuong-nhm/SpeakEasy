@@ -6,12 +6,14 @@ import { matchingGameService } from "@/features/frontend/review/services/matchin
 import {
   MatchingGameDto,
   MatchingItemDto,
+  WordType,
 } from "@/features/frontend/lesson/types/lesson";
 import {
   ChapterDto,
   LevelDto,
 } from "@/features/frontend/dashboard/types/roadmap";
 import { useSafeAsyncEffect } from "@/hooks/useSafeAsyncEffect";
+import styles from "./MatchingGameClient.module.css";
 
 const GAME_SECONDS = 120;
 const WRONG_FLASH_DELAY = 500;
@@ -33,14 +35,21 @@ export default function MatchingGameClient() {
     wordId: string;
     meaningId: string;
   } | null>(null);
-  const [isChecking, setIsChecking] = useState(false);
 
   const [score, setScore] = useState(0);
   const [combo, setCombo] = useState(0);
   const [timeLeft, setTimeLeft] = useState(GAME_SECONDS);
 
   const wrongTimeoutRef = useRef<number | null>(null);
-
+  const WORD_TYPE_LABELS: Record<WordType, string> = {
+    [WordType.Noun]: "n",
+    [WordType.Verb]: "v",
+    [WordType.Adjective]: "adj",
+    [WordType.Adverb]: "adv",
+    [WordType.Preposition]: "prep",
+    [WordType.Phrase]: "phr",
+    [WordType.Other]: "",
+  };
   useSafeAsyncEffect(async (isMounted) => {
     try {
       const result = await matchingGameService.getLevels();
@@ -128,153 +137,117 @@ export default function MatchingGameClient() {
     setSelectedWordId(word.vocabularyId);
   };
 
-  const handleSelectMeaning = async (meaning: MatchingItemDto) => {
+  // Check local: cùng vocabularyId giữa word & meaning tức là đúng cặp -
+  // không cần gọi API, dữ liệu đáp án đã nằm sẵn trong response lúc load game
+  const handleSelectMeaning = (meaning: MatchingItemDto) => {
     if (
       !isRunning ||
       !selectedWordId ||
       matchedIds.has(meaning.vocabularyId) ||
-      wrongPair ||
-      isChecking
+      wrongPair
     ) {
       return;
     }
 
-    setIsChecking(true);
-    try {
-      const isCorrect = await matchingGameService.checkAnswer({
-        userPairs: [
-          {
-            wordVocabularyId: selectedWordId,
-            meaningVocabularyId: meaning.vocabularyId,
-          },
-        ],
-      });
+    const isCorrect = selectedWordId === meaning.vocabularyId;
 
-      if (isCorrect) {
-        setMatchedIds((prev) => new Set(prev).add(selectedWordId));
-        setScore((s) => s + 10 + combo * 2);
-        setCombo((c) => c + 1);
-        setSelectedWordId(null);
-      } else {
-        setCombo(0);
-        setWrongPair({
-          wordId: selectedWordId,
-          meaningId: meaning.vocabularyId,
-        });
-        wrongTimeoutRef.current = window.setTimeout(() => {
-          setWrongPair(null);
-          setSelectedWordId(null);
-        }, WRONG_FLASH_DELAY);
-      }
-    } catch {
+    if (isCorrect) {
+      setMatchedIds((prev) => new Set(prev).add(selectedWordId));
+      setScore((s) => s + 10 + combo * 2);
+      setCombo((c) => c + 1);
       setSelectedWordId(null);
-    } finally {
-      setIsChecking(false);
+    } else {
+      setCombo(0);
+      setWrongPair({
+        wordId: selectedWordId,
+        meaningId: meaning.vocabularyId,
+      });
+      wrongTimeoutRef.current = window.setTimeout(() => {
+        setWrongPair(null);
+        setSelectedWordId(null);
+      }, WRONG_FLASH_DELAY);
     }
   };
 
   const xpEarned = Math.floor(score / 2) + combo * 5;
 
   return (
-    <div className="space-y-6">
+    <div>
       {!game && (
-        <div className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
-          <div className="flex flex-wrap items-end gap-4">
-            <div className="flex flex-col gap-2">
-              <label className="text-sm font-semibold text-slate-600">
-                Level
-              </label>
-              <select
-                className="min-w-[220px] rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-medium text-slate-700 transition focus:border-indigo-500 focus:bg-white focus:outline-none"
-                value={selectedLevelId}
-                onChange={(e) => setSelectedLevelId(e.target.value)}
-              >
-                {levels.map((level) => (
-                  <option key={level.id} value={level.id}>
-                    {level.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="flex flex-col gap-2">
-              <label className="text-sm font-semibold text-slate-600">
-                Chapter
-              </label>
-              <select
-                className="min-w-[220px] rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-medium text-slate-700 transition focus:border-indigo-500 focus:bg-white focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
-                value={selectedChapterId}
-                onChange={(e) => setSelectedChapterId(e.target.value)}
-                disabled={loadingChapters || chapters.length === 0}
-              >
-                {chapters.map((chapter) => (
-                  <option key={chapter.id} value={chapter.id}>
-                    {chapter.title}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <button
-              className="rounded-2xl bg-emerald-600 px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
-              onClick={handleStart}
-              disabled={!selectedChapterId || isStarting}
+        <div className={styles.setupCard}>
+          <div className={styles.field}>
+            <label className={styles.label}>Level</label>
+            <select
+              className={styles.select}
+              value={selectedLevelId}
+              onChange={(e) => setSelectedLevelId(e.target.value)}
             >
-              {isStarting ? "Đang tải..." : "Bắt đầu chơi"}
-            </button>
+              {levels.map((level) => (
+                <option key={level.id} value={level.id}>
+                  {level.name}
+                </option>
+              ))}
+            </select>
           </div>
+
+          <div className={styles.field}>
+            <label className={styles.label}>Chapter</label>
+            <select
+              className={styles.select}
+              value={selectedChapterId}
+              onChange={(e) => setSelectedChapterId(e.target.value)}
+              disabled={loadingChapters || chapters.length === 0}
+            >
+              {chapters.map((chapter) => (
+                <option key={chapter.id} value={chapter.id}>
+                  {chapter.title}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <button
+            className={styles.startButton}
+            onClick={handleStart}
+            disabled={!selectedChapterId || isStarting}
+          >
+            {isStarting ? "Đang tải..." : "Bắt đầu chơi"}
+          </button>
         </div>
       )}
 
-      {loadError && (
-        <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700 shadow-sm">
-          {loadError}
-        </div>
-      )}
+      {loadError && <div className={styles.errorBox}>{loadError}</div>}
 
       {game && (
         <>
-          <div className="flex items-center justify-between gap-4 rounded-3xl border border-slate-200 bg-white px-4 py-4 shadow-sm sm:px-5">
-            <div className="flex flex-wrap items-center gap-5 text-sm text-slate-600">
+          <div className={styles.statusBar}>
+            <div className={styles.scoreGroup}>
               <span>
-                Score: <span className="font-bold text-slate-900">{score}</span>
+                Score: <span className={styles.scoreValue}>{score}</span>
               </span>
               <span>
-                Combo:{" "}
-                <span className="font-bold text-emerald-600">{combo}</span>
+                Combo: <span className={styles.comboValue}>{combo}</span>
               </span>
             </div>
             <div
-              className={`rounded-full px-4 py-2 text-sm font-bold tabular-nums shadow-sm ${
-                timeLeft <= 10
-                  ? "bg-rose-50 text-rose-700"
-                  : "bg-indigo-50 text-indigo-700"
-              }`}
+              className={`${styles.timer} ${timeLeft <= 10 ? styles.timerUrgent : ""}`}
             >
               {timeLeft}s
             </div>
           </div>
 
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="grid gap-3">
+          <div className={styles.board}>
+            <div className={styles.column}>
               {game.wordColumn.map((word) => {
                 const isMatched = matchedIds.has(word.vocabularyId);
                 const isSelected = selectedWordId === word.vocabularyId;
                 const isWrong = wrongPair?.wordId === word.vocabularyId;
 
                 const tileClass = [
-                  "flex min-h-14 items-center justify-center rounded-2xl border px-4 py-4 text-center text-base font-semibold transition",
-                  isMatched &&
-                    "border-emerald-300 bg-emerald-50 text-emerald-700",
-                  isWrong && "border-rose-300 bg-rose-50 text-rose-700",
-                  isSelected &&
-                    !isMatched &&
-                    !isWrong &&
-                    "border-indigo-300 bg-indigo-50 text-indigo-700",
-                  !isMatched &&
-                    !isWrong &&
-                    !isSelected &&
-                    "border-slate-200 bg-white text-slate-700 hover:border-indigo-200 hover:bg-slate-50",
+                  styles.tile,
+                  isMatched && styles.tileMatched,
+                  isWrong && styles.tileWrong,
+                  isSelected && !isMatched && !isWrong && styles.tileSelected,
                 ]
                   .filter(Boolean)
                   .join(" ");
@@ -287,24 +260,25 @@ export default function MatchingGameClient() {
                     disabled={isMatched || !isRunning}
                   >
                     {word.text}
+                    {WORD_TYPE_LABELS[word.wordType] && (
+                      <span className="ml-1 text-xs font-normal opacity-60">
+                        ({WORD_TYPE_LABELS[word.wordType]})
+                      </span>
+                    )}
                   </button>
                 );
               })}
             </div>
 
-            <div className="grid gap-3">
+            <div className={styles.column}>
               {game.meaningColumn.map((meaning) => {
                 const isMatched = matchedIds.has(meaning.vocabularyId);
                 const isWrong = wrongPair?.meaningId === meaning.vocabularyId;
 
                 const tileClass = [
-                  "flex min-h-14 items-center justify-center rounded-2xl border px-4 py-4 text-center text-base font-semibold transition",
-                  isMatched &&
-                    "border-emerald-300 bg-emerald-50 text-emerald-700",
-                  isWrong && "border-rose-300 bg-rose-50 text-rose-700",
-                  !isMatched &&
-                    !isWrong &&
-                    "border-slate-200 bg-white text-slate-700 hover:border-indigo-200 hover:bg-slate-50",
+                  styles.tile,
+                  isMatched && styles.tileMatched,
+                  isWrong && styles.tileWrong,
                 ]
                   .filter(Boolean)
                   .join(" ");
@@ -317,6 +291,11 @@ export default function MatchingGameClient() {
                     disabled={isMatched || !selectedWordId || !isRunning}
                   >
                     {meaning.text}
+                    {WORD_TYPE_LABELS[meaning.wordType] && (
+                      <span className="ml-1 text-xs font-normal opacity-60">
+                        ({WORD_TYPE_LABELS[meaning.wordType]})
+                      </span>
+                    )}
                   </button>
                 );
               })}
@@ -324,14 +303,14 @@ export default function MatchingGameClient() {
           </div>
 
           {isVictory && (
-            <div className="rounded-3xl border border-emerald-200 bg-emerald-50 p-5 text-center shadow-sm">
-              <h3 className="text-xl font-black text-slate-900">🎉 Victory!</h3>
-              <p className="mt-2 text-sm text-slate-600">
+            <div className={`${styles.resultCard} ${styles.resultVictory}`}>
+              <h3 className={styles.resultTitle}>🎉 Victory!</h3>
+              <p className={styles.resultText}>
                 Bạn ghi được {xpEarned} điểm thưởng
               </p>
-              <p className="mt-1 text-sm text-slate-600">Tổng điểm: {score}</p>
+              <p className={styles.resultText}>Tổng điểm: {score}</p>
               <button
-                className="mt-4 rounded-2xl bg-indigo-600 px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-indigo-700"
+                className={styles.resultButton}
                 onClick={() => setGame(null)}
               >
                 Chơi chapter khác
@@ -340,11 +319,11 @@ export default function MatchingGameClient() {
           )}
 
           {isTimeUp && !isVictory && (
-            <div className="rounded-3xl border border-rose-200 bg-rose-50 p-5 text-center shadow-sm">
-              <h3 className="text-xl font-black text-slate-900">⏱ Hết giờ!</h3>
-              <p className="mt-2 text-sm text-slate-600">Tổng điểm: {score}</p>
+            <div className={`${styles.resultCard} ${styles.resultTimeUp}`}>
+              <h3 className={styles.resultTitle}>⏱ Hết giờ!</h3>
+              <p className={styles.resultText}>Tổng điểm: {score}</p>
               <button
-                className="mt-4 rounded-2xl bg-indigo-600 px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-indigo-700"
+                className={styles.resultButton}
                 onClick={() => setGame(null)}
               >
                 Chơi chapter khác

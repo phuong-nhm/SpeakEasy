@@ -343,3 +343,24 @@ cái vocacbmatching game cũng vậy cũng cần tối ưu gọi api lấy dữ 
 ok 4 cái bạn bảo tôi chỉ mới thêm export function decodeJwtRoles(token: string): string[] { try { const payload = JSON.parse(atob(token.split(".")[1])); const role = payload["role"] ?? payload["roles"] ?? []; return Array.isArray(role) ? role : [role]; } catch { return []; } }
 Vào apiclient thôi nha 3 cái kia chưa làm nha nhớ nha
 còn về role thì giờ có 2 vấn đề, thứ nhất nên quyết định sẽ có bao nhiêu role bao gồm bên admin và bên client, thứ 2 là hiện tại hình như bên đăng kí chưa set role hay sao á, nên có gì bạn cũng giúp tôi phần đó luôn nha mình giải quyết từng cái nha
+
+----------------------------------------------------------============================------------------------------------------------------=========================-------------------------------------------------------------------
+DANH SÁCH VIỆC CẦN LÀM - PERFORMANCE OPTIMIZATION
+
+Backend:
+
+Response Compression (Gzip/Brotli) - cấu hình AddResponseCompression/UseResponseCompression
+Cache Headers cho static media (ảnh/audio) trong UseStaticFiles - set Cache-Control max-age dài
+Load testing baseline bằng k6 - đo số liệu TRƯỚC khi optimize gì cả
+Optimize N+1 query - soi EF Core logging, fix bằng Include()/Projection ở các AppService nghi vấn (đặc biệt Roadmap đã ghi TODO)
+Load testing lại bằng k6 - đo số liệu SAU khi fix N+1, so sánh với baseline
+FusionCache - áp dụng vào từng Service (Lesson/Chapter đã setup DI xong, giờ code từng chỗ gọi cache)
+Load testing lại lần nữa - đo sau khi có cache, so sánh tiếp
+Background Job (Hangfire) cho sinh audio/ảnh - chuyển VocabularyAppService.CreateManyAsync từ đồng bộ sang enqueue job, thêm cột GenerationStatus theo dõi
+CDN cho media (Cloudflare hoặc tương tự) - làm sau cùng vì phụ thuộc hạ tầng
+
+Frontend: 10. React Query (TanStack Query) - cài đặt QueryClientProvider, chuyển các trang hay dùng (Dashboard/Roadmap, Lesson detail) từ gọi API trực tiếp sang useQuery()
+
+Thứ tự khuyến nghị: 1 → 3 (baseline) → 4 → 5 (so sánh) → 6 → 7 (so sánh) → 2 → 8 → 10 → 9
+
+xong rồi thì giờ tóm tắt lại những gì đã làm, project về gì gì và tóm tắt nhanh để qua session mới nha

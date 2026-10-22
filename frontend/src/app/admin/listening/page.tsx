@@ -9,6 +9,7 @@ import { ListeningPassageTable } from "@/features/admin/listening/components/Lis
 import { ListeningPassageModal } from "@/features/admin/listening/components/ListeningPassageModal";
 import { ListeningDialogueTable } from "@/features/admin/listening/components/ListeningDialogueTable";
 import { ListeningDialogueModal } from "@/features/admin/listening/components/ListeningDialogueModal";
+import { ListeningImportModal } from "@/features/admin/listening/components/ListeningImportModal";
 
 export default function AdminListeningPage() {
   const [activeTab, setActiveTab] = useState<"passage" | "dialogue">("passage");
@@ -24,6 +25,8 @@ export default function AdminListeningPage() {
     editingPassage,
     isSubmitting,
     isGeneratingAudio,
+    isImportModalOpen,
+    isImportSubmitting,
     handleLevelChange,
     handleChapterChange,
     openCreateModal,
@@ -32,6 +35,9 @@ export default function AdminListeningPage() {
     handleGenerateAudio,
     handleSubmit,
     handleDelete,
+    openImportModal,
+    closeImportModal,
+    handleImport,
   } = useAdminListening();
 
   const {
@@ -79,29 +85,41 @@ export default function AdminListeningPage() {
         isDisabled={isPassageTab ? !selectedLevelId : !selectedChapter}
       />
 
-      <div className="inline-flex rounded-lg border border-slate-200 bg-white p-1">
-        <button
-          type="button"
-          onClick={() => setActiveTab("passage")}
-          className={`rounded-md px-4 py-2 text-sm font-medium transition ${
-            isPassageTab
-              ? "bg-indigo-600 text-white"
-              : "text-slate-600 hover:bg-slate-100"
-          }`}
-        >
-          Passage
-        </button>
-        <button
-          type="button"
-          onClick={() => setActiveTab("dialogue")}
-          className={`rounded-md px-4 py-2 text-sm font-medium transition ${
-            !isPassageTab
-              ? "bg-indigo-600 text-white"
-              : "text-slate-600 hover:bg-slate-100"
-          }`}
-        >
-          Dialogue
-        </button>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="inline-flex rounded-lg border border-slate-200 bg-white p-1">
+          <button
+            type="button"
+            onClick={() => setActiveTab("passage")}
+            className={`rounded-md px-4 py-2 text-sm font-medium transition ${
+              isPassageTab
+                ? "bg-indigo-600 text-white"
+                : "text-slate-600 hover:bg-slate-100"
+            }`}
+          >
+            Passage
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab("dialogue")}
+            className={`rounded-md px-4 py-2 text-sm font-medium transition ${
+              !isPassageTab
+                ? "bg-indigo-600 text-white"
+                : "text-slate-600 hover:bg-slate-100"
+            }`}
+          >
+            Dialogue
+          </button>
+        </div>
+
+        {isPassageTab && (
+          <button
+            type="button"
+            onClick={openImportModal}
+            className="rounded-lg border border-indigo-200 bg-indigo-50 px-4 py-2 text-sm font-semibold text-indigo-700 hover:bg-indigo-100"
+          >
+            Import Hàng Loạt
+          </button>
+        )}
       </div>
 
       <ListeningFilterBar
@@ -133,6 +151,13 @@ export default function AdminListeningPage() {
             onClose={closeModal}
             onSubmit={handleSubmit}
             onGenerateAudio={handleGenerateAudio}
+          />
+
+          <ListeningImportModal
+            isOpen={isImportModalOpen}
+            onClose={closeImportModal}
+            onImport={handleImport}
+            isSubmitting={isImportSubmitting}
           />
         </>
       ) : (

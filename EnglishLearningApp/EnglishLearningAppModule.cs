@@ -175,8 +175,8 @@ public class EnglishLearningAppModule : AbpModule
         ConfigureCors(context, configuration);
         ConfigureDataProtection(context);
         ConfigureEfCore(context);
-        ConfigureRedisRateLimiter(context, configuration);
-        ConfigureFusionCache(context, configuration);
+        // ConfigureRedisRateLimiter(context, configuration);
+        // ConfigureFusionCache(context, configuration);
         ConfigureRateLimiter(context);
         ConfigureAiHttpClient(context, AiServiceNames.Gemini, "https://generativelanguage.googleapis.com/");
         ConfigureAiHttpClient(context, AiServiceNames.AzureTts, "https://<your-region>.tts.speech.microsoft.com/");

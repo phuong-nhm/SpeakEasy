@@ -9,11 +9,11 @@ namespace EnglishLearningApp.Entities.Listening
         public string QuestionText { get; set; }
 
         // Chỉ dùng khi QuestionType = MultipleChoice, để null nếu Essay
-        public string OptionA { get; set; }
-        public string OptionB { get; set; }
-        public string OptionC { get; set; }
-        public string OptionD { get; set; }
-        public string CorrectOptionKey { get; set; } // "A"/"B"/"C"/"D"
+        public string? OptionA { get; set; }
+        public string? OptionB { get; set; }
+        public string? OptionC { get; set; }
+        public string? OptionD { get; set; }
+        public string? CorrectOptionKey { get; set; }// "A"/"B"/"C"/"D"
 
         public int OrderIndex { get; set; }
 

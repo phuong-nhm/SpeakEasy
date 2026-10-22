@@ -15,7 +15,7 @@ import { FillInBlankExercise } from "@/features/frontend/lesson/components/exerc
 import { TranslateExercise } from "@/features/frontend/lesson/components/exercises/TranslateExercise";
 import { WordOrderExercise } from "@/features/frontend/lesson/components/exercises/WordOrderExercise";
 import { useSafeAsyncEffect } from "@/hooks/useSafeAsyncEffect";
-
+import { checkSentenceAnswerLocal } from "@/features/frontend/lesson/services/checkSentenceAnswer";
 const PASS_PERCENT = 80;
 const DEFAULT_HEARTS = 3;
 
@@ -230,14 +230,12 @@ export default function CheckpointChapterPage() {
 
   const canCheck = hasAnswerSelected() && !isChecked && !isChecking;
 
-  const evaluateCurrentAnswer = async () => {
+  const evaluateCurrentAnswer = () => {
     if (!currentQuestion || isChecked || isChecking || !hasAnswerSelected()) {
       return;
     }
 
-    const request: CheckSentenceAnswerRequest = {
-      exerciseId: currentQuestion.id,
-    };
+    const request: Omit<CheckSentenceAnswerRequest, "exerciseId"> = {};
 
     switch (currentQuestion.exerciseType) {
       case ExerciseType.WordOrder:
@@ -255,19 +253,11 @@ export default function CheckpointChapterPage() {
         return;
     }
 
-    setIsChecking(true);
-    try {
-      const isCorrect = await lessonService.submitSentenceAnswer(request);
-      setIsChecked(true);
-      setResultType(isCorrect ? "correct" : "incorrect");
-      applyQuestionResult(isCorrect);
-    } catch {
-      // lỗi mạng/server - không đánh dấu đã check, cho thử lại
-    } finally {
-      setIsChecking(false);
-    }
+    const isCorrect = checkSentenceAnswerLocal(currentQuestion, request);
+    setIsChecked(true);
+    setResultType(isCorrect ? "correct" : "incorrect");
+    applyQuestionResult(isCorrect);
   };
-
   const moveNext = () => {
     setCurrentIndex((index) => index + 1);
     resetAnswerState();
@@ -403,9 +393,7 @@ export default function CheckpointChapterPage() {
       <header className="sticky top-0 z-10 border-b border-slate-200 bg-white/95 backdrop-blur">
         <div className="mx-auto max-w-4xl px-4 py-3">
           <div className="mb-2 flex items-center justify-between gap-3">
-            <p className="text-sm font-semibold text-slate-700">
-              Checkpoint Chapter {chapterId}
-            </p>
+            <p className="text-sm font-semibold text-slate-700">Checkpoint</p>
             <p className="text-sm font-bold text-rose-600">
               Hearts: {"❤️".repeat(hearts)}
             </p>
@@ -479,15 +467,27 @@ export default function CheckpointChapterPage() {
 
               {isChecked && (
                 <div
-                  className={`rounded-2xl border px-4 py-3 text-sm font-semibold ${
+                  className={`rounded-2xl border px-4 py-3 text-sm font-medium ${
                     resultType === "correct"
                       ? "border-emerald-200 bg-emerald-50 text-emerald-700"
                       : "border-rose-200 bg-rose-50 text-rose-700"
                   }`}
                 >
-                  {resultType === "correct"
-                    ? "Chính xác!"
-                    : "Chưa đúng, tiếp tục câu kế tiếp nhé."}
+                  <p className="font-semibold">
+                    {resultType === "correct"
+                      ? "Chính xác!"
+                      : "Chưa đúng, tiếp tục câu kế tiếp nhé."}
+                  </p>
+                  {currentQuestion?.correctSentence && (
+                    <p className="mt-2 text-sm font-semibold">
+                      Đáp án đúng: {currentQuestion.correctSentence}
+                    </p>
+                  )}
+                  {currentQuestion?.vietnameseTranslation && (
+                    <p className="mt-1 text-xs italic opacity-80">
+                      Nghĩa: {currentQuestion.vietnameseTranslation}
+                    </p>
+                  )}
                 </div>
               )}
 

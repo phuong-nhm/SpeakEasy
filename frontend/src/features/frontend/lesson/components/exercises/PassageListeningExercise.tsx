@@ -49,23 +49,23 @@ export function PassageListeningExercise({
   return (
     <div className="space-y-5">
       <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-500">
-              Passage listening
-            </p>
-            <h2 className="mt-2 text-2xl font-black text-slate-900">
-              {passage.title}
-            </h2>
-          </div>
-          <button
-            type="button"
-            onClick={playAudio}
-            className="rounded-full bg-indigo-600 px-4 py-2 text-sm font-bold text-white transition hover:bg-indigo-700"
-          >
-            Phát audio
-          </button>
+        <div>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-500">
+            Passage listening
+          </p>
+          <h2 className="mt-2 text-2xl font-black text-slate-900">
+            {passage.title}
+          </h2>
         </div>
+
+        <audio
+          key={passage.audioUrl}
+          controls
+          src={passage.audioUrl}
+          className="mt-4 w-full"
+        >
+          Trình duyệt của bạn không hỗ trợ phát audio.
+        </audio>
 
         <p className="mt-4 text-sm font-medium text-slate-600">
           Nghe đoạn dài và trả lời từng câu hỏi bên dưới.
@@ -133,31 +133,21 @@ function PassageListeningExerciseContent({
     setResult(null);
   };
 
-  const handleSubmitMultipleChoice = async () => {
+  const handleSubmitMultipleChoice = () => {
     if (!currentQuestion || !selectedOptionKey) return;
 
-    setLoading(true);
-    try {
-      const response = await lessonService.submitMultipleChoice({
-        questionId: currentQuestion.id,
-        selectedOptionKey,
-      });
+    const isCorrect = selectedOptionKey === currentQuestion.correctOptionKey;
 
-      const isCorrect = response.isCorrect;
+    setResult({
+      type: isCorrect ? "correct" : "incorrect",
+      message: isCorrect ? "Đúng rồi." : "Chưa đúng.",
+      correctOptionKey: currentQuestion.correctOptionKey,
+    });
 
-      setResult({
-        type: isCorrect ? "correct" : "incorrect",
-        message: isCorrect ? "Đúng rồi." : "Chưa đúng.",
-        correctOptionKey: response.correctOptionKey,
-      });
-
-      if (isCorrect) {
-        onQuestionCorrect?.();
-      } else {
-        onQuestionIncorrect?.();
-      }
-    } finally {
-      setLoading(false);
+    if (isCorrect) {
+      onQuestionCorrect?.();
+    } else {
+      onQuestionIncorrect?.();
     }
   };
 
@@ -269,10 +259,6 @@ function PassageListeningExerciseContent({
         >
           {loading ? "ĐANG CHẤM..." : "GỬI AI CHẤM BÀI"}
         </button>
-
-        {result?.aiFeedback && (
-          <AiFeedbackCard feedback={result.aiFeedback} showBand={false} />
-        )}
       </div>
     );
   };

@@ -103,7 +103,69 @@ namespace EnglishLearningApp.Services.Listenings
 
             return await BuildDtoAsync(passage);
         }
+        [Authorize(EnglishLearningAppPermissions.ContentManagement.Create)]
+        public async Task<List<ListeningPassageDto>> CreateManyAsync(List<CreateUpdateListeningPassageDto> inputs)
+        {
+            if (inputs == null || !inputs.Any())
+            {
+                throw new UserFriendlyException(L["ImportListCannotBeEmpty"]);
+            }
 
+            // Validate: không cho ChapterId trùng trong danh sách input
+            var inputChapterIds = inputs.Select(x => x.ChapterId).ToList();
+            var duplicateCount = inputChapterIds.Count - inputChapterIds.Distinct().Count();
+            if (duplicateCount > 0)
+            {
+                throw new UserFriendlyException(L["DuplicateChapterIdInListeningPassage"]);
+            }
+
+            // Validate: check ChapterId đã có Passage trong DB chưa (unique constraint)
+            var passageQueryable = await _passageRepo.GetQueryableAsync();
+            var existingChapterIds = await AsyncExecuter.ToListAsync(
+                passageQueryable.Where(x => inputChapterIds.Contains(x.ChapterId)).Select(x => x.ChapterId));
+
+            if (existingChapterIds.Any())
+            {
+                var duplicateChapterId = existingChapterIds.First();
+                throw new UserFriendlyException(L["ListeningPassageAlreadyExistsForChapter", duplicateChapterId.ToString()]);
+            }
+
+            // Tự sinh audio cho Passage nào thiếu AudioUrl (song song, giống CreateManyAsync của SentenceExercise)
+            await Task.WhenAll(inputs
+                .Where(x => string.IsNullOrWhiteSpace(x.AudioUrl))
+                .Select(async x => x.AudioUrl = await _audioService.GenerateAudioUrlAsync(x.Transcript)));
+
+            var passages = new List<ListeningPassage>();
+            var allQuestions = new List<ListeningQuestion>();
+
+            foreach (var input in inputs)
+            {
+                var passage = new ListeningPassage(
+                    GuidGenerator.Create(), input.ChapterId, input.Transcript, input.AudioUrl, input.Title);
+
+                passages.Add(passage);
+
+                var questions = BuildQuestions(input.Questions, passage.Id);
+                allQuestions.AddRange(questions);
+            }
+
+            await _passageRepo.InsertManyAsync(passages);
+            await _questionRepo.InsertManyAsync(allQuestions);
+
+            // Build DTO trả về - Questions đã có sẵn trong allQuestions, không cần query lại DB
+            var resultDtos = ObjectMapper.Map<List<ListeningPassage>, List<ListeningPassageDto>>(passages);
+
+            foreach (var dto in resultDtos)
+            {
+                dto.Questions = allQuestions
+                    .Where(q => q.PassageId == dto.Id)
+                    .OrderBy(q => q.OrderIndex)
+                    .Select(q => ObjectMapper.Map<ListeningQuestion, ListeningQuestionDto>(q))
+                    .ToList();
+            }
+
+            return resultDtos;
+        }
         [Authorize(EnglishLearningAppPermissions.ContentManagement.Update)]
         public async Task<ListeningPassageDto> UpdateAsync(Guid id, CreateUpdateListeningPassageDto input)
         {

@@ -3,6 +3,8 @@ interface FooterActionProps {
   isChecking: boolean;
   isChecked: boolean;
   resultType: "correct" | "incorrect" | null;
+  correctSentence?: string;
+  vietnameseTranslation?: string;
   onCheck: () => void;
   onContinue: () => void;
 }
@@ -12,6 +14,8 @@ export function FooterAction({
   isChecking,
   isChecked,
   resultType,
+  correctSentence,
+  vietnameseTranslation,
   onCheck,
   onContinue,
 }: FooterActionProps) {
@@ -46,9 +50,23 @@ export function FooterAction({
               : "border-rose-200 bg-rose-50 text-rose-700"
           }`}
         >
-          {resultType === "correct"
-            ? "✅ Chúc mừng! Đáp án của bạn chính xác."
-            : "❌ Sai rồi! Hãy xem lại bài học và thử câu tiếp theo."}
+          <p>
+            {resultType === "correct"
+              ? "✅ Chúc mừng! Đáp án của bạn chính xác."
+              : "❌ Sai rồi! Hãy xem lại bài học và thử câu tiếp theo."}
+          </p>
+
+          {correctSentence && (
+            <p className="mt-2 text-sm font-semibold">
+              Đáp án đúng: {correctSentence}
+            </p>
+          )}
+
+          {vietnameseTranslation && (
+            <p className="mt-1 text-xs italic opacity-80">
+              Nghĩa: {vietnameseTranslation}
+            </p>
+          )}
         </div>
 
         <button

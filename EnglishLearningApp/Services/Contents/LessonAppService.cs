@@ -61,7 +61,9 @@ namespace EnglishLearningApp.AppServices.Contents
             {
                 Lesson = ObjectMapper.Map<Lesson, LessonDto>(lesson),
                 Vocabularies = ObjectMapper.Map<List<Vocabulary>, List<VocabularyDto>>(vocabs),
-                Sentences = ObjectMapper.Map<List<SentenceExercise>, List<SentenceExerciseDto>>(sentences)
+                Sentences = sentences
+                    .Select(x => SentenceExerciseDtoBuilder.Build(x, ObjectMapper))
+                    .ToList()
             };
         }
         [Authorize(EnglishLearningAppPermissions.ContentManagement.Create)]

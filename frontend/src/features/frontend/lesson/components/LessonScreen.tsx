@@ -17,7 +17,7 @@ import { VocabFlashcardQuiz } from "./VocabFlashcardQuiz";
 import { VocabIntroCard } from "./VocabIntroCard";
 import { VocabMatchingGame } from "./VocabMatchingGame";
 import { PassiveRecallGame } from "./PassiveRecallGame";
-
+import { AudioPlayButton } from "./AudioPlayButton";
 interface LessonScreenProps {
   lessonId: string;
 }
@@ -88,6 +88,8 @@ export function LessonScreen({ lessonId }: LessonScreenProps) {
     totalQuestions,
     showPassiveRecall,
     handlePassiveRecallComplete,
+    isLessonFailed,
+    retryComprehensivePart,
   } = useLessonFlow(lessonId);
 
   const renderExercise = () => {
@@ -325,11 +327,16 @@ export function LessonScreen({ lessonId }: LessonScreenProps) {
           <p className="text-xs font-semibold uppercase tracking-[0.24em] text-indigo-600">
             Exercise
           </p>
-          <h2 className="mt-4 text-2xl font-bold leading-tight text-slate-900">
-            {currentQuestion
-              ? getQuestionHeading(currentQuestion)
-              : "Đang chuẩn bị câu hỏi..."}
-          </h2>
+          <div className="mt-4 flex items-start gap-3">
+            <h2 className="flex-1 text-2xl font-bold leading-tight text-slate-900">
+              {currentQuestion
+                ? getQuestionHeading(currentQuestion)
+                : "Đang chuẩn bị câu hỏi..."}
+            </h2>
+            {currentQuestion && (
+              <AudioPlayButton audioUrl={currentQuestion.audioUrl} />
+            )}
+          </div>
         </div>
 
         {renderExercise()}
@@ -380,6 +387,8 @@ export function LessonScreen({ lessonId }: LessonScreenProps) {
         isChecking={isChecking}
         isChecked={isChecked}
         resultType={resultType}
+        correctSentence={currentQuestion?.correctSentence}
+        vietnameseTranslation={currentQuestion?.vietnameseTranslation}
         onCheck={handleCheckAnswer}
         onContinue={handleContinue}
       />
@@ -425,6 +434,29 @@ export function LessonScreen({ lessonId }: LessonScreenProps) {
               lessonId={lessonId}
               onComplete={handlePassiveRecallComplete}
             />
+          </div>
+        </div>
+      )}
+      {isLessonFailed && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4">
+          <div className="w-full max-w-md rounded-[28px] border border-rose-200 bg-white p-6 text-center shadow-2xl">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-rose-500">
+              Hết tim
+            </p>
+            <h2 className="mt-3 text-2xl font-black text-slate-900">
+              Bạn đã hết tim trước khi hoàn thành hết câu hỏi
+            </h2>
+            <p className="mt-2 text-sm text-slate-600">
+              Lesson chưa được đánh dấu hoàn thành. Làm lại Part 3 để tiếp tục
+              nhé.
+            </p>
+            <button
+              type="button"
+              onClick={retryComprehensivePart}
+              className="mt-6 w-full rounded-2xl bg-indigo-600 px-5 py-3 text-sm font-bold text-white hover:bg-indigo-700"
+            >
+              LÀM LẠI PART 3
+            </button>
           </div>
         </div>
       )}

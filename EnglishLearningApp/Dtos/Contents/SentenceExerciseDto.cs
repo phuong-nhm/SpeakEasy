@@ -72,13 +72,13 @@ namespace EnglishLearningApp.Dtos.Contents
         public Guid ExerciseId { get; set; }
 
         // WordOrder, TranslateFromVietnamese - user ghép từ theo thứ tự đã chọn
-        public List<string> UserOrderedWords { get; set; }
+        public List<string>? UserOrderedWords { get; set; }
 
         // AnswerQuestion (câu trả lời tự do) hoặc FillInBlank (1 từ điền vào chỗ trống)
-        public string UserAnswerText { get; set; }
+        public string? UserAnswerText { get; set; }
 
         // Chỉ cần cho FillInBlank - lấy đúng giá trị BlankIndex server đã trả lúc lấy câu hỏi
         public int? BlankIndex { get; set; }
-        public string UserSelectedSentence { get; set; }
+        public string? UserSelectedSentence { get; set; }
     }
 }

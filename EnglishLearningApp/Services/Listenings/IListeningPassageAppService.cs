@@ -14,5 +14,6 @@ namespace EnglishLearningApp.Services.Listenings
 
         [AllowAnonymous]
         Task<ListeningPassageClientDto> GetForLearnerAsync(Guid chapterId);
+        Task<List<ListeningPassageDto>> CreateManyAsync(List<CreateUpdateListeningPassageDto> inputs);
     }
 }

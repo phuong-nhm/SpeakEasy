@@ -3,7 +3,7 @@
 import { useState } from "react";
 
 import { VocabularyDto } from "../types/lesson";
-
+import { WORD_TYPE_LABELS } from "../utils/wordTypeLabel";
 interface VocabIntroCardProps {
   vocabulary: VocabularyDto[];
   onContinue: () => void;
@@ -77,6 +77,11 @@ export function VocabIntroCard({
             <div className="mt-4">
               <div className="text-xl font-black text-slate-900">
                 {item.word}
+                {WORD_TYPE_LABELS[item.wordType] && (
+                  <span className="ml-1.5 text-sm font-semibold text-violet-500">
+                    ({WORD_TYPE_LABELS[item.wordType]})
+                  </span>
+                )}
               </div>
               <div className="mt-1 text-sm text-slate-500">{item.meaning}</div>
             </div>

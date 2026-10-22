@@ -41,6 +41,8 @@
         "CanOnlyMessageFriends": "You can only send messages to your friends.",
         "NotificationNewMessageContent": "You have a new message.",
         "NotAllowedToAccessThisConversation": "You are not authorized to access this conversation.",
-        "ThreadIdRequiredForNewConversation": "A thread ID is required to start a new conversation."
+        "ThreadIdRequiredForNewConversation": "A thread ID is required to start a new conversation.",
+    "DuplicateChapterIdInListeningPassage": "The chapter ID already exists in another listening passage.",
+    "ListeningPassageAlreadyExistsForChapter": "A listening passage already exists for this chapter."
     }
 }

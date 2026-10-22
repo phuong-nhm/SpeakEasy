@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 
-import { lessonService } from "../../services/lessonService";
+import { checkSentenceAnswerLocal } from "../../services/checkSentenceAnswer";
 import { ExerciseType, SentenceExerciseDto } from "../../types/lesson";
 
 interface DialogueListenExerciseProps {
@@ -128,36 +128,25 @@ function DialogueQuestionCard({
     }, 450);
   };
 
-  const handleCheckListenChoose = async () => {
+  const handleCheckListenChoose = () => {
     if (!selectedSentence || isSubmitting) return;
 
-    setIsSubmitting(true);
-    try {
-      const isCorrect = await lessonService.submitSentenceAnswer({
-        exerciseId: question.id,
-        userSelectedSentence: selectedSentence,
-      });
+    const isCorrect = checkSentenceAnswerLocal(question, {
+      userSelectedSentence: selectedSentence,
+    });
 
-      setFeedback(
-        isCorrect
-          ? {
-              type: "correct",
-              message: "Đúng rồi. Tự động chuyển lượt kế tiếp...",
-            }
-          : {
-              type: "incorrect",
-              message: "Chưa đúng, hãy nghe lại và chọn câu khác.",
-            },
-      );
-      finishQuestion(isCorrect);
-    } catch {
-      setFeedback({
-        type: "incorrect",
-        message: "Có lỗi khi kiểm tra đáp án, thử lại nhé.",
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
+    setFeedback(
+      isCorrect
+        ? {
+            type: "correct",
+            message: "Đúng rồi. Tự động chuyển lượt kế tiếp...",
+          }
+        : {
+            type: "incorrect",
+            message: "Chưa đúng, hãy nghe lại và chọn câu khác.",
+          },
+    );
+    finishQuestion(isCorrect);
   };
 
   const handleToggleWord = (word: string) => {
@@ -168,38 +157,26 @@ function DialogueQuestionCard({
     );
   };
 
-  const handleCheckTranslate = async () => {
+  const handleCheckTranslate = () => {
     if (selectedWords.length === 0 || isSubmitting) return;
 
-    setIsSubmitting(true);
-    try {
-      const isCorrect = await lessonService.submitSentenceAnswer({
-        exerciseId: question.id,
-        userOrderedWords: selectedWords,
-      });
+    const isCorrect = checkSentenceAnswerLocal(question, {
+      userOrderedWords: selectedWords,
+    });
 
-      setFeedback(
-        isCorrect
-          ? {
-              type: "correct",
-              message: "Chính xác. Tự động chuyển lượt kế tiếp...",
-            }
-          : {
-              type: "incorrect",
-              message: "Chưa đúng, hãy ghép lại câu hoàn chỉnh.",
-            },
-      );
-      finishQuestion(isCorrect);
-    } catch {
-      setFeedback({
-        type: "incorrect",
-        message: "Có lỗi khi kiểm tra đáp án, thử lại nhé.",
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
+    setFeedback(
+      isCorrect
+        ? {
+            type: "correct",
+            message: "Chính xác. Tự động chuyển lượt kế tiếp...",
+          }
+        : {
+            type: "incorrect",
+            message: "Chưa đúng, hãy ghép lại câu hoàn chỉnh.",
+          },
+    );
+    finishQuestion(isCorrect);
   };
-
   const renderContent = () => {
     if (question.exerciseType === ExerciseType.ListenChoose) {
       const options = question.listenOptions ?? [];
@@ -216,13 +193,12 @@ function DialogueQuestionCard({
                   Lượt {index + 1}/{total}
                 </h3>
               </div>
-              <button
-                type="button"
-                onClick={playAudio}
-                className="rounded-full bg-indigo-600 px-4 py-2 text-sm font-bold text-white transition hover:bg-indigo-700"
-              >
-                Phát audio
-              </button>
+              <audio
+                key={question.audioUrl}
+                controls
+                src={question.audioUrl ?? undefined}
+                className="mt-3 w-full"
+              />
             </div>
 
             <p className="mt-4 text-sm font-medium text-slate-600">
@@ -355,13 +331,23 @@ function DialogueQuestionCard({
 
       {feedback && (
         <div
-          className={`rounded-2xl border px-4 py-3 text-sm font-semibold ${
+          className={`rounded-2xl border px-4 py-3 text-sm font-medium ${
             feedback.type === "correct"
               ? "border-emerald-200 bg-emerald-50 text-emerald-700"
               : "border-rose-200 bg-rose-50 text-rose-700"
           }`}
         >
-          {feedback.message}
+          <p className="font-semibold">{feedback.message}</p>
+          {question.correctSentence && (
+            <p className="mt-2 text-sm font-semibold">
+              Đáp án đúng: {question.correctSentence}
+            </p>
+          )}
+          {question.vietnameseTranslation && (
+            <p className="mt-1 text-xs italic opacity-80">
+              Nghĩa: {question.vietnameseTranslation}
+            </p>
+          )}
         </div>
       )}
     </div>

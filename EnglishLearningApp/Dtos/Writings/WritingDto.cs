@@ -23,7 +23,7 @@ namespace EnglishLearningApp.Dtos.Writings
     public class AiFeedbackDto
     {
         public bool IsCorrect { get; set; }
-        public int Score { get; set; }
+        public decimal Score { get; set; }
         public string? Band { get; set; }
         public List<WritingErrorDto> Errors { get; set; }
         public string Explanation { get; set; }

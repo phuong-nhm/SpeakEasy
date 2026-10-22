@@ -14,6 +14,7 @@ import {
   VocabularyQuizDto,
 } from "../types/lesson";
 import { reviewService } from "../../review/services/reviewService";
+import { checkSentenceAnswerLocal } from "../services/checkSentenceAnswer";
 
 const shuffleItems = <T>(items: T[]) => {
   const next = [...items];
@@ -28,6 +29,12 @@ type LessonPart = "vocabulary" | "grammar" | "comprehensive";
 type CompletedParts = Record<LessonPart, boolean>;
 type VocabSubStep = "intro" | "flashcard" | "matching";
 
+const PART_INDEX_MAP: Record<LessonPart, 0 | 1 | 2> = {
+  vocabulary: 0,
+  grammar: 1,
+  comprehensive: 2,
+};
+
 const defaultCompletedParts: CompletedParts = {
   vocabulary: false,
   grammar: false,
@@ -35,7 +42,7 @@ const defaultCompletedParts: CompletedParts = {
 };
 
 // Backend không trả hearts/xp mặc định -> FE tự định nghĩa cứng
-const DEFAULT_HEARTS = 5;
+const DEFAULT_HEARTS = 10; // tăng từ 5 - học bài chứ không phải chơi game khó
 const XP_PER_CORRECT = 30;
 const XP_PER_HEART_LEFT = 10;
 
@@ -54,10 +61,9 @@ export function useLessonFlow(lessonId: string) {
     defaultCompletedParts,
   );
 
-  // Đáp án người dùng chọn - tuỳ ExerciseType mà dùng field khác nhau
-  const [selectedWords, setSelectedWords] = useState<string[]>([]); // WordOrder, TranslateFromVietnamese
-  const [selectedText, setSelectedText] = useState(""); // AnswerQuestion, FillInBlank
-  const [selectedSentence, setSelectedSentence] = useState<string | null>(null); // ListenChoose
+  const [selectedWords, setSelectedWords] = useState<string[]>([]);
+  const [selectedText, setSelectedText] = useState("");
+  const [selectedSentence, setSelectedSentence] = useState<string | null>(null);
 
   const [isChecking, setIsChecking] = useState(false);
   const [isChecked, setIsChecked] = useState(false);
@@ -68,6 +74,7 @@ export function useLessonFlow(lessonId: string) {
   const [hearts, setHearts] = useState(DEFAULT_HEARTS);
   const [correctAnswers, setCorrectAnswers] = useState(0);
   const [isCompleted, setIsCompleted] = useState(false);
+  const [isLessonFailed, setIsLessonFailed] = useState(false); // MỚI
   const [showExitConfirm, setShowExitConfirm] = useState(false);
 
   const [vocabSubStep, setVocabSubStep] = useState<VocabSubStep>("intro");
@@ -127,9 +134,10 @@ export function useLessonFlow(lessonId: string) {
       setLoadError(null);
 
       try {
-        const [content, note] = await Promise.all([
+        const [content, note, partProgress] = await Promise.all([
           lessonService.getLessonContent(lessonId),
           lessonService.getGrammarNoteByLesson(lessonId),
+          lessonService.getPartProgress(lessonId),
         ]);
 
         if (!isMounted) return;
@@ -141,11 +149,16 @@ export function useLessonFlow(lessonId: string) {
 
         setHearts(DEFAULT_HEARTS);
         setSelectedPart(null);
-        setCompletedParts(defaultCompletedParts);
+        setCompletedParts({
+          vocabulary: partProgress.isVocabularyCompleted,
+          grammar: partProgress.isGrammarCompleted,
+          comprehensive: partProgress.isComprehensiveCompleted,
+        });
         setCurrentIndex(0);
         resetCurrentState();
         setCorrectAnswers(0);
         setIsCompleted(false);
+        setIsLessonFailed(false);
         setSummary(null);
         setVocabSubStep("intro");
         setIsVocabularyMatchingCompleted(false);
@@ -241,7 +254,6 @@ export function useLessonFlow(lessonId: string) {
     !isChecking &&
     !isCompleted;
 
-  // ===== SELECT ANSWER HANDLERS (theo từng dạng) =====
   const handleSelectWords = (words: string[]) => {
     if (isChecked || isCompleted) return;
     setSelectedWords(words);
@@ -257,13 +269,11 @@ export function useLessonFlow(lessonId: string) {
     setSelectedSentence(sentence);
   };
 
-  // ===== CHECK ANSWER (gọi API thật) =====
-  const handleCheckAnswer = async () => {
+  // ===== CHECK ANSWER (local, không gọi API nữa) =====
+  const handleCheckAnswer = () => {
     if (!currentQuestion || isChecked || isChecking || isCompleted) return;
 
-    const request: CheckSentenceAnswerRequest = {
-      exerciseId: currentQuestion.id,
-    };
+    const request: Omit<CheckSentenceAnswerRequest, "exerciseId"> = {};
 
     switch (currentQuestion.exerciseType) {
       case ExerciseType.WordOrder:
@@ -283,14 +293,11 @@ export function useLessonFlow(lessonId: string) {
     }
 
     setIsChecking(true);
-
     try {
-      const isCorrect = await lessonService.submitSentenceAnswer(request);
+      const isCorrect = checkSentenceAnswerLocal(currentQuestion, request);
       setIsChecked(true);
       setResultType(isCorrect ? "correct" : "incorrect");
       recordAttemptResult(isCorrect);
-    } catch {
-      // Lỗi mạng/server - không đánh dấu đã check, cho người dùng thử lại
     } finally {
       setIsChecking(false);
     }
@@ -336,8 +343,6 @@ export function useLessonFlow(lessonId: string) {
     const xpEarned =
       correctAnswers * XP_PER_CORRECT + hearts * XP_PER_HEART_LEFT;
 
-    // Lưu ý: xpEarned/accuracyPercent chỉ hiển thị tạm trên CompleteScreen,
-    // KHÔNG được lưu lại server - backend hiện không có cơ chế lưu XP/kết quả
     setSummary({ xpEarned, accuracyPercent, elapsedSeconds });
     setIsCompleted(true);
     setSelectedPart(null);
@@ -372,7 +377,13 @@ export function useLessonFlow(lessonId: string) {
   };
 
   const completeCurrentPart = () => {
-    if (!selectedPart) return;
+    if (!selectedPart || !lesson) return;
+
+    // Lưu xuống DB - không chặn UI nếu lỗi, người dùng vẫn tiếp tục học bình
+    // thường, chỉ là lần sau F5 có thể phải học lại Part này
+    lessonService
+      .markPartCompleted(lesson.id, PART_INDEX_MAP[selectedPart])
+      .catch(() => {});
 
     setCompletedParts((prev) => ({
       ...prev,
@@ -380,7 +391,6 @@ export function useLessonFlow(lessonId: string) {
     }));
 
     if (selectedPart === "comprehensive") {
-      // Không gọi finalizeLesson() ngay - chuyển sang màn Ôn nhanh trước
       setSelectedPart(null);
       setCurrentIndex(0);
       resetCurrentState();
@@ -398,7 +408,6 @@ export function useLessonFlow(lessonId: string) {
     resetCurrentState();
   };
 
-  // Thêm handler mới - gọi khi màn Ôn nhanh xong (hoặc bị bỏ qua)
   const handlePassiveRecallComplete = () => {
     setShowPassiveRecall(false);
     finalizeLesson();
@@ -425,6 +434,14 @@ export function useLessonFlow(lessonId: string) {
     vocabSubStep === "matching" &&
     isVocabularyMatchingCompleted;
 
+  // ===== RETRY khi hết tim giữa chừng Part 3 (MỚI) =====
+  const retryComprehensivePart = () => {
+    setIsLessonFailed(false);
+    setHearts(DEFAULT_HEARTS);
+    setCurrentIndex(0);
+    resetCurrentState();
+  };
+
   const handleContinue = () => {
     if (!lesson || !selectedPart) return;
 
@@ -441,7 +458,9 @@ export function useLessonFlow(lessonId: string) {
 
     if (selectedPart === "comprehensive") {
       if (hearts === 0) {
-        completeCurrentPart();
+        // Hết tim GIỮA CHỪNG (chưa trả lời hết câu) -> thất bại,
+        // KHÔNG mở khóa Lesson sau, không gọi finalizeLesson
+        setIsLessonFailed(true);
         return;
       }
       handleAdvanceQuestions(1);
@@ -473,6 +492,7 @@ export function useLessonFlow(lessonId: string) {
     hearts,
     correctAnswers,
     isCompleted,
+    isLessonFailed,
     summary,
     progressPercent,
     canCheck,
@@ -503,5 +523,6 @@ export function useLessonFlow(lessonId: string) {
     recordAttemptResult,
     showPassiveRecall,
     handlePassiveRecallComplete,
+    retryComprehensivePart,
   };
 }

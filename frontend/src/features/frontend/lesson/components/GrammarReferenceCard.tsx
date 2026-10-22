@@ -8,6 +8,12 @@ interface GrammarReferenceCardProps {
   grammarNote: GrammarNoteDto | null;
 }
 
+const FORM_TYPE_LABELS: Record<GrammarFormType, string> = {
+  [GrammarFormType.Affirmative]: "Khẳng định",
+  [GrammarFormType.Negative]: "Phủ định",
+  [GrammarFormType.Question]: "Nghi vấn",
+};
+
 export function GrammarReferenceCard({
   grammarNote,
 }: GrammarReferenceCardProps) {
@@ -15,20 +21,18 @@ export function GrammarReferenceCard({
 
   if (!grammarNote) return null;
 
-  const formGroups = [
-    {
-      label: "Khẳng định",
-      type: GrammarFormType.Affirmative,
-    },
-    {
-      label: "Phủ định",
-      type: GrammarFormType.Negative,
-    },
-    {
-      label: "Nghi vấn",
-      type: GrammarFormType.Question,
-    },
-  ];
+  // Chỉ lấy đúng những formType thực sự có structure (thường chỉ 1, vì
+  // giờ mỗi Lesson = 1 dạng Grammar riêng), không còn hardcode 3 cột cố định
+  const presentFormTypes = Array.from(
+    new Set(grammarNote.structures.map((item) => item.formType)),
+  );
+
+  const subtitleText =
+    presentFormTypes.length > 0
+      ? `Xem cấu trúc: ${presentFormTypes
+          .map((type) => FORM_TYPE_LABELS[type])
+          .join(" · ")}`
+      : "Chưa có cấu trúc";
 
   return (
     <div className="mb-5 rounded-2xl border border-indigo-200 bg-indigo-50 p-4">
@@ -48,9 +52,7 @@ export function GrammarReferenceCard({
             <p className="mt-1 text-sm font-bold text-indigo-700">
               {grammarNote.title}
             </p>
-            <p className="text-xs text-slate-500">
-              Xem cấu trúc: Khẳng định · Phủ định · Nghi vấn
-            </p>
+            <p className="text-xs text-slate-500">{subtitleText}</p>
           </div>
         </div>
 
@@ -60,42 +62,40 @@ export function GrammarReferenceCard({
       </button>
 
       {isExpanded && (
-        <div className="mt-4 grid gap-3 md:grid-cols-3">
-          {formGroups.map((group) => {
-            const items = [...grammarNote.structures]
-              .filter((item) => item.formType === group.type)
+        <div
+          className={`mt-4 grid gap-3 ${
+            presentFormTypes.length > 1 ? "md:grid-cols-3" : "md:grid-cols-1"
+          }`}
+        >
+          {presentFormTypes.map((formType) => {
+            const items = grammarNote.structures
+              .filter((item) => item.formType === formType)
               .sort((left, right) => left.orderIndex - right.orderIndex);
 
             return (
               <div
-                key={group.type}
+                key={formType}
                 className="rounded-2xl border border-indigo-200 bg-white p-3 shadow-sm"
               >
                 <p className="text-xs font-bold uppercase tracking-[0.18em] text-indigo-600">
-                  {group.label}
+                  {FORM_TYPE_LABELS[formType]}
                 </p>
 
-                {items.length === 0 ? (
-                  <p className="mt-2 text-xs text-slate-400">
-                    Chưa có cấu trúc.
-                  </p>
-                ) : (
-                  <div className="mt-3 space-y-2">
-                    {items.map((item) => (
-                      <div
-                        key={item.id ?? `${group.type}-${item.orderIndex}`}
-                        className="rounded-xl border border-slate-200 bg-slate-50 p-2.5"
-                      >
-                        <p className="text-sm font-semibold text-slate-800">
-                          {item.formula}
-                        </p>
-                        <p className="mt-1 text-xs italic text-slate-600">
-                          “{item.example}”
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                )}
+                <div className="mt-3 space-y-2">
+                  {items.map((item) => (
+                    <div
+                      key={item.id ?? `${formType}-${item.orderIndex}`}
+                      className="rounded-xl border border-slate-200 bg-slate-50 p-2.5"
+                    >
+                      <p className="text-sm font-semibold text-slate-800">
+                        {item.formula}
+                      </p>
+                      <p className="mt-1 text-xs italic text-slate-600">
+                        “{item.example}”
+                      </p>
+                    </div>
+                  ))}
+                </div>
               </div>
             );
           })}

@@ -4,10 +4,11 @@ import { useEffect, useState } from "react";
 
 import { lessonService } from "../services/lessonService";
 import { MatchingGameDto, MatchingItemDto } from "../types/lesson";
+import { WORD_TYPE_LABELS } from "../utils/wordTypeLabel";
 
 interface PassiveRecallGameProps {
   lessonId: string;
-  onComplete: () => void; // gọi khi xong (ghép đúng hết, hoặc không có gì để chơi)
+  onComplete: () => void;
 }
 
 export function PassiveRecallGame({
@@ -22,7 +23,6 @@ export function PassiveRecallGame({
     wordId: string;
     meaningId: string;
   } | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -33,7 +33,6 @@ export function PassiveRecallGame({
         if (mounted) setGame(data);
       })
       .catch(() => {
-        // Không đủ từ vựng để chơi (UserFriendlyException), hoặc lỗi khác -> bỏ qua màn này luôn
         if (mounted) onComplete();
       })
       .finally(() => {
@@ -54,39 +53,27 @@ export function PassiveRecallGame({
     setSelectedWordId(word.vocabularyId);
   };
 
-  const handleSelectMeaning = async (meaning: MatchingItemDto) => {
+  // Check local: cùng vocabularyId giữa word & meaning là đúng cặp,
+  // không cần gọi API nữa
+  const handleSelectMeaning = (meaning: MatchingItemDto) => {
     if (!selectedWordId || matchedIds.has(meaning.vocabularyId) || wrongPair) {
       return;
     }
 
-    setIsSubmitting(true);
-    try {
-      const isCorrect = await lessonService.checkMatchingAnswer({
-        userPairs: [
-          {
-            wordVocabularyId: selectedWordId,
-            meaningVocabularyId: meaning.vocabularyId,
-          },
-        ],
-      });
+    const isCorrect = selectedWordId === meaning.vocabularyId;
 
-      if (isCorrect) {
-        setMatchedIds((prev) => new Set(prev).add(selectedWordId));
-        setSelectedWordId(null);
-      } else {
-        setWrongPair({
-          wordId: selectedWordId,
-          meaningId: meaning.vocabularyId,
-        });
-        window.setTimeout(() => {
-          setWrongPair(null);
-          setSelectedWordId(null);
-        }, 500);
-      }
-    } catch {
+    if (isCorrect) {
+      setMatchedIds((prev) => new Set(prev).add(selectedWordId));
       setSelectedWordId(null);
-    } finally {
-      setIsSubmitting(false);
+    } else {
+      setWrongPair({
+        wordId: selectedWordId,
+        meaningId: meaning.vocabularyId,
+      });
+      window.setTimeout(() => {
+        setWrongPair(null);
+        setSelectedWordId(null);
+      }, 500);
     }
   };
 
@@ -125,7 +112,7 @@ export function PassiveRecallGame({
                 key={word.vocabularyId}
                 type="button"
                 onClick={() => handleSelectWord(word)}
-                disabled={isMatched || isSubmitting}
+                disabled={isMatched}
                 className={`w-full rounded-xl border px-3 py-2.5 text-sm font-semibold transition ${
                   isMatched
                     ? "border-emerald-300 bg-emerald-100 text-emerald-700"
@@ -137,6 +124,11 @@ export function PassiveRecallGame({
                 }`}
               >
                 {word.text}
+                {WORD_TYPE_LABELS[word.wordType] && (
+                  <span className="ml-1 text-xs font-normal opacity-60">
+                    ({WORD_TYPE_LABELS[word.wordType]})
+                  </span>
+                )}
               </button>
             );
           })}
@@ -152,7 +144,7 @@ export function PassiveRecallGame({
                 key={meaning.vocabularyId}
                 type="button"
                 onClick={() => handleSelectMeaning(meaning)}
-                disabled={isMatched || !selectedWordId || isSubmitting}
+                disabled={isMatched || !selectedWordId}
                 className={`w-full rounded-xl border px-3 py-2.5 text-sm font-semibold transition ${
                   isMatched
                     ? "border-emerald-300 bg-emerald-100 text-emerald-700"
@@ -162,6 +154,11 @@ export function PassiveRecallGame({
                 }`}
               >
                 {meaning.text}
+                {WORD_TYPE_LABELS[meaning.wordType] && (
+                  <span className="ml-1 text-xs font-normal opacity-60">
+                    ({WORD_TYPE_LABELS[meaning.wordType]})
+                  </span>
+                )}
               </button>
             );
           })}

@@ -45,6 +45,16 @@ namespace EnglishLearningApp.AppServices.Progresses
         {
             var userId = _currentUser.GetId();
 
+            var reviewQueryable = await _reviewRepo.GetQueryableAsync();
+            var existing = await AsyncExecuter.FirstOrDefaultAsync(
+                reviewQueryable.Where(x => x.UserId == userId && x.LessonId == lessonId));
+
+            if (existing != null)
+            {
+                // Đã có review cho lesson này rồi - không insert trùng, coi như no-op
+                return;
+            }
+
             await _reviewRepo.InsertAsync(new UserLessonReview
             (
                 GuidGenerator.Create(),

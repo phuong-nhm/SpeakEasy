@@ -3,6 +3,7 @@
 import { useMemo, useRef, useState } from "react";
 
 import { VocabularyDto } from "../types/lesson";
+import { WORD_TYPE_LABELS } from "../utils/wordTypeLabel";
 
 interface VocabMatchingGameProps {
   vocabulary: VocabularyDto[];
@@ -13,6 +14,7 @@ interface PairItem {
   id: string;
   word: string;
   meaning: string;
+  wordType: VocabularyDto["wordType"];
 }
 
 const shuffle = <T,>(items: T[]) => {
@@ -26,8 +28,6 @@ const shuffle = <T,>(items: T[]) => {
   return next;
 };
 
-// Bọc ngoài: khi bộ từ vựng đổi (đổi bài học...) thì key đổi theo,
-// React tự huỷ và tạo lại toàn bộ state bên trong, khỏi cần effect reset.
 export function VocabMatchingGame({
   vocabulary,
   onComplete,
@@ -52,14 +52,13 @@ function VocabMatchingGameInner({
         id: item.id,
         word: item.word,
         meaning: item.meaning,
+        wordType: item.wordType,
       })),
     [vocabulary],
   );
 
   const ids = useMemo(() => pairs.map((item) => item.id), [pairs]);
 
-  // Thứ tự xáo trộn chỉ cần tính 1 lần lúc mount (nhờ key ở component cha,
-  // mount lại là coi như "reset")
   const [leftOrder] = useState<string[]>(() => shuffle(ids));
   const [rightOrder] = useState<string[]>(() => shuffle(ids));
 
@@ -181,6 +180,11 @@ function VocabMatchingGameInner({
                 }`}
               >
                 {pair.word}
+                {WORD_TYPE_LABELS[pair.wordType] && (
+                  <span className="ml-1.5 text-xs font-normal opacity-60">
+                    ({WORD_TYPE_LABELS[pair.wordType]})
+                  </span>
+                )}
               </button>
             );
           })}
@@ -212,6 +216,11 @@ function VocabMatchingGameInner({
                 }`}
               >
                 {pair.meaning}
+                {WORD_TYPE_LABELS[pair.wordType] && (
+                  <span className="ml-1.5 text-xs font-normal opacity-60">
+                    ({WORD_TYPE_LABELS[pair.wordType]})
+                  </span>
+                )}
               </button>
             );
           })}

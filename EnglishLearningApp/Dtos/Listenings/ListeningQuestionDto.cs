@@ -1,7 +1,7 @@
 ﻿using EnglishLearningApp.Entities;
 using System.ComponentModel.DataAnnotations;
 using Volo.Abp.Application.Dtos;
-
+using System.Text.Json.Serialization;
 namespace EnglishLearningApp.Dtos.Listenings
 {
     public class ListeningQuestionDto : EntityDto<Guid>
@@ -20,12 +20,14 @@ namespace EnglishLearningApp.Dtos.Listenings
     // ==== Client dùng — KHÔNG có CorrectOptionKey, tránh lộ đáp án ====
     public class ListeningQuestionClientDto : EntityDto<Guid>
     {
+        [JsonConverter(typeof(JsonStringEnumConverter))]
         public ListeningQuestionType QuestionType { get; set; }
         public string QuestionText { get; set; }
         public string OptionA { get; set; }
         public string OptionB { get; set; }
         public string OptionC { get; set; }
         public string OptionD { get; set; }
+        public string? CorrectOptionKey { get; set; }
         public int OrderIndex { get; set; }
     }
 
@@ -35,11 +37,11 @@ namespace EnglishLearningApp.Dtos.Listenings
 
         [Required]
         public string QuestionText { get; set; }
-        public string OptionA { get; set; }
-        public string OptionB { get; set; }
-        public string OptionC { get; set; }
-        public string OptionD { get; set; }
-        public string CorrectOptionKey { get; set; } // chỉ bắt buộc khi MultipleChoice, check ở AppService
+        public string? OptionA { get; set; }
+        public string? OptionB { get; set; }
+        public string? OptionC { get; set; }
+        public string? OptionD { get; set; }
+        public string? CorrectOptionKey { get; set; }  // chỉ bắt buộc khi MultipleChoice, check ở AppService
         public int OrderIndex { get; set; }
     }
 }

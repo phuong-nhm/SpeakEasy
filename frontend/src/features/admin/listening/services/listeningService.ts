@@ -61,7 +61,18 @@ export const listeningService = {
     );
     return normalizePassage(data);
   },
-
+  createMany: async (
+    inputs: CreateUpdateListeningPassageDto[],
+  ): Promise<ListeningPassageDto[]> => {
+    const data = await apiClient<ListeningPassageDto[]>(
+      "/api/app/listening-passage/many",
+      {
+        method: "POST",
+        body: JSON.stringify(inputs),
+      },
+    );
+    return data.map(normalizePassage);
+  },
   update: async (
     id: string,
     input: CreateUpdateListeningPassageDto,

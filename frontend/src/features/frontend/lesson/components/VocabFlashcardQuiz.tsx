@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { VocabularyDto } from "../types/lesson";
-
+import { WORD_TYPE_LABELS } from "../utils/wordTypeLabel";
 interface VocabFlashcardQuizProps {
   vocabulary: VocabularyDto[];
   onComplete: () => void;
@@ -188,6 +188,11 @@ export function VocabFlashcardQuiz({
             </p>
             <h4 className="mt-3 text-3xl font-black text-slate-900">
               {currentCard.word}
+              {currentVocab && WORD_TYPE_LABELS[currentVocab.wordType] && (
+                <span className="ml-2 text-lg font-semibold text-amber-600">
+                  ({WORD_TYPE_LABELS[currentVocab.wordType]})
+                </span>
+              )}
             </h4>
           </div>
           <button

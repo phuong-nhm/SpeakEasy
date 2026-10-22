@@ -143,12 +143,12 @@ namespace EnglishLearningApp.AppServices.Contents
             var random = new Random();
 
             var wordColumn = vocabs
-                .Select(v => new MatchingItemDto { VocabularyId = v.Id, Text = v.Word })
+                .Select(v => new MatchingItemDto { VocabularyId = v.Id, Text = v.Word, WordType = v.WordType })
                 .OrderBy(_ => random.Next())
                 .ToList();
 
             var meaningColumn = vocabs
-                .Select(v => new MatchingItemDto { VocabularyId = v.Id, Text = v.Meaning })
+                .Select(v => new MatchingItemDto { VocabularyId = v.Id, Text = v.Meaning, WordType = v.WordType })
                 .OrderBy(_ => random.Next())
                 .ToList();
 

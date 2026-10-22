@@ -15,7 +15,6 @@ namespace EnglishLearningApp.AppServices.Writings
     public class GeminiGradingService : IGeminiGradingService, ITransientDependency
     {
         // Sử dụng model Flash 3.6/3.5 tối ưu tốc độ và chi phí cho chấm văn bản
-        private const string GradingModel = "gemini-3.6-flash";
 
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly IConfiguration _configuration;
@@ -33,10 +32,10 @@ namespace EnglishLearningApp.AppServices.Writings
             {
                 throw new UserFriendlyException("Chưa cấu hình Gemini API Key.");
             }
-
+            var gradingModel = _configuration["Gemini:GradingModel"] ?? "gemini-3.6-flash";
             var requestBody = BuildRequestBody(promptTitle, userContent);
 
-            var url = $"[https://generativelanguage.googleapis.com/v1beta/models/](https://generativelanguage.googleapis.com/v1beta/models/){GradingModel}:generateContent?key={apiKey}";
+            var url = $"https://generativelanguage.googleapis.com/v1beta/models/{gradingModel}:generateContent?key={apiKey}";
 
             var client = _httpClientFactory.CreateClient();
             var response = await client.PostAsJsonAsync(url, requestBody);
@@ -126,15 +125,15 @@ Bài làm của học viên:
 
             try
             {
-                // Do đã dùng responseMimeType="application/json", không cần xử lý chuỗi ```json nữa
                 return JsonSerializer.Deserialize<AiFeedbackDto>(rawText, new JsonSerializerOptions
                 {
                     PropertyNameCaseInsensitive = true
                 });
             }
-            catch (JsonException)
+            catch (JsonException ex)
             {
-                throw new UserFriendlyException("AI chấm bài trả về sai định dạng JSON, thử lại sau.");
+                // Log rõ raw text + lỗi thật để debug, thay vì chỉ ném message chung chung
+                throw new UserFriendlyException($"AI chấm bài trả về sai định dạng JSON: {ex.Message}. Raw: {rawText}");
             }
         }
     }
