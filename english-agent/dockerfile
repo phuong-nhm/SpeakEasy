@@ -19,7 +19,9 @@ COPY requirements.txt .
 
 # Cài đặt các thư viện Python (LangChain, LangGraph, GenAI,...) vào môi trường ảo
 RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu && \
     pip install --no-cache-dir -r requirements.txt
+
 RUN python -m guardrails_ai.toxic_language.post_install
 
 # ==========================================
@@ -50,5 +52,6 @@ COPY --chown=appuser:appgroup . /app
 # Chuyển sang user thường
 USER appuser
 EXPOSE 8000
+ENV PYTHONUNBUFFERED=1
 # Khởi động agent (bạn thay "main.py" bằng file chạy chính của con agent nhé)
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
