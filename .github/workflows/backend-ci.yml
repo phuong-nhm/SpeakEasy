@@ -74,6 +74,7 @@ jobs:
         run: dotnet test EnglishLearningApp.sln --no-build --configuration Release --verbosity normal
   docker-build-push:
     needs: build-and-test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -109,6 +110,7 @@ jobs:
           cache-to: type=gha,mode=max
   deploy-to-render:
     needs: docker-build-push
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     environment: production # Bắt buộc phải qua cổng duyệt (Required Reviewers) trên GitHub
     steps:

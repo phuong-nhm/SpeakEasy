@@ -1,6 +1,7 @@
 ﻿using EnglishLearningApp.AppServices.Writings;
 using EnglishLearningApp.Dtos.Listenings;
 using EnglishLearningApp.Entities.Listening;
+using EnglishLearningApp.Infrastructure;
 using System.Text.Json;
 using Volo.Abp.Domain.Repositories;
 using Volo.Abp.Users;
@@ -43,7 +44,7 @@ namespace EnglishLearningApp.Services.Listenings
 
             return new ListeningMcqResultDto { IsCorrect = isCorrect, CorrectOptionKey = question.CorrectOptionKey };
         }
-
+        [CustomRateLimit(5, 0.0083)]
         public async Task<ListeningEssayResultDto> SubmitEssayAsync(SubmitListeningEssayDto input)
         {
             var question = await _questionRepo.GetAsync(input.QuestionId);

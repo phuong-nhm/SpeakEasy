@@ -1,19 +1,20 @@
+using EnglishLearningApp.Dtos.Writings;
+using EnglishLearningApp.Entities;
+using EnglishLearningApp.Entities.Writing;
+using EnglishLearningApp.Infrastructure;
+using EnglishLearningApp.Permissions;
+using EnglishLearningApp.Services;
+using Microsoft.AspNetCore.Authorization;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
-using EnglishLearningApp.Dtos.Writings;
-using EnglishLearningApp.Entities;
-using EnglishLearningApp.Entities.Writing;
-using EnglishLearningApp.Permissions;
-using EnglishLearningApp.Services;
-using Microsoft.AspNetCore.Authorization;
 using Volo.Abp;
 using Volo.Abp.Application.Dtos;
 using Volo.Abp.Domain.Repositories;
-using Volo.Abp.Users;
 using Volo.Abp.Identity;
+using Volo.Abp.Users;
 
 namespace EnglishLearningApp.AppServices.Writings
 {
@@ -38,7 +39,7 @@ namespace EnglishLearningApp.AppServices.Writings
             _userRepo = userRepo;
             _geminiGradingService = geminiGradingService;
         }
-
+        [CustomRateLimit(5, 0.0083)]
         public async Task<UserWritingDto> SubmitWritingAsync(SubmitWritingDto input)
         {
             var userId = _currentUser.GetId();

@@ -1,3 +1,4 @@
+using EnglishLearningApp.Infrastructure;
 using EnglishLearningApp.Permissions;
 using EnglishLearningApp.Services.UploadFile;
 using Microsoft.AspNetCore.Authorization;
@@ -35,6 +36,7 @@ namespace EnglishLearningApp.Controllers
         /// </summary>
         [HttpPost]
         [Authorize(EnglishLearningAppPermissions.ContentManagement.Create)]
+        [CustomRateLimit(20, 0.5)]
         public async Task<IActionResult> UploadAsync(IFormFile file, [FromQuery] string type = "image")
         {
             var url = await SaveFileAsync(file, type);
@@ -46,6 +48,7 @@ namespace EnglishLearningApp.Controllers
         /// </summary>
         [HttpPost("many")]
         [Authorize(EnglishLearningAppPermissions.ContentManagement.Create)]
+        [CustomRateLimit(20, 0.5)]
         public async Task<IActionResult> UploadManyAsync(List<IFormFile> files, [FromQuery] string type = "image")
         {
             if (files == null || !files.Any())

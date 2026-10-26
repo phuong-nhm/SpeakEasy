@@ -1,6 +1,7 @@
 ﻿using EnglishLearningApp.Dtos.Contents;
 using EnglishLearningApp.Entities;
 using EnglishLearningApp.Entities.Content;
+using EnglishLearningApp.Infrastructure;
 using EnglishLearningApp.Permissions;
 using EnglishLearningApp.Services;
 using EnglishLearningApp.Services.Contents;
@@ -104,6 +105,7 @@ namespace EnglishLearningApp.AppServices.Contents
         }
 
         [Authorize(EnglishLearningAppPermissions.ContentManagement.Create)]
+        [CustomRateLimit(3, 0.0017)]
         public async Task<SentenceExerciseDto> CreateAsync(CreateUpdateSentenceExerciseDto input)
         {
             ValidateInput(input); // MỚI: gom validate ra hàm riêng, dùng chung Create + CreateMany
@@ -116,6 +118,7 @@ namespace EnglishLearningApp.AppServices.Contents
         // Nhập hàng loạt - validate đủ field bắt buộc theo ExerciseType trước, rồi tự sinh audio
         // qua Gemini TTS (đọc CorrectSentence) cho item nào chưa có AudioUrl.
         [Authorize(EnglishLearningAppPermissions.ContentManagement.Create)]
+        [CustomRateLimit(3, 0.0017)]
         public async Task<List<SentenceExerciseDto>> CreateManyAsync(List<CreateUpdateSentenceExerciseDto> inputs)
         {
             if (inputs == null || !inputs.Any())
