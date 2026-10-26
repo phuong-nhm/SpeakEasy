@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 using Volo.Abp;
 using Volo.Abp.Application.Dtos;
 using Volo.Abp.Domain.Repositories;
+using ZiggyCreatures.Caching.Fusion;
 
 namespace EnglishLearningApp.Services.Contents
 {
@@ -21,33 +22,31 @@ namespace EnglishLearningApp.Services.Contents
         private readonly IRepository<GrammarStructureItem, Guid> _structureRepo;
         private readonly IRepository<Lesson, Guid> _lessonRepo;
         private readonly IRepository<Chapter, Guid> _chapterRepo;
-
+        private readonly IFusionCache _cache;
         public GrammarNoteAppService(
             IRepository<GrammarNote, Guid> grammarNoteRepo,
             IRepository<GrammarStructureItem, Guid> structureRepo,
             IRepository<Lesson, Guid> lessonRepo,
-            IRepository<Chapter, Guid> chapterRepo)
+            IRepository<Chapter, Guid> chapterRepo,
+            IFusionCache cache)
         {
             _grammarNoteRepo = grammarNoteRepo;
             _structureRepo = structureRepo;
             _lessonRepo = lessonRepo;
             _chapterRepo = chapterRepo;
+            _cache = cache;
         }
 
         [Authorize(EnglishLearningAppPermissions.ContentManagement.Create)]
         public async Task<GrammarNoteDto> CreateAsync(CreateUpdateGrammarNoteDto input)
         {
-            var grammarNote = new GrammarNote(
-                GuidGenerator.Create(),
-                input.LessonId,
-                input.Title,
-                input.UsageNote);
-
+            var grammarNote = new GrammarNote(GuidGenerator.Create(), input.LessonId, input.Title, input.UsageNote);
             await _grammarNoteRepo.InsertAsync(grammarNote);
 
             var structures = BuildStructures(input.Structures, grammarNote.Id);
             await _structureRepo.InsertManyAsync(structures);
 
+            await InvalidateCachesForLessonAsync(input.LessonId);
             return await BuildDtoAsync(grammarNote);
         }
 
@@ -59,21 +58,22 @@ namespace EnglishLearningApp.Services.Contents
             grammarNote.UsageNote = input.UsageNote;
             await _grammarNoteRepo.UpdateAsync(grammarNote);
 
-            // Xoá tất cả Structures cũ và tạo lại theo input mới (giống pattern ListeningPassageAppService)
             await _structureRepo.DeleteAsync(x => x.GrammarNoteId == id);
             var structures = BuildStructures(input.Structures, grammarNote.Id);
             await _structureRepo.InsertManyAsync(structures);
 
+            await InvalidateCachesForLessonAsync(grammarNote.LessonId);
             return await BuildDtoAsync(grammarNote);
         }
 
         [Authorize(EnglishLearningAppPermissions.ContentManagement.Delete)]
         public async Task DeleteAsync(Guid id)
         {
-            // Xoá tất cả Structures con trước
+            var grammarNote = await _grammarNoteRepo.GetAsync(id); // lấy trước khi xóa để biết LessonId
             await _structureRepo.DeleteAsync(x => x.GrammarNoteId == id);
-            // Sau đó xoá GrammarNote
             await _grammarNoteRepo.DeleteAsync(id);
+
+            await InvalidateCachesForLessonAsync(grammarNote.LessonId);
         }
 
         [AllowAnonymous]
@@ -94,106 +94,94 @@ namespace EnglishLearningApp.Services.Contents
         [AllowAnonymous]
         public async Task<List<GrammarNoteDto>> GetListByChapterAsync(Guid chapterId)
         {
-            var lessonQueryable = await _lessonRepo.GetQueryableAsync();
-            var lessonIds = await AsyncExecuter.ToListAsync(
-                lessonQueryable
-                    .Where(x => x.ChapterId == chapterId)
-                    .Select(x => x.Id));
-
-            if (!lessonIds.Any())
+            var cacheKey = $"grammar-note:by-chapter:{chapterId}";
+            return await _cache.GetOrSetAsync(cacheKey, async _ =>
             {
-                return new List<GrammarNoteDto>();
-            }
+                var lessonQueryable = await _lessonRepo.GetQueryableAsync();
+                var lessonIds = await AsyncExecuter.ToListAsync(
+                    lessonQueryable.Where(x => x.ChapterId == chapterId).Select(x => x.Id));
 
-            var grammarNoteQueryable = await _grammarNoteRepo.GetQueryableAsync();
-            var grammarNotes = await AsyncExecuter.ToListAsync(
-                grammarNoteQueryable
-                    .Where(x => lessonIds.Contains(x.LessonId))
-                    .OrderBy(x => x.LessonId));
+                if (!lessonIds.Any())
+                {
+                    return new List<GrammarNoteDto>();
+                }
 
-            if (!grammarNotes.Any())
-            {
-                return new List<GrammarNoteDto>();
-            }
+                var grammarNoteQueryable = await _grammarNoteRepo.GetQueryableAsync();
+                var grammarNotes = await AsyncExecuter.ToListAsync(
+                    grammarNoteQueryable.Where(x => lessonIds.Contains(x.LessonId)).OrderBy(x => x.LessonId));
 
-            // 1. Query 1 LẦN duy nhất lấy tất cả Structure của các Note này
-            var noteIds = grammarNotes.Select(x => x.Id).ToList();
-            var structureQueryable = await _structureRepo.GetQueryableAsync();
-            var allStructures = await AsyncExecuter.ToListAsync(
-                structureQueryable.Where(x => noteIds.Contains(x.GrammarNoteId))
-            );
+                if (!grammarNotes.Any())
+                {
+                    return new List<GrammarNoteDto>();
+                }
 
-            // 2. Map sang DTO và gán Structures trên RAM
-            var itemDtos = ObjectMapper.Map<List<GrammarNote>, List<GrammarNoteDto>>(grammarNotes);
+                var noteIds = grammarNotes.Select(x => x.Id).ToList();
+                var structureQueryable = await _structureRepo.GetQueryableAsync();
+                var allStructures = await AsyncExecuter.ToListAsync(
+                    structureQueryable.Where(x => noteIds.Contains(x.GrammarNoteId)));
 
-            foreach (var dto in itemDtos)
-            {
-                dto.Structures = allStructures
-                    .Where(s => s.GrammarNoteId == dto.Id)
-                    .Select(s => ObjectMapper.Map<GrammarStructureItem, GrammarStructureItemDto>(s))
-                    .ToList();
-            }
-
-            return itemDtos;
+                var itemDtos = ObjectMapper.Map<List<GrammarNote>, List<GrammarNoteDto>>(grammarNotes);
+                foreach (var dto in itemDtos)
+                {
+                    dto.Structures = allStructures
+                        .Where(s => s.GrammarNoteId == dto.Id)
+                        .Select(s => ObjectMapper.Map<GrammarStructureItem, GrammarStructureItemDto>(s))
+                        .ToList();
+                }
+                return itemDtos;
+            }, tags: new[] { $"chapter:{chapterId}" });
         }
+
         [AllowAnonymous]
         public async Task<PagedResultDto<GrammarNoteDto>> GetListByLevelPagedAsync(Guid levelId, PagedAndSortedResultRequestDto input)
         {
-            var chapterQueryable = await _chapterRepo.GetQueryableAsync();
-            var chapterIds = await AsyncExecuter.ToListAsync(
-                chapterQueryable
-                    .Where(x => x.LevelId == levelId)
-                    .Select(x => x.Id));
-
-            if (!chapterIds.Any())
+            var cacheKey = $"grammar-note:by-level-paged:{levelId}:{input.SkipCount}:{input.MaxResultCount}";
+            return await _cache.GetOrSetAsync(cacheKey, async _ =>
             {
-                return new PagedResultDto<GrammarNoteDto>(0, new List<GrammarNoteDto>());
-            }
+                var chapterQueryable = await _chapterRepo.GetQueryableAsync();
+                var chapterIds = await AsyncExecuter.ToListAsync(
+                    chapterQueryable.Where(x => x.LevelId == levelId).Select(x => x.Id));
 
-            var lessonQueryable = await _lessonRepo.GetQueryableAsync();
-            var lessonIds = await AsyncExecuter.ToListAsync(
-                lessonQueryable
-                    .Where(x => chapterIds.Contains(x.ChapterId))
-                    .Select(x => x.Id));
+                if (!chapterIds.Any())
+                {
+                    return new PagedResultDto<GrammarNoteDto>(0, new List<GrammarNoteDto>());
+                }
 
-            if (!lessonIds.Any())
-            {
-                return new PagedResultDto<GrammarNoteDto>(0, new List<GrammarNoteDto>());
-            }
+                var lessonQueryable = await _lessonRepo.GetQueryableAsync();
+                var lessonIds = await AsyncExecuter.ToListAsync(
+                    lessonQueryable.Where(x => chapterIds.Contains(x.ChapterId)).Select(x => x.Id));
 
-            var grammarNoteQueryable = await _grammarNoteRepo.GetQueryableAsync();
-            var filteredQuery = grammarNoteQueryable
-                .Where(x => lessonIds.Contains(x.LessonId))
-                .OrderBy(x => x.LessonId);
+                if (!lessonIds.Any())
+                {
+                    return new PagedResultDto<GrammarNoteDto>(0, new List<GrammarNoteDto>());
+                }
 
-            var totalCount = await AsyncExecuter.CountAsync(filteredQuery);
-            var items = await AsyncExecuter.ToListAsync(
-                filteredQuery.Skip(input.SkipCount).Take(input.MaxResultCount));
+                var grammarNoteQueryable = await _grammarNoteRepo.GetQueryableAsync();
+                var filteredQuery = grammarNoteQueryable.Where(x => lessonIds.Contains(x.LessonId)).OrderBy(x => x.LessonId);
 
-            if (!items.Any())
-            {
-                return new PagedResultDto<GrammarNoteDto>(totalCount, new List<GrammarNoteDto>());
-            }
+                var totalCount = await AsyncExecuter.CountAsync(filteredQuery);
+                var items = await AsyncExecuter.ToListAsync(filteredQuery.Skip(input.SkipCount).Take(input.MaxResultCount));
 
-            // 1. Lấy tất cả Structure của danh sách items phân trang chỉ bằng 1 câu Query
-            var itemIds = items.Select(x => x.Id).ToList();
-            var structureQueryable = await _structureRepo.GetQueryableAsync();
-            var allStructures = await AsyncExecuter.ToListAsync(
-                structureQueryable.Where(x => itemIds.Contains(x.GrammarNoteId))
-            );
+                if (!items.Any())
+                {
+                    return new PagedResultDto<GrammarNoteDto>(totalCount, new List<GrammarNoteDto>());
+                }
 
-            // 2. Map sang DTO và gom nhóm Structures trên bộ nhớ RAM
-            var itemDtos = ObjectMapper.Map<List<GrammarNote>, List<GrammarNoteDto>>(items);
+                var itemIds = items.Select(x => x.Id).ToList();
+                var structureQueryable = await _structureRepo.GetQueryableAsync();
+                var allStructures = await AsyncExecuter.ToListAsync(
+                    structureQueryable.Where(x => itemIds.Contains(x.GrammarNoteId)));
 
-            foreach (var dto in itemDtos)
-            {
-                dto.Structures = allStructures
-                    .Where(s => s.GrammarNoteId == dto.Id)
-                    .Select(s => ObjectMapper.Map<GrammarStructureItem, GrammarStructureItemDto>(s))
-                    .ToList();
-            }
-
-            return new PagedResultDto<GrammarNoteDto>(totalCount, itemDtos);
+                var itemDtos = ObjectMapper.Map<List<GrammarNote>, List<GrammarNoteDto>>(items);
+                foreach (var dto in itemDtos)
+                {
+                    dto.Structures = allStructures
+                        .Where(s => s.GrammarNoteId == dto.Id)
+                        .Select(s => ObjectMapper.Map<GrammarStructureItem, GrammarStructureItemDto>(s))
+                        .ToList();
+                }
+                return new PagedResultDto<GrammarNoteDto>(totalCount, itemDtos);
+            }, tags: new[] { $"level:{levelId}" });
         }
         // Nhập hàng loạt - validate đủ field bắt buộc trước, rồi insert
         [Authorize(EnglishLearningAppPermissions.ContentManagement.Create)]
@@ -228,13 +216,6 @@ namespace EnglishLearningApp.Services.Contents
                 throw new UserFriendlyException(L["GrammarNoteAlreadyExistsForLesson", duplicateLessonId.ToString()]);
             }
 
-            // Validate: mỗi GrammarNote phải có đủ Formula cho từng FormType (Affirmative, Negative, Question)
-            // foreach (var input in inputs)
-            // {
-            //     ValidateStructures(input, input.LessonId.ToString());
-            // }
-
-            // Tất cả validation pass -> insert
             var grammarNotes = new List<GrammarNote>();
             var allStructures = new List<GrammarStructureItem>();
 
@@ -254,7 +235,11 @@ namespace EnglishLearningApp.Services.Contents
 
             await _grammarNoteRepo.InsertManyAsync(grammarNotes);
             await _structureRepo.InsertManyAsync(allStructures);
-
+            var affectedLessonIds = inputs.Select(x => x.LessonId).Distinct();
+            foreach (var lessonId in affectedLessonIds)
+            {
+                await InvalidateCachesForLessonAsync(lessonId);
+            }
             // 1. Map danh sách GrammarNote sang GrammarNoteDto (Structures lúc này sẽ rỗng/null do Profile Ignored)
             var resultDtos = ObjectMapper.Map<List<GrammarNote>, List<GrammarNoteDto>>(grammarNotes);
 
@@ -348,6 +333,14 @@ namespace EnglishLearningApp.Services.Contents
                         L["MissingFormulaForGrammarFormType", lessonIdentifier, formType.ToString()]);
                 }
             }
+        }
+        private async Task InvalidateCachesForLessonAsync(Guid lessonId)
+        {
+            var lesson = await _lessonRepo.GetAsync(lessonId);
+            await _cache.RemoveByTagAsync($"chapter:{lesson.ChapterId}");
+
+            var chapter = await _chapterRepo.GetAsync(lesson.ChapterId);
+            await _cache.RemoveByTagAsync($"level:{chapter.LevelId}");
         }
     }
 }

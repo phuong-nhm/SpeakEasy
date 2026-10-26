@@ -1,6 +1,7 @@
 using EnglishLearningApp.Dtos.Contents;
 using EnglishLearningApp.Entities;
 using EnglishLearningApp.Entities.Content;
+using EnglishLearningApp.Infrastructure;
 using EnglishLearningApp.Permissions;
 using EnglishLearningApp.Services;
 using EnglishLearningApp.Services.Contents;
@@ -11,6 +12,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Volo.Abp;
 using Volo.Abp.Domain.Repositories;
+using ZiggyCreatures.Caching.Fusion;
 
 namespace EnglishLearningApp.AppServices.Contents
 {
@@ -22,31 +24,29 @@ namespace EnglishLearningApp.AppServices.Contents
         private readonly IAudioGenerationService _audioService;
         private readonly IImageGenerationService _imageService;
         private const int MaxConcurrentGeneration = 5;
+        private readonly IFusionCache _cache;
         public VocabularyAppService(
             IRepository<Vocabulary, Guid> vocabRepo,
             IAudioGenerationService audioService,
-            IImageGenerationService imageService)
+            IImageGenerationService imageService,
+            IFusionCache cache)
         {
             _vocabRepo = vocabRepo;
             _audioService = audioService;
             _imageService = imageService;
+            _cache = cache;
         }
 
         [AllowAnonymous]
         public async Task<List<VocabularyDto>> GetListByLessonAsync(Guid lessonId)
         {
-            var queryable = await _vocabRepo.GetQueryableAsync();
-            var vocabs = await AsyncExecuter.ToListAsync(
-                queryable.Where(x => x.LessonId == lessonId));
-            return ObjectMapper.Map<List<Vocabulary>, List<VocabularyDto>>(vocabs);
+            return await GetCachedVocabsAsync(lessonId);
         }
 
-        // Trả về từng câu quiz trắc nghiệm 2 lựa chọn, đã trộn ngẫu nhiên vị trí đúng/sai
+        // Không cache trực tiếp kết quả quiz (random bị đóng băng) - chỉ cache phần query DB, random vẫn chạy live
         public async Task<List<VocabularyQuizDto>> GetQuizBatchAsync(Guid lessonId)
         {
-            var queryable = await _vocabRepo.GetQueryableAsync();
-            var vocabs = await AsyncExecuter.ToListAsync(
-                queryable.Where(x => x.LessonId == lessonId));
+            var vocabs = await GetCachedVocabsRawAsync(lessonId);
             var random = new Random();
             var result = new List<VocabularyQuizDto>();
             foreach (var v in vocabs)
@@ -67,17 +67,19 @@ namespace EnglishLearningApp.AppServices.Contents
         }
 
         [Authorize(EnglishLearningAppPermissions.ContentManagement.Create)]
+        [CustomRateLimit(3, 0.0017)]
         public async Task<VocabularyDto> CreateAsync(CreateUpdateVocabularyDto input)
         {
             await GenerateMediaIfMissingAsync(input);
-
             var vocab = ObjectMapper.Map<CreateUpdateVocabularyDto, Vocabulary>(input);
             await _vocabRepo.InsertAsync(vocab);
+            await InvalidateLessonCachesAsync(vocab.LessonId);
             return ObjectMapper.Map<Vocabulary, VocabularyDto>(vocab);
         }
         // Nhập hàng loạt - Admin CMS paste JSON danh sách từ vựng đã soạn sẵn.
         // Item nào chưa có AudioUrl sẽ được tự động sinh audio qua Gemini TTS trước khi lưu.
         [Authorize(EnglishLearningAppPermissions.ContentManagement.Create)]
+        [CustomRateLimit(3, 0.0017)]
         public async Task<List<VocabularyDto>> CreateManyAsync(List<CreateUpdateVocabularyDto> inputs)
         {
             if (inputs == null || !inputs.Any())
@@ -124,23 +126,35 @@ namespace EnglishLearningApp.AppServices.Contents
                 .ToList();
 
             await _vocabRepo.InsertManyAsync(vocabs);
-
+            var affectedLessonIds = inputs.Select(x => x.LessonId).Distinct();
+            foreach (var lessonId in affectedLessonIds)
+            {
+                await InvalidateLessonCachesAsync(lessonId);
+            }
             return ObjectMapper.Map<List<Vocabulary>, List<VocabularyDto>>(vocabs);
         }
         [Authorize(EnglishLearningAppPermissions.ContentManagement.Update)]
         public async Task<VocabularyDto> UpdateAsync(Guid id, CreateUpdateVocabularyDto input)
         {
             await GenerateMediaIfMissingAsync(input);
-
             var vocab = await _vocabRepo.GetAsync(id);
+            var oldLessonId = vocab.LessonId;
             ObjectMapper.Map(input, vocab);
             await _vocabRepo.UpdateAsync(vocab);
+            await InvalidateLessonCachesAsync(oldLessonId);
+            if (vocab.LessonId != oldLessonId)
+            {
+                await InvalidateLessonCachesAsync(vocab.LessonId);
+            }
             return ObjectMapper.Map<Vocabulary, VocabularyDto>(vocab);
         }
+
         [Authorize(EnglishLearningAppPermissions.ContentManagement.Delete)]
         public async Task DeleteAsync(Guid id)
         {
+            var vocab = await _vocabRepo.GetAsync(id);
             await _vocabRepo.DeleteAsync(id);
+            await InvalidateLessonCachesAsync(vocab.LessonId);
         }
         private async Task GenerateMediaIfMissingAsync(CreateUpdateVocabularyDto input)
         {
@@ -162,5 +176,28 @@ namespace EnglishLearningApp.AppServices.Contents
                 Logger.LogWarning(ex, "Không sinh được audio/ảnh cho từ '{Word}'", input.Word);
             }
         }
+        private async Task<List<VocabularyDto>> GetCachedVocabsAsync(Guid lessonId)
+        {
+            var vocabs = await GetCachedVocabsRawAsync(lessonId);
+            return ObjectMapper.Map<List<Vocabulary>, List<VocabularyDto>>(vocabs);
+        }
+
+        // Cache entity gốc, dùng chung cho cả GetListByLessonAsync và GetQuizBatchAsync
+        private async Task<List<Vocabulary>> GetCachedVocabsRawAsync(Guid lessonId)
+        {
+            var cacheKey = $"vocabulary:by-lesson:{lessonId}";
+            return await _cache.GetOrSetAsync(cacheKey, async _ =>
+            {
+                var queryable = await _vocabRepo.GetQueryableAsync();
+                return await AsyncExecuter.ToListAsync(queryable.Where(x => x.LessonId == lessonId));
+            });
+        }
+        // Xóa cả cache vocab lẫn cache lesson-content (vì lesson-content có gộp Vocabularies bên trong)
+        private async Task InvalidateLessonCachesAsync(Guid lessonId)
+        {
+            await _cache.RemoveAsync($"vocabulary:by-lesson:{lessonId}");
+            await _cache.RemoveAsync($"lesson:content:{lessonId}");
+        }
+
     }
 }

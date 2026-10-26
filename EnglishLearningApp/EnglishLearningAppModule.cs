@@ -175,8 +175,8 @@ public class EnglishLearningAppModule : AbpModule
         ConfigureCors(context, configuration);
         ConfigureDataProtection(context);
         ConfigureEfCore(context);
-        // ConfigureRedisRateLimiter(context, configuration);
-        // ConfigureFusionCache(context, configuration);
+        ConfigureRedisRateLimiter(context, configuration);
+        ConfigureFusionCache(context, configuration);
         ConfigureRateLimiter(context);
         ConfigureAiHttpClient(context, AiServiceNames.Gemini, "https://generativelanguage.googleapis.com/");
         ConfigureAiHttpClient(context, AiServiceNames.AzureTts, "https://<your-region>.tts.speech.microsoft.com/");
@@ -202,9 +202,10 @@ public class EnglishLearningAppModule : AbpModule
                 await ctx.HttpContext.Response.WriteAsync("Too many requests, please try again later.", token);
             };
 
-            options.AddPolicy("redis-limiter", httpContext =>
+            options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(httpContext =>
             {
                 var redisService = httpContext.RequestServices.GetRequiredService<RedisRateLimiterService>();
+                var logger = httpContext.RequestServices.GetRequiredService<ILogger<EnglishLearningAppModule>>();
 
                 string clientId = httpContext.User.Identity?.IsAuthenticated == true
                     ? httpContext.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
@@ -214,10 +215,24 @@ public class EnglishLearningAppModule : AbpModule
                 string path = httpContext.Request.Path.ToString().ToLower();
                 string partitionKey = $"{clientId}:{path}";
 
+                int capacity;
+                double refillRate;
                 var endpoint = httpContext.GetEndpoint();
-                var customAttribute = endpoint?.Metadata.GetMetadata<CustomRateLimitAttribute>();
-                int capacity = customAttribute?.Capacity ?? 10;
-                double refillRate = customAttribute?.FillRatePerSecond ?? 2;
+
+                if (path.StartsWith("/connect/token") || path.StartsWith("/api/account/register"))
+                {
+                    capacity = 5;
+                    refillRate = 0.0083;
+                }
+                else
+                {
+                    var customAttribute = endpoint?.Metadata.GetMetadata<CustomRateLimitAttribute>();
+                    capacity = customAttribute?.Capacity ?? 10;
+                    refillRate = customAttribute?.FillRatePerSecond ?? 2;
+                }
+
+                logger.LogWarning("RATE_LIMITER_CHECK ==> Path: {Path} | Capacity: {Capacity} | RefillRate: {RefillRate} | HasAttribute: {HasAttr}",
+                                    path, capacity, refillRate, endpoint?.Metadata.GetMetadata<CustomRateLimitAttribute>() != null);
 
                 return RateLimitPartition.Get(partitionKey, key =>
                     new RedisTokenBucketRateLimiter(redisService, partitionKey, capacity, refillRate));
@@ -461,8 +476,9 @@ public class EnglishLearningAppModule : AbpModule
     {
         var app = context.GetApplicationBuilder();
         var env = context.GetEnvironment();
-        app.UseResponseCompression();
         app.UseForwardedHeaders();
+        app.UseResponseCompression();
+
         if (env.IsDevelopment())
         {
             app.UseDeveloperExceptionPage();

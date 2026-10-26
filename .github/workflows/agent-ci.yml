@@ -69,6 +69,7 @@ jobs:
           flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --exclude=venv,.git,__pycache__ --statistics
   docker-build-push:
     needs: lint-and-test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     permissions:
       contents: read
       packages: write
@@ -107,6 +108,7 @@ jobs:
           cache-to: type=gha,mode=max
   deploy-to-azure:
     needs: docker-build-push
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
       - name: Log in to Azure

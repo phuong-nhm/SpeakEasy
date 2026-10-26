@@ -22,7 +22,6 @@ RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu && \
     pip install --no-cache-dir -r requirements.txt
 
-RUN python -m guardrails_ai.toxic_language.post_install
 
 # ==========================================
 # STAGE 2: Final Image (Môi trường chạy tối ưu)
@@ -43,7 +42,9 @@ RUN mkdir -p /app/nltk_data && chown -R appuser:appgroup /app/nltk_data
 
 # Cố định biến môi trường để NLTK biết đường chui vào thư mục này đọc/ghi
 ENV NLTK_DATA=/app/nltk_data
-
+RUN mkdir -p /app/torch_cache && chown -R appuser:appgroup /app/torch_cache
+ENV TORCH_HOME=/app/torch_cache
+RUN python -m guardrails_ai.toxic_language.post_install
 # Tải trước gói punkt của NLTK ngay tại lúc build (chạy với quyền root ở stage này hoàn toàn OK)
 RUN python -c "import nltk; nltk.download('punkt', download_dir='/app/nltk_data')"
 # Copy toàn bộ mã nguồn của AI Agent vào
