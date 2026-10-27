@@ -290,3 +290,5 @@ appsettings.Production.json
 /frontend/node_modules/
 .vercel
 *.tsbuildinfo
+function.md
+NotFinish.md
