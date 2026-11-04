@@ -1,6 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
+import {
+  useMutation,
+  useQueries,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 
 import { LessonDto } from "@/features/frontend/lesson/types/lesson";
 import { roadmapService } from "../services/roadmapService";
@@ -62,7 +68,8 @@ function getChapterStatus(lessons: RoadmapLessonView[]): LessonStatus {
 }
 
 export function useRoadmap() {
-  const [levels, setLevels] = useState<LevelDto[]>([]);
+  const queryClient = useQueryClient();
+
   const [selectedLevelId, setSelectedLevelIdState] = useState<string | null>(
     null,
   );
@@ -70,105 +77,59 @@ export function useRoadmap() {
     string | null
   >(null);
 
-  const [chapters, setChapters] = useState<ChapterDto[]>([]);
-  const [lessonsByChapter, setLessonsByChapter] = useState<
-    Record<string, LessonDto[]>
-  >({});
-  const [progress, setProgress] = useState<UserProgressDto[]>([]);
+  // ==========================================
+  // BÀI TẬP 1: Khởi tạo các Query cơ bản
+  // ==========================================
+  const levelsQuery = useQuery({
+    queryKey: ["levels"],
+    queryFn: () => roadmapService.getLevels(),
+  });
+  const progressQuery = useQuery({
+    queryKey: ["user-progress"],
+    queryFn: () => roadmapService.getMyProgress(),
+  });
 
-  const [loadingLevels, setLoadingLevels] = useState(true);
-  const [loadingLevelDetail, setLoadingLevelDetail] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const levels: LevelDto[] = levelsQuery.data?.items ?? [];
+  const progress: UserProgressDto[] = progressQuery.data ?? [];
 
-  // 1. Load toàn bộ Level + Progress của user - chỉ cần load 1 lần
-  useEffect(() => {
-    let isMounted = true;
+  // Level đang hiệu lực: cái user bấm chọn, hoặc cái đầu tiên nếu chưa chọn gì
+  const effectiveLevelId = selectedLevelId ?? levels[0]?.id ?? null;
 
-    const load = async () => {
-      setLoadingLevels(true);
-      setError(null);
+  // ==========================================
+  // BÀI TẬP 2: Dependent Query (chaptersQuery)
+  // ==========================================
+  const chaptersQuery = useQuery({
+    queryKey: ["chapters", effectiveLevelId],
+    queryFn: () =>
+      roadmapService.getChaptersByLevel(effectiveLevelId as string),
+    enabled: !!effectiveLevelId,
+  });
 
-      try {
-        const [levelResult, progressResult] = await Promise.all([
-          roadmapService.getLevels(),
-          roadmapService.getMyProgress(),
-        ]);
+  const chapters: ChapterDto[] = useMemo(
+    () => sortByOrderIndex(chaptersQuery.data ?? []),
+    [chaptersQuery.data],
+  );
 
-        if (!isMounted) return;
+  // ==========================================
+  // BÀI TẬP 3: Đa truy vấn động với useQueries
+  // ==========================================
+  const lessonQueries = useQueries({
+    queries: chapters.map((chapter) => ({
+      queryKey: ["lessons", chapter.id],
+      queryFn: () => roadmapService.getLessonsByChapter(chapter.id),
+    })),
+  });
 
-        setLevels(levelResult.items);
-        setProgress(progressResult);
-        setSelectedLevelIdState(
-          (current) => current ?? levelResult.items[0]?.id ?? null,
-        );
-      } catch {
-        if (isMounted) setError("Không thể tải danh sách cấp độ.");
-      } finally {
-        if (isMounted) setLoadingLevels(false);
-      }
-    };
-
-    load();
-
-    return () => {
-      isMounted = false;
-    };
-  }, []);
-
-  // 2. Khi đổi Level -> load toàn bộ Chapter + Lesson của Level đó (load hết,
-  // không chỉ chapter đang chọn, để tính được chuỗi unlock xuyên suốt cả Level)
-  useEffect(() => {
-    if (!selectedLevelId) return;
-
-    let isMounted = true;
-
-    const load = async () => {
-      setLoadingLevelDetail(true);
-      setError(null);
-
-      try {
-        const chapterList =
-          await roadmapService.getChaptersByLevel(selectedLevelId);
-        if (!isMounted) return;
-
-        const sortedChapters = sortByOrderIndex(chapterList);
-        setChapters(sortedChapters);
-
-        const lessonResults = await Promise.all(
-          sortedChapters.map((chapter) =>
-            roadmapService.getLessonsByChapter(chapter.id),
-          ),
-        );
-
-        if (!isMounted) return;
-
-        const nextLessonsByChapter: Record<string, LessonDto[]> = {};
-        sortedChapters.forEach((chapter, index) => {
-          nextLessonsByChapter[chapter.id] = lessonResults[index];
-        });
-        setLessonsByChapter(nextLessonsByChapter);
-
-        setSelectedChapterIdState((current) => {
-          if (current && sortedChapters.some((c) => c.id === current)) {
-            return current;
-          }
-          return sortedChapters[0]?.id ?? null;
-        });
-      } catch {
-        if (isMounted) {
-          setError("Không thể tải chapter/lesson của cấp độ này.");
-        }
-      } finally {
-        if (isMounted) setLoadingLevelDetail(false);
-      }
-    };
-
-    load();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [selectedLevelId]);
+  const loadingLessons = lessonQueries.some((q) => q.isLoading);
+  const lessonsUpdatedKey = lessonQueries.map((q) => q.dataUpdatedAt).join(",");
+  const lessonsByChapter = useMemo(() => {
+    const map: Record<string, LessonDto[]> = {};
+    chapters.forEach((chapter, index) => {
+      map[chapter.id] = lessonQueries[index]?.data ?? [];
+    });
+    return map;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chapters, lessonsUpdatedKey]);
 
   const completedLessonIds = useMemo(() => {
     return new Set(
@@ -176,7 +137,7 @@ export function useRoadmap() {
     );
   }, [progress]);
 
-  // 3. Ráp Chapter + Lesson thô thành cây có status đầy đủ (completed/unlocked/locked)
+  // 4. Ráp Chapter + Lesson thô thành cây có status đầy đủ
   const roadmapChapters: RoadmapChapterView[] = useMemo(() => {
     return chapters.reduce<RoadmapChapterView[]>((acc, chapter, index) => {
       const lessons = buildLessonViews(
@@ -206,55 +167,75 @@ export function useRoadmap() {
   }, [chapters, lessonsByChapter, completedLessonIds]);
 
   const selectedLevel = useMemo(
-    () => levels.find((level) => level.id === selectedLevelId) ?? null,
-    [levels, selectedLevelId],
+    () => levels.find((level) => level.id === effectiveLevelId) ?? null,
+    [levels, effectiveLevelId],
   );
+
+  const effectiveChapterId =
+    selectedChapterId ?? roadmapChapters[0]?.id ?? null;
 
   const selectedChapter = useMemo(
     () =>
-      roadmapChapters.find((chapter) => chapter.id === selectedChapterId) ??
+      roadmapChapters.find((chapter) => chapter.id === effectiveChapterId) ??
       roadmapChapters[0] ??
       null,
-    [roadmapChapters, selectedChapterId],
+    [roadmapChapters, effectiveChapterId],
   );
 
   const handleSelectLevel = useCallback((levelId: string) => {
     setSelectedLevelIdState(levelId);
-    setSelectedChapterIdState(null); // effect load Chapter/Lesson mới sẽ tự chọn chapter đầu tiên
+    setSelectedChapterIdState(null);
   }, []);
 
   const handleSelectChapter = useCallback((chapterId: string) => {
     setSelectedChapterIdState(chapterId);
   }, []);
 
-  // Cập nhật optimistic ở local state sau khi đánh dấu hoàn thành,
-  // khỏi phải gọi lại getMyProgress() mất thêm 1 round-trip
-  const markLessonCompleted = useCallback(async (lessonId: string) => {
-    try {
-      await roadmapService.markLessonCompleted(lessonId);
-      setProgress((prev) => {
-        const exists = prev.some((p) => p.lessonId === lessonId);
+  // ==========================================
+  // BÀI TẬP 4: Optimistic Update với useMutation
+  // ==========================================
+  const markLessonMutation = useMutation({
+    mutationFn: (lessonId: string) =>
+      roadmapService.markLessonCompleted(lessonId),
+    onSuccess: (_data, lessonId) => {
+      queryClient.setQueryData<UserProgressDto[]>(["user-progress"], (prev) => {
+        const list = prev ?? [];
+        const exists = list.some((p) => p.lessonId === lessonId);
         if (exists) {
-          return prev.map((p) =>
+          return list.map((p) =>
             p.lessonId === lessonId ? { ...p, isCompleted: true } : p,
           );
         }
-        return [...prev, { id: lessonId, lessonId, isCompleted: true }];
+        return [...list, { id: lessonId, lessonId, isCompleted: true }];
       });
-    } catch {
-      // TODO: thêm toast báo lỗi nếu cần
-    }
-  }, []);
+    },
+  });
+
+  const markLessonCompleted = useCallback(
+    async (lessonId: string) => {
+      try {
+        await markLessonMutation.mutateAsync(lessonId);
+      } catch {
+        // TODO: thêm toast báo lỗi nếu cần
+      }
+    },
+    [markLessonMutation],
+  );
+
+  const error =
+    levelsQuery.isError || progressQuery.isError || chaptersQuery.isError
+      ? "Không thể tải dữ liệu lộ trình học."
+      : null;
 
   return {
     levels,
     selectedLevel,
-    selectedLevelId,
+    selectedLevelId: effectiveLevelId,
     chapters: roadmapChapters,
     selectedChapter,
-    selectedChapterId,
-    loading: loadingLevels,
-    loadingLevelDetail,
+    selectedChapterId: effectiveChapterId,
+    loading: levelsQuery.isLoading || progressQuery.isLoading,
+    loadingLevelDetail: chaptersQuery.isLoading || loadingLessons,
     error,
     setSelectedLevelId: handleSelectLevel,
     setSelectedChapterId: handleSelectChapter,
