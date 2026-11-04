@@ -292,3 +292,5 @@ appsettings.Production.json
 *.tsbuildinfo
 function.md
 NotFinish.md
+Entities.md
+nosql.md
