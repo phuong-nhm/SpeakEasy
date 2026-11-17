@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { lessonService } from "../services/lessonService";
 import {
@@ -41,19 +42,52 @@ const defaultCompletedParts: CompletedParts = {
   comprehensive: false,
 };
 
-// Backend không trả hearts/xp mặc định -> FE tự định nghĩa cứng
-const DEFAULT_HEARTS = 10; // tăng từ 5 - học bài chứ không phải chơi game khó
+const DEFAULT_HEARTS = 10;
 const XP_PER_CORRECT = 30;
 const XP_PER_HEART_LEFT = 10;
 
 export function useLessonFlow(lessonId: string) {
-  const [lesson, setLesson] = useState<LessonDto | null>(null);
-  const [grammarNote, setGrammarNote] = useState<GrammarNoteDto | null>(null);
-  const [vocabularies, setVocabularies] = useState<VocabularyDto[]>([]);
-  const [sentences, setSentences] = useState<SentenceExerciseDto[]>([]);
+  const queryClient = useQueryClient();
 
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState<string | null>(null);
+  // ===== LOAD DATA qua React Query =====
+  const lessonContentQuery = useQuery({
+    queryKey: ["lesson-content", lessonId],
+    queryFn: () => lessonService.getLessonContent(lessonId),
+    enabled: !!lessonId,
+  });
+
+  const grammarNoteQuery = useQuery({
+    queryKey: ["grammar-note", lessonId],
+    queryFn: () => lessonService.getGrammarNoteByLesson(lessonId),
+    enabled: !!lessonId,
+  });
+
+  const partProgressQuery = useQuery({
+    queryKey: ["part-progress", lessonId],
+    queryFn: () => lessonService.getPartProgress(lessonId),
+    enabled: !!lessonId,
+  });
+
+  const lesson: LessonDto | null = lessonContentQuery.data?.lesson ?? null;
+  const vocabularies: VocabularyDto[] =
+    lessonContentQuery.data?.vocabularies ?? [];
+  const sentences = useMemo<SentenceExerciseDto[]>(
+    () => lessonContentQuery.data?.sentences ?? [],
+    [lessonContentQuery.data],
+  );
+  const grammarNote: GrammarNoteDto | null = grammarNoteQuery.data ?? null;
+
+  const loading =
+    lessonContentQuery.isLoading ||
+    grammarNoteQuery.isLoading ||
+    partProgressQuery.isLoading;
+
+  const loadError =
+    lessonContentQuery.isError ||
+    grammarNoteQuery.isError ||
+    partProgressQuery.isError
+      ? "Không thể tải dữ liệu bài học."
+      : null;
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [selectedPart, setSelectedPart] = useState<LessonPart | null>(null);
@@ -74,7 +108,7 @@ export function useLessonFlow(lessonId: string) {
   const [hearts, setHearts] = useState(DEFAULT_HEARTS);
   const [correctAnswers, setCorrectAnswers] = useState(0);
   const [isCompleted, setIsCompleted] = useState(false);
-  const [isLessonFailed, setIsLessonFailed] = useState(false); // MỚI
+  const [isLessonFailed, setIsLessonFailed] = useState(false);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
 
   const [vocabSubStep, setVocabSubStep] = useState<VocabSubStep>("intro");
@@ -125,66 +159,47 @@ export function useLessonFlow(lessonId: string) {
     resetCurrentState();
   };
 
-  // ===== LOAD DATA =====
+  // ===== RESET state phiên học mỗi khi đổi sang Lesson khác =====
+  // Đây là state cục bộ UI/game (hearts, index, summary...), không phải data
+  // server, nên tách riêng khỏi phần fetch - chạy ngay khi lessonId đổi,
+  // không cần chờ 3 query trên load xong
+  const [syncedLessonId, setSyncedLessonId] = useState(lessonId);
+  if (syncedLessonId !== lessonId) {
+    setSyncedLessonId(lessonId);
+    setHearts(DEFAULT_HEARTS);
+    setSelectedPart(null);
+    setCurrentIndex(0);
+    setSelectedWords([]);
+    setSelectedText("");
+    setSelectedSentence(null);
+    setIsChecked(false);
+    setResultType(null);
+    setCorrectAnswers(0);
+    setIsCompleted(false);
+    setIsLessonFailed(false);
+    setSummary(null);
+    setVocabSubStep("intro");
+    setIsVocabularyMatchingCompleted(false);
+  }
   useEffect(() => {
-    let isMounted = true;
-
-    const load = async () => {
-      setLoading(true);
-      setLoadError(null);
-
-      try {
-        const [content, note, partProgress] = await Promise.all([
-          lessonService.getLessonContent(lessonId),
-          lessonService.getGrammarNoteByLesson(lessonId),
-          lessonService.getPartProgress(lessonId),
-        ]);
-
-        if (!isMounted) return;
-
-        setLesson(content.lesson);
-        setVocabularies(content.vocabularies);
-        setSentences(content.sentences);
-        setGrammarNote(note);
-
-        setHearts(DEFAULT_HEARTS);
-        setSelectedPart(null);
-        setCompletedParts({
-          vocabulary: partProgress.isVocabularyCompleted,
-          grammar: partProgress.isGrammarCompleted,
-          comprehensive: partProgress.isComprehensiveCompleted,
-        });
-        setCurrentIndex(0);
-        resetCurrentState();
-        setCorrectAnswers(0);
-        setIsCompleted(false);
-        setIsLessonFailed(false);
-        setSummary(null);
-        setVocabSubStep("intro");
-        setIsVocabularyMatchingCompleted(false);
-        startedAtRef.current = Date.now();
-      } catch (error) {
-        if (isMounted) {
-          setLesson(null);
-          setLoadError(
-            error instanceof Error
-              ? error.message
-              : "Không thể tải dữ liệu bài học.",
-          );
-        }
-      } finally {
-        if (isMounted) setLoading(false);
-      }
-    };
-
-    load();
-
-    return () => {
-      isMounted = false;
-    };
+    startedAtRef.current = Date.now();
   }, [lessonId]);
+  // Đồng bộ completedParts từ server - chỉ sync đúng 1 lần cho mỗi Lesson,
+  // ngay khi partProgress vừa load xong; sau đó completeCurrentPart() tự
+  // cập nhật optimistic local, không bị ghi đè lại khi query refetch ngầm
+  const [completedPartsSyncedId, setCompletedPartsSyncedId] = useState<
+    string | null
+  >(null);
+  if (partProgressQuery.data && completedPartsSyncedId !== lessonId) {
+    setCompletedPartsSyncedId(lessonId);
+    setCompletedParts({
+      vocabulary: partProgressQuery.data.isVocabularyCompleted,
+      grammar: partProgressQuery.data.isGrammarCompleted,
+      comprehensive: partProgressQuery.data.isComprehensiveCompleted,
+    });
+  }
 
-  // ===== PHÂN LOẠI SENTENCES THEO PHẦN =====
+  // ===== PHÂN LOẠI SENTENCES THEO PHẦN (giữ nguyên) =====
   const grammarQuestions = useMemo<SentenceExerciseDto[]>(() => {
     return sentences.filter((s) => s.sectionType === SectionType.Grammar);
   }, [sentences]);
@@ -269,7 +284,6 @@ export function useLessonFlow(lessonId: string) {
     setSelectedSentence(sentence);
   };
 
-  // ===== CHECK ANSWER (local, không gọi API nữa) =====
   const handleCheckAnswer = () => {
     if (!currentQuestion || isChecked || isChecking || isCompleted) return;
 
@@ -371,6 +385,11 @@ export function useLessonFlow(lessonId: string) {
       }
 
       await Promise.all(tasks);
+
+      // Lesson vừa hoàn thành -> Dashboard/Roadmap đang cache "user-progress"
+      // cần fetch lại để thấy Lesson này completed ngay khi quay về,
+      // không phải đợi F5
+      queryClient.invalidateQueries({ queryKey: ["user-progress"] });
     } catch {
       // Không chặn UI nếu submit lỗi - người dùng đã thấy summary rồi
     }
@@ -379,8 +398,6 @@ export function useLessonFlow(lessonId: string) {
   const completeCurrentPart = () => {
     if (!selectedPart || !lesson) return;
 
-    // Lưu xuống DB - không chặn UI nếu lỗi, người dùng vẫn tiếp tục học bình
-    // thường, chỉ là lần sau F5 có thể phải học lại Part này
     lessonService
       .markPartCompleted(lesson.id, PART_INDEX_MAP[selectedPart])
       .catch(() => {});
@@ -413,7 +430,6 @@ export function useLessonFlow(lessonId: string) {
     finalizeLesson();
   };
 
-  // ===== VOCABULARY SUB-FLOW =====
   const handleVocabularyContinueToFlashcard = () => {
     if (!selectedPart || selectedPart !== "vocabulary") return;
     setVocabSubStep("flashcard");
@@ -434,7 +450,6 @@ export function useLessonFlow(lessonId: string) {
     vocabSubStep === "matching" &&
     isVocabularyMatchingCompleted;
 
-  // ===== RETRY khi hết tim giữa chừng Part 3 (MỚI) =====
   const retryComprehensivePart = () => {
     setIsLessonFailed(false);
     setHearts(DEFAULT_HEARTS);
@@ -458,8 +473,6 @@ export function useLessonFlow(lessonId: string) {
 
     if (selectedPart === "comprehensive") {
       if (hearts === 0) {
-        // Hết tim GIỮA CHỪNG (chưa trả lời hết câu) -> thất bại,
-        // KHÔNG mở khóa Lesson sau, không gọi finalizeLesson
         setIsLessonFailed(true);
         return;
       }
